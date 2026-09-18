@@ -10,8 +10,9 @@
 <meta property="og:title" content="One Day Trip Pulau Sangiang — Nena Adventure">
 <meta property="og:description" content="Open Trip Reguler, Open Trip Premium, dan Private Trip Premium ke Pulau Sangiang. Tanpa minimal pax, 1 orang tetap berangkat. Asuransi Zurich untuk seluruh peserta.">
 <meta property="og:locale" content="id_ID">
+<meta property="og:image" content="assets/logo/logo-horizontal.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F5E9E'/%3E%3Cpath d='M8 21h16M9 17l7-9 7 9' stroke='%230B7BBF' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="assets/logo/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
@@ -22,6 +23,7 @@
   "@type":"TravelAgency",
   "name":"Nena Adventure",
   "legalName":"Nena Adventure Nusantara",
+  "logo":"assets/logo/logo-emblem.png",
   "telephone":"+6281286133202",
   "priceRange":"Rp385.000 - Rp7.300.000",
   "address":{"@type":"PostalAddress","streetAddress":"Pantai Pangaradan, Anyer","addressLocality":"Anyer","addressRegion":"Banten","addressCountry":"ID"},
@@ -108,6 +110,7 @@ body{
 #view-home .nav{display:flex;gap:26px;font-size:15px;font-weight:500}
 #view-home .nav a{padding:8px 0;border-bottom:2px solid transparent}
 #view-home .nav a:hover{border-color:var(--buoy)}
+#view-home .nav a.on{border-color:var(--hull);color:var(--hull);font-weight:700}
 #view-home .hdr-cta{display:flex;align-items:center;gap:10px}
 #view-home .burger{display:none;width:48px;height:48px;background:none;border:1px solid var(--line);
   border-radius:var(--rs);cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:5px}
@@ -904,6 +907,10 @@ html{-webkit-text-size-adjust:100%}
 <style>
 /* ── Kerangka view (beranda publik, booking publik, admin internal) ── */
 #view-home[hidden],#view-booking[hidden],#view-admin[hidden]{display:none}
+#view-home .page[hidden]{display:none}
+#view-home .pagehead{padding:26px 0 6px}
+#view-home .pagehead .back{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--hull)}
+#view-home .pagehead .back:hover{text-decoration:underline}
 #view-booking,#view-admin{min-height:100vh}
 </style>
 </head>
@@ -913,18 +920,17 @@ html{-webkit-text-size-adjust:100%}
 
 <header class="hdr" id="hdr">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Nena Adventure, beranda">
-      <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0F5E9E"/><path d="M8 21h16M9 17l7-9 7 9" stroke="#0B7BBF" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <a class="brand" href="#/" aria-label="Nena Adventure, beranda">
+      <img src="assets/logo/logo-emblem.png" alt="Logo Nena Adventure" width="38" height="38" style="flex:0 0 auto;object-fit:contain">
       <span><b>NENA ADVENTURE</b><span>Pulau Sangiang, Banten</span></span>
     </a>
     <nav class="nav" aria-label="Navigasi utama">
-      <a href="#tentang-pulau">Pulau Sangiang</a>
-      <a href="#paket">Paket</a>
-      <a href="#destinasi">Destinasi</a>
-      <a href="#galeri">Galeri</a>
-      <a href="#keamanan">Keselamatan</a>
-      <a href="#jadwal">Jadwal</a>
-      <a href="#lokasi">Lokasi</a>
+      <a href="#/destinasi" data-page-link="destinasi">Destinasi</a>
+      <a href="#/paket" data-page-link="paket">Paket</a>
+      <a href="#/itinerary" data-page-link="itinerary">Itinerary</a>
+      <a href="#/keselamatan" data-page-link="keselamatan">Keselamatan</a>
+      <a href="#/jadwal" data-page-link="jadwal">Jadwal</a>
+      <a href="#/lokasi" data-page-link="lokasi">Lokasi</a>
     </nav>
     <div class="hdr-cta">
       <a class="btn btn--go btn--sm" href="#/booking">Booking online</a>
@@ -935,22 +941,21 @@ html{-webkit-text-size-adjust:100%}
 
 <div class="mm" id="mm" hidden role="dialog" aria-modal="true" aria-label="Menu">
   <button class="mm-x" id="mmx" aria-label="Tutup menu">&times;</button>
-  <a href="#tentang-pulau">Pulau Sangiang</a>
-  <a href="#paket">Paket &amp; harga</a>
-  <a href="#itinerary">Itinerary</a>
-  <a href="#destinasi">Destinasi</a>
-  <a href="#galeri">Galeri</a>
-  <a href="#keamanan">Keselamatan &amp; asuransi</a>
-  <a href="#jadwal">Jadwal keberangkatan</a>
-  <a href="#lokasi">Lokasi &amp; meeting point</a>
-  <a href="#registrasi">Registrasi &amp; pembayaran</a>
-  <a href="#syarat">Syarat &amp; ketentuan</a>
-  <a href="#faq">FAQ</a>
+  <a href="#/destinasi">Destinasi &amp; Pulau Sangiang</a>
+  <a href="#/paket">Paket &amp; harga</a>
+  <a href="#/itinerary">Itinerary</a>
+  <a href="#/keselamatan">Keselamatan &amp; asuransi</a>
+  <a href="#/jadwal">Jadwal keberangkatan</a>
+  <a href="#/lokasi">Lokasi &amp; meeting point</a>
+  <a href="#/registrasi">Registrasi &amp; pembayaran</a>
+  <a href="#/syarat">Syarat &amp; ketentuan</a>
+  <a href="#/faq">FAQ</a>
   <a class="btn btn--go btn--wide" href="#/booking">Booking online</a>
 </div>
 
 <main id="main">
 
+<section class="page" id="page-beranda">
 <!-- HERO 2 (Tripco style: banner + floating search card) -->
 <section class="hero2" id="top">
   <div class="wrap">
@@ -1013,27 +1018,27 @@ html{-webkit-text-size-adjust:100%}
       </div>
     </div>
     <ul class="pop-grid" style="list-style:none">
-      <li><a class="pop-card" href="#destinasi">
+      <li><a class="pop-card" href="#/destinasi">
         <div class="pop-img"><span class="pop-badge">Snorkeling</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=480&q=72" alt="Legon Bajo"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=480&q=72" alt="Legon Bajo"></div>
         <span class="pop-name">Legon Bajo</span>
         <span class="pop-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang, Banten</span>
       </a></li>
-      <li><a class="pop-card" href="#destinasi">
+      <li><a class="pop-card" href="#/destinasi">
         <div class="pop-img"><span class="pop-badge">Viewpoint</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=480&q=72" alt="Puncak Harapan"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=480&q=72" alt="Puncak Harapan"></div>
         <span class="pop-name">Puncak Harapan</span>
         <span class="pop-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang, Banten</span>
       </a></li>
-      <li><a class="pop-card" href="#destinasi">
+      <li><a class="pop-card" href="#/destinasi">
         <div class="pop-img"><span class="pop-badge">Paddle board</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=480&q=72" alt="Tembuyung Beach"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=480&q=72" alt="Tembuyung Beach"></div>
         <span class="pop-name">Tembuyung Beach</span>
         <span class="pop-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang, Banten</span>
       </a></li>
-      <li><a class="pop-card" href="#destinasi">
+      <li><a class="pop-card" href="#/destinasi">
         <div class="pop-img"><span class="pop-badge">Private Trip</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=480&q=72" alt="Krakatoa View"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=480&q=72" alt="Krakatoa View"></div>
         <span class="pop-name">Krakatoa View</span>
         <span class="pop-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang, Banten</span>
       </a></li>
@@ -1105,32 +1110,32 @@ html{-webkit-text-size-adjust:100%}
           <div class="exp-price">Rp4.500.000<small>/1–6 pax</small></div>
         </div>
       </a></li>
-      <li class="exp-item" data-cat="reguler premium"><a class="exp-card" href="#destinasi">
+      <li class="exp-item" data-cat="reguler premium"><a class="exp-card" href="#/destinasi">
         <div class="exp-img"><span class="exp-rate">★ 4.8</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=640&q=74" alt="Hutan Hujan Pulau Sangiang"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=640&q=74" alt="Hutan Hujan Pulau Sangiang"></div>
         <div class="exp-body">
           <div><div class="exp-name">Hutan Hujan Pulau Sangiang</div><div class="exp-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang</div></div>
           <div class="exp-price">Termasuk<small>semua paket</small></div>
         </div>
       </a></li>
-      <li class="exp-item" data-cat="premium private"><a class="exp-card" href="#destinasi">
+      <li class="exp-item" data-cat="premium private"><a class="exp-card" href="#/destinasi">
         <div class="exp-img"><span class="exp-rate">★ 4.9</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=640&q=74" alt="Goa Kelelawar"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1751517617051-24583509a103?auto=format&fit=crop&w=640&q=74" alt="Goa Kelelawar"></div>
         <div class="exp-body">
           <div><div class="exp-name">Goa Kelelawar</div><div class="exp-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang</div></div>
           <div class="exp-price">Termasuk<small>Open &amp; Private Trip</small></div>
         </div>
       </a></li>
-      <li class="exp-item" data-cat="private"><a class="exp-card" href="#destinasi">
+      <li class="exp-item" data-cat="private"><a class="exp-card" href="#/destinasi">
         <div class="exp-img"><span class="exp-rate">★ 5.0</span>
-          <img loading="lazy" src="https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=640&q=74" alt="Legon Waru"></div>
+          <img loading="lazy" src="https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=640&q=74" alt="Legon Waru"></div>
         <div class="exp-body">
           <div><div class="exp-name">Legon Waru — Free Diving</div><div class="exp-loc"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Pulau Sangiang</div></div>
           <div class="exp-price">Khusus<small>Private Trip</small></div>
         </div>
       </a></li>
     </ul>
-    <p style="text-align:center;margin-top:var(--s6)"><a class="btn btn--out" href="#paket">Lihat semua paket &amp; harga</a></p>
+    <p style="text-align:center;margin-top:var(--s6)"><a class="btn btn--out" href="#/paket">Lihat semua paket &amp; harga</a></p>
   </div>
 </section>
 
@@ -1170,58 +1175,21 @@ html{-webkit-text-size-adjust:100%}
   </div>
 </section>
 
-<!-- ABOUT ISLAND -->
-<section class="sec" id="tentang-pulau">
+<!-- BAND -->
+<section class="sec--tight band">
   <div class="wrap">
-    <div class="about">
-      <div>
-        <div class="hd" style="margin-bottom:var(--s5)">
-          <h2>Pulau Sangiang, Selat Sunda.</h2>
-          <p class="lead">Berada di antara Pulau Jawa dan Sumatra, Pulau Sangiang secara administratif termasuk Desa Cikoneng, Kecamatan Anyar, Kabupaten Serang, Banten. Dalam satu pulau ini ada laut, hutan, tebing, dan spot bawah laut — bukan cuma pantai.</p>
-        </div>
-        <ul>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Laut yang jernih</strong> — cocok untuk snorkeling dan menikmati kehidupan bawah laut.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Keindahan bawah laut</strong> — terumbu karang dan ikan jadi daya tarik utama wisata bahari.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Pantai yang masih alami</strong> — suasananya tenang dibanding destinasi pantai yang sudah ramai.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Tebing dan garis pantai</strong> — perpaduan tebing, batuan, dan laut yang menarik untuk foto.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Hutan tropis</strong> — vegetasi alami membuat perjalanan terasa seperti eksplorasi.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Goa dan kawasan alam</strong> — lokasi eksplorasi selain bermain di pantai.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Sunset dan panorama Selat Sunda</strong> — pemandangan laut terbuka yang berkesan saat cuaca cerah.</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Area peneluran penyu</strong> — kawasan Sangiang dikenal memiliki habitat yang berkaitan dengan penyu.</span></li>
-        </ul>
-      </div>
-      <div class="factbox">
-        <div><span>Status kawasan</span><b>Taman Wisata Alam Laut (TWAL)</b></div>
-        <div><span>Luas daratan</span><b class="num">± 700,35 Ha (7,0 km²)</b></div>
-        <div><span>Luas perairan wisata (TWAL)</span><b class="num">± 720 Ha (7,2 km²)</b></div>
-        <div><span>Lokasi</span><b>Selat Sunda, antara Jawa &amp; Sumatra</b></div>
-        <div><span>Administratif</span><b>Desa Cikoneng, Kec. Anyar, Kab. Serang, Banten</b></div>
-      </div>
+    <h2>Kursi akhir pekan ini masih ada.</h2>
+    <p>Pilih tanggal, isi data peserta, bayar online. Selesai dalam tiga menit, e-voucher langsung dikirim.</p>
+    <div class="row">
+      <a class="btn btn--go" href="#/booking">Booking online sekarang</a>
+      <a class="btn btn--out" id="waBand" href="https://wa.me/6281286133202">Tanya dulu lewat WhatsApp</a>
     </div>
   </div>
 </section>
-
-<!-- KEUNGGULAN -->
-<section class="sec sec--mist" id="keunggulan">
-  <div class="wrap">
-    <div class="hd">
-      <h2>Keunggulan Nena Adventure.</h2>
-      <p class="lead">Delapan alasan peserta memilih Nena Adventure untuk trip ke Pulau Sangiang.</p>
-    </div>
-    <div class="perks">
-      <div class="perk"><span class="n">1</span><h4>🚤 Speedboat milik sendiri</h4><p>Armada speedboat milik Nena Adventure sendiri, operasional trip lebih terkontrol.</p></div>
-      <div class="perk"><span class="n">2</span><h4>🛟 Asuransi Zurich</h4><p>Peserta mendapat asuransi wisata dari Zurich sesuai ketentuan dan manfaat polis yang berlaku.</p></div>
-      <div class="perk"><span class="n">3</span><h4>Tanpa minimal pax</h4><p>Mau booking sendirian tetap berangkat. Tidak perlu menunggu teman atau rombongan. 1 pax tetap berangkat.</p></div>
-      <div class="perk"><span class="n">4</span><h4>👨‍👩‍👧‍👦 Solo &amp; rombongan</h4><p>Datang sendiri, berdua, bersama pasangan, keluarga, atau teman — tetap bisa menikmati perjalanan.</p></div>
-      <div class="perk"><span class="n">5</span><h4>🤿 Banyak aktivitas</h4><p>Snorkeling, free dive, paddle board, tracking, dan eksplorasi pantai serta alam Pulau Sangiang.</p></div>
-      <div class="perk"><span class="n">6</span><h4>📸 Dokumentasi perjalanan</h4><p>Mengabadikan momen peserta, termasuk underwater dan aerial sesuai fasilitas paket.</p></div>
-      <div class="perk"><span class="n">7</span><h4>🤝 Friendly adventure</h4><p>Tidak harus saling kenal dari awal. Datang sendiri, pulang membawa pengalaman dan teman baru.</p></div>
-      <div class="perk"><span class="n">8</span><h4>⭐ Paket Reguler &amp; Premium</h4><p>Peserta dapat memilih paket sesuai kebutuhan dan fasilitas yang diinginkan.</p></div>
-    </div>
-    <p class="hint" style="margin-top:var(--s6);font-size:14px;color:var(--mut)">Khusus program 2 Hari 1 Malam (2D1N) berlaku minimal 2 pax untuk keberangkatan.</p>
-  </div>
 </section>
 
+<section class="page" id="page-paket" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- PACKAGES -->
 <section class="sec" id="paket">
   <div class="wrap">
@@ -1356,6 +1324,51 @@ html{-webkit-text-size-adjust:100%}
   </div>
 </section>
 
+<!-- REVIEWS -->
+<section class="sec" id="ulasan">
+  <div class="wrap">
+    <div class="hd">
+      <h2>Kata peserta sebelumnya.</h2>
+      <p class="lead">Ulasan diambil dari Google Review dan pesan langsung peserta. Ditampilkan apa adanya.</p>
+    </div>
+    <div class="revs">
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
+        <blockquote>Fasilitasnya lengkap tapi harganya masih masuk akal. Kapalnya berangkat tepat waktu, tidak menunggu-nunggu seperti trip lain yang pernah saya ikuti.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">A</span><span><b>Ayu P.</b><small>Open Trip Premium, Agustus 2026</small></span></div>
+      </article>
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
+        <blockquote>Semua sudah termasuk, tidak ada biaya kejutan di lokasi. Itu yang paling saya hargai. Tiket masuk tiap spot benar-benar tidak ditagih lagi.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">M</span><span><b>Mush T.</b><small>Open Trip Reguler, Agustus 2026</small></span></div>
+      </article>
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
+        <blockquote>Saya tidak bisa berenang dan sempat ragu. Guide-nya menemani terus selama snorkeling, jadi tetap bisa ikut sampai selesai.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">D</span><span><b>Dani E.</b><small>Open Trip Reguler, Juli 2026</small></span></div>
+      </article>
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
+        <blockquote>Family gathering kantor kami 32 orang, koordinasinya rapi dari awal sampai pulang. Konsumsi dan dokumentasi sesuai janji.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">R</span><span><b>Raju G.</b><small>Family Gathering, Agustus 2026</small></span></div>
+      </article>
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
+        <blockquote>Airnya jernih dan spotnya banyak. Briefing keselamatan sebelum naik kapal dilakukan serius, bukan formalitas.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">V</span><span><b>Vincent L.</b><small>Open Trip Premium, Juli 2026</small></span></div>
+      </article>
+      <article class="rev">
+        <div class="stars" role="img" aria-label="Empat dari lima bintang">★★★★☆</div>
+        <blockquote>Tripnya bagus. Satu catatan, jadwal makan siang agak mundur karena antre di spot foto. Selebihnya memuaskan.</blockquote>
+        <div class="rev-who"><span class="ava" aria-hidden="true">I</span><span><b>Ilham S.</b><small>Open Trip Reguler, Agustus 2026</small></span></div>
+      </article>
+    </div>
+  </div>
+</section>
+</section>
+
+<section class="page" id="page-itinerary" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- ITINERARY -->
 <section class="sec sec--mist" id="itinerary">
   <div class="wrap">
@@ -1425,6 +1438,40 @@ html{-webkit-text-size-adjust:100%}
     </div>
   </div>
 </section>
+</section>
+
+<section class="page" id="page-destinasi" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
+<!-- ABOUT ISLAND -->
+<section class="sec" id="tentang-pulau">
+  <div class="wrap">
+    <div class="about">
+      <div>
+        <div class="hd" style="margin-bottom:var(--s5)">
+          <h2>Pulau Sangiang, Selat Sunda.</h2>
+          <p class="lead">Berada di antara Pulau Jawa dan Sumatra, Pulau Sangiang secara administratif termasuk Desa Cikoneng, Kecamatan Anyar, Kabupaten Serang, Banten. Dalam satu pulau ini ada laut, hutan, tebing, dan spot bawah laut — bukan cuma pantai.</p>
+        </div>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Laut yang jernih</strong> — cocok untuk snorkeling dan menikmati kehidupan bawah laut.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Keindahan bawah laut</strong> — terumbu karang dan ikan jadi daya tarik utama wisata bahari.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Pantai yang masih alami</strong> — suasananya tenang dibanding destinasi pantai yang sudah ramai.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Tebing dan garis pantai</strong> — perpaduan tebing, batuan, dan laut yang menarik untuk foto.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Hutan tropis</strong> — vegetasi alami membuat perjalanan terasa seperti eksplorasi.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Goa dan kawasan alam</strong> — lokasi eksplorasi selain bermain di pantai.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Sunset dan panorama Selat Sunda</strong> — pemandangan laut terbuka yang berkesan saat cuaca cerah.</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Area peneluran penyu</strong> — kawasan Sangiang dikenal memiliki habitat yang berkaitan dengan penyu.</span></li>
+        </ul>
+      </div>
+      <div class="factbox">
+        <div><span>Status kawasan</span><b>Taman Wisata Alam Laut (TWAL)</b></div>
+        <div><span>Luas daratan</span><b class="num">± 700,35 Ha (7,0 km²)</b></div>
+        <div><span>Luas perairan wisata (TWAL)</span><b class="num">± 720 Ha (7,2 km²)</b></div>
+        <div><span>Lokasi</span><b>Selat Sunda, antara Jawa &amp; Sumatra</b></div>
+        <div><span>Administratif</span><b>Desa Cikoneng, Kec. Anyar, Kab. Serang, Banten</b></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- DESTINATIONS -->
 <section class="sec" id="destinasi">
@@ -1434,18 +1481,18 @@ html{-webkit-text-size-adjust:100%}
       <p class="lead">10 titik kunjungan untuk Open Trip, bertambah 2 titik eksklusif (Legon Waru &amp; Krakatoa View) untuk Private Trip Premium. Daftar destinasi ini akan terus bertambah seiring pengembangan trip Nena Adventure ke pulau-pulau lain. Klik setiap titik untuk melihat detail aktivitas dan tips dari guide.</p>
     </div>
     <ul class="dests">
-      <li><button class="dest" data-type="spot" data-spot="turtle-area"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=480&q=68" alt="Area konservasi penyu"><span class="cue">Detail</span><span class="ov"><b>Turtle Area</b><small>Berfoto dengan kura-kura</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="tembuyung"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=480&q=68" alt="Pantai pasir putih Tembuyung"><span class="cue">Detail</span><span class="ov"><b>Tembuyung Beach</b><small>Paddle board</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="legon-bajo"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=480&q=68" alt="Terumbu karang di Legon Bajo"><span class="cue">Detail</span><span class="ov"><b>Legon Bajo</b><small>Snorkeling</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="legon-waru"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=480&q=68" alt="Perairan jernih Legon Waru"><span class="cue">Detail</span><span class="ov"><b>Legon Waru</b><small>Free diving · Private Trip</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="mangrove"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=480&q=68" alt="Kanal Mangrove River"><span class="cue">Detail</span><span class="ov"><b>Mangrove River</b><small>Alam</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="desa-sangiang"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=480&q=68" alt="Permukiman warga Desa Sangiang"><span class="cue">Detail</span><span class="ov"><b>Desa Sangiang</b><small>Budaya</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="hutan-hujan"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=480&q=68" alt="Jalur tracking hutan hujan"><span class="cue">Detail</span><span class="ov"><b>Hutan Hujan Pulau Sangiang</b><small>Tracking</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="goa-kelelawar"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=480&q=68" alt="Mulut Goa Kelelawar"><span class="cue">Detail</span><span class="ov"><b>Goa Kelelawar</b><small>Eksplorasi</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="puncak-begal"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=480&q=68" alt="Panorama dari Puncak Begal"><span class="cue">Detail</span><span class="ov"><b>Puncak Begal</b><small>Viewpoint</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="puncak-harapan"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=480&q=68" alt="Puncak Harapan menghadap Selat Sunda"><span class="cue">Detail</span><span class="ov"><b>Puncak Harapan</b><small>Viewpoint</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="krakatoa-view"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=480&q=68" alt="Panorama menghadap Gunung Krakatau"><span class="cue">Detail</span><span class="ov"><b>Krakatoa View</b><small>Viewpoint · Private Trip</small></span></button></li>
-      <li><button class="dest" data-type="spot" data-spot="sepanjang"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=480&q=68" alt="Garis pantai Sepanjang Beach"><span class="cue">Detail</span><span class="ov"><b>Sepanjang Beach</b><small>Pantai</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="turtle-area"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=480&q=68" alt="Penyu berenang di perairan Pulau Sangiang"><span class="cue">Detail</span><span class="ov"><b>Turtle Area</b><small>Berfoto dengan kura-kura</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="tembuyung"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=480&q=68" alt="Paddle board di Tembuyung Beach"><span class="cue">Detail</span><span class="ov"><b>Tembuyung Beach</b><small>Paddle board</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="legon-bajo"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=480&q=68" alt="Terumbu karang di Legon Bajo"><span class="cue">Detail</span><span class="ov"><b>Legon Bajo</b><small>Snorkeling</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="legon-waru"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=480&q=68" alt="Free diving di Legon Waru"><span class="cue">Detail</span><span class="ov"><b>Legon Waru</b><small>Free diving · Private Trip</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="mangrove"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=480&q=68" alt="Kanal Mangrove River"><span class="cue">Detail</span><span class="ov"><b>Mangrove River</b><small>Alam</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="desa-sangiang"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1724258221877-ea2f92c6368f?auto=format&fit=crop&w=480&q=68" alt="Permukiman warga Desa Sangiang"><span class="cue">Detail</span><span class="ov"><b>Desa Sangiang</b><small>Budaya</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="hutan-hujan"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=480&q=68" alt="Jalur tracking hutan hujan"><span class="cue">Detail</span><span class="ov"><b>Hutan Hujan Pulau Sangiang</b><small>Tracking</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="goa-kelelawar"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1751517617051-24583509a103?auto=format&fit=crop&w=480&q=68" alt="Mulut Goa Kelelawar"><span class="cue">Detail</span><span class="ov"><b>Goa Kelelawar</b><small>Eksplorasi</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="puncak-begal"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=480&q=68" alt="Panorama dari Puncak Begal"><span class="cue">Detail</span><span class="ov"><b>Puncak Begal</b><small>Viewpoint</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="puncak-harapan"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=480&q=68" alt="Puncak Harapan menghadap Selat Sunda"><span class="cue">Detail</span><span class="ov"><b>Puncak Harapan</b><small>Viewpoint</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="krakatoa-view"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=480&q=68" alt="Panorama menghadap Gunung Krakatau"><span class="cue">Detail</span><span class="ov"><b>Krakatoa View</b><small>Viewpoint · Private Trip</small></span></button></li>
+      <li><button class="dest" data-type="spot" data-spot="sepanjang"><img loading="lazy" width="480" height="640" src="https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=480&q=68" alt="Garis pantai Sepanjang Beach"><span class="cue">Detail</span><span class="ov"><b>Sepanjang Beach</b><small>Pantai</small></span></button></li>
     </ul>
     <p class="hint" style="margin-top:var(--s5);font-size:14px;color:var(--mut)">Destinasi baru akan ditambahkan di panel admin seiring pengembangan trip ke pulau lain — lihat menu <strong>Konten website → Destinasi</strong>.</p>
   </div>
@@ -1471,7 +1518,10 @@ html{-webkit-text-size-adjust:100%}
     <p style="margin-top:var(--s5)"><a class="btn btn--out" href="https://www.instagram.com/nenaadventure/" target="_blank" rel="noopener">Lihat lebih banyak di Instagram</a></p>
   </div>
 </section>
+</section>
 
+<section class="page" id="page-keselamatan" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- SAFETY & INSURANCE -->
 <section class="sec" id="keamanan">
   <div class="wrap">
@@ -1483,11 +1533,12 @@ html{-webkit-text-size-adjust:100%}
     <div class="safe">
       <article class="safecard">
         <span class="safeicon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 2l7.2 3.2v5.3c0 4.4-3.1 7.3-7.2 8.3-4.1-1-7.2-3.9-7.2-8.3V5.2L11 2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 11l2.1 2.1 4-4.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h4>Asuransi perjalanan</h4>
-        <p>Setiap peserta didaftarkan ke polis asuransi perjalanan sebelum keberangkatan. Karena itu data nama lengkap dan tanggal lahir wajib diisi saat booking, paling lambat H-1.</p>
+        <h4>Asuransi perjalanan Zurich</h4>
+        <p>Setiap peserta didaftarkan ke polis asuransi kecelakaan diri Zurich sebelum keberangkatan. Karena itu data nama lengkap dan tanggal lahir wajib diisi saat booking, paling lambat H-1.</p>
         <ul>
+          <li>Santunan meninggal dunia atau cacat tetap akibat kecelakaan: maks. <strong>Rp50.000.000</strong> per peserta</li>
+          <li>Biaya pengobatan akibat kecelakaan: maks. <strong>Rp5.000.000</strong> per kejadian</li>
           <li>Berlaku sejak kumpul di meeting point sampai kembali ke dermaga</li>
-          <li>Mencakup kecelakaan diri dan biaya medis darurat</li>
           <li>Nomor polis dikirim bersama e-voucher</li>
         </ul>
       </article>
@@ -1549,49 +1600,10 @@ html{-webkit-text-size-adjust:100%}
     </ul>
   </div>
 </section>
-
-<!-- REVIEWS -->
-<section class="sec sec--mist" id="ulasan">
-  <div class="wrap">
-    <div class="hd">
-      <h2>Kata peserta sebelumnya.</h2>
-      <p class="lead">Ulasan diambil dari Google Review dan pesan langsung peserta. Ditampilkan apa adanya.</p>
-    </div>
-    <div class="revs">
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
-        <blockquote>Fasilitasnya lengkap tapi harganya masih masuk akal. Kapalnya berangkat tepat waktu, tidak menunggu-nunggu seperti trip lain yang pernah saya ikuti.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">A</span><span><b>Ayu P.</b><small>Open Trip Premium, Agustus 2026</small></span></div>
-      </article>
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
-        <blockquote>Semua sudah termasuk, tidak ada biaya kejutan di lokasi. Itu yang paling saya hargai. Tiket masuk tiap spot benar-benar tidak ditagih lagi.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">M</span><span><b>Mush T.</b><small>Open Trip Reguler, Agustus 2026</small></span></div>
-      </article>
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
-        <blockquote>Saya tidak bisa berenang dan sempat ragu. Guide-nya menemani terus selama snorkeling, jadi tetap bisa ikut sampai selesai.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">D</span><span><b>Dani E.</b><small>Open Trip Reguler, Juli 2026</small></span></div>
-      </article>
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
-        <blockquote>Family gathering kantor kami 32 orang, koordinasinya rapi dari awal sampai pulang. Konsumsi dan dokumentasi sesuai janji.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">R</span><span><b>Raju G.</b><small>Family Gathering, Agustus 2026</small></span></div>
-      </article>
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Lima dari lima bintang">★★★★★</div>
-        <blockquote>Airnya jernih dan spotnya banyak. Briefing keselamatan sebelum naik kapal dilakukan serius, bukan formalitas.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">V</span><span><b>Vincent L.</b><small>Open Trip Premium, Juli 2026</small></span></div>
-      </article>
-      <article class="rev">
-        <div class="stars" role="img" aria-label="Empat dari lima bintang">★★★★☆</div>
-        <blockquote>Tripnya bagus. Satu catatan, jadwal makan siang agak mundur karena antre di spot foto. Selebihnya memuaskan.</blockquote>
-        <div class="rev-who"><span class="ava" aria-hidden="true">I</span><span><b>Ilham S.</b><small>Open Trip Reguler, Agustus 2026</small></span></div>
-      </article>
-    </div>
-  </div>
 </section>
 
+<section class="page" id="page-jadwal" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- SCHEDULE -->
 <section class="sec sec--dark" id="jadwal">
   <div class="wrap">
@@ -1608,7 +1620,10 @@ html{-webkit-text-size-adjust:100%}
     <p style="margin-top:var(--s6)"><a class="btn btn--go" href="#/booking">Buka halaman booking</a></p>
   </div>
 </section>
+</section>
 
+<section class="page" id="page-lokasi" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- LOCATION / MAPS -->
 <section class="sec" id="lokasi">
   <div class="wrap">
@@ -1638,37 +1653,40 @@ html{-webkit-text-size-adjust:100%}
     </div>
   </div>
 </section>
+</section>
 
+<section class="page" id="page-registrasi" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- REGISTRATION FLOW & PAYMENT -->
 <section class="sec" id="registrasi">
   <div class="wrap">
     <div class="hd">
       <h2>Alur registrasi dan pembayaran.</h2>
-      <p class="lead">Sembilan langkah dari memilih paket sampai berangkat.</p>
+      <p class="lead">Booking sepenuhnya online — pilih paket, transfer, upload bukti, dan konfirmasi WhatsApp.</p>
     </div>
     <ol class="tflow">
-      <li><b>Pilih paket perjalanan.</b><p>Open Trip Reguler, Open Trip Premium, atau Private Trip Premium.</p></li>
-      <li><b>Pilih tanggal keberangkatan.</b><p>Cek jadwal dan sisa kuota di halaman Jadwal.</p></li>
-      <li><b>Hubungi admin.</b><p>Pastikan ketersediaan kuota untuk tanggal dan paket pilihan Anda.</p></li>
-      <li><b>Lakukan pembayaran DP minimal 50%.</b><p>Kursi ditahan setelah DP diterima.</p></li>
-      <li><b>Terima bukti pembayaran / kuitansi.</b><p>Dikirimkan oleh tim Nena Adventure.</p></li>
-      <li><b>Isi formulir registrasi peserta.</b><p>Nama lengkap dan data diri sesuai identitas untuk pendaftaran asuransi.</p></li>
-      <li><b>Bergabung ke grup WhatsApp perjalanan.</b><p>Semua informasi teknis dibagikan lewat grup ini.</p></li>
-      <li><b>Lakukan pelunasan maksimal H-3.</b><p>Sebelum tanggal keberangkatan.</p></li>
-      <li><b>Terima info teknis keberangkatan.</b><p>Dikirim melalui grup WhatsApp perjalanan.</p></li>
+      <li><b>Booking online di website.</b><p>Pilih paket, tanggal keberangkatan, dan isi data peserta (nama &amp; identitas sesuai KTP untuk asuransi).</p></li>
+      <li><b>Bayar DP minimal 50%.</b><p>Transfer ke rekening resmi BCA Nena Adventure Nusantara, atau scan QRIS resmi — sesuai total tagihan di halaman booking.</p></li>
+      <li><b>Upload bukti bayar &amp; konfirmasi WhatsApp.</b><p>Unggah bukti transfer/QRIS langsung di halaman booking, lalu tombol "Konfirmasi ke admin via WhatsApp" otomatis menyiapkan pesan konfirmasi.</p></li>
+      <li><b>Booking terverifikasi.</b><p>Setelah admin memverifikasi, Anda menerima e-voucher dan link grup WhatsApp perjalanan.</p></li>
+      <li><b>Lunasi sisa pembayaran maksimal H-3.</b><p>Dengan cara yang sama — transfer/QRIS, upload bukti, dan konfirmasi WhatsApp.</p></li>
+      <li><b>Terima info teknis keberangkatan.</b><p>Dibagikan lewat grup WhatsApp perjalanan, lalu berangkat sesuai jadwal.</p></li>
     </ol>
 
     <div class="rekbox" style="margin-top:var(--s7)">
       <div>
-        <small style="color:var(--mut)">Rekening resmi pembayaran</small>
+        <small style="color:var(--mut)">Rekening &amp; QRIS resmi pembayaran</small>
         <b>Nena Adventure Nusantara — BCA</b>
-        <small style="color:var(--mut)">Pembayaran hanya melalui rekening resmi ini. Kirim bukti transfer ke admin untuk verifikasi.</small>
+        <small style="color:var(--mut)">Pembayaran hanya lewat rekening atau QRIS resmi ini. Kirim bukti transfer/bayar ke admin untuk verifikasi.</small>
       </div>
       <div class="num" style="background:var(--abyss);color:#fff;padding:12px 22px;border-radius:var(--rs);font-size:22px;font-weight:800;letter-spacing:.08em">6510693653</div>
     </div>
   </div>
 </section>
+</section>
 
+<section class="page" id="page-syarat" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- SYARAT & KETENTUAN -->
 <section class="sec sec--mist" id="syarat">
   <div class="wrap">
@@ -1725,7 +1743,10 @@ html{-webkit-text-size-adjust:100%}
     </div>
   </div>
 </section>
+</section>
 
+<section class="page" id="page-faq" hidden>
+<div class="wrap pagehead"><a class="back" href="#/">‹ Kembali ke beranda</a></div>
 <!-- FAQ -->
 <section class="sec sec--mist" id="faq">
   <div class="wrap">
@@ -1741,44 +1762,34 @@ html{-webkit-text-size-adjust:100%}
     </div>
   </div>
 </section>
-
-<!-- BAND -->
-<section class="sec--tight band">
-  <div class="wrap">
-    <h2>Kursi akhir pekan ini masih ada.</h2>
-    <p>Pilih tanggal, isi data peserta, bayar online. Selesai dalam tiga menit, e-voucher langsung dikirim.</p>
-    <div class="row">
-      <a class="btn btn--go" href="#/booking">Booking online sekarang</a>
-      <a class="btn btn--out" id="waBand" href="https://wa.me/6281286133202">Tanya dulu lewat WhatsApp</a>
-    </div>
-  </div>
 </section>
+
 </main>
 
 <footer>
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <a class="brand" href="#top" style="margin-bottom:16px">
-          <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#FFFFFF"/><path d="M8 21h16M9 17l7-9 7 9" stroke="#0B7BBF" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <a class="brand" href="#/" style="margin-bottom:16px">
+          <img src="assets/logo/logo-emblem.png" alt="Logo Nena Adventure" width="38" height="38" style="flex:0 0 auto;object-fit:contain">
           <span><b style="color:#fff">NENA ADVENTURE</b><span style="color:#B4D9F4">Pulau Sangiang, Banten</span></span>
         </a>
         <p style="max-width:34ch;line-height:1.55">Nena Adventure Nusantara — operator Open Trip &amp; Private Trip One Day Trip Pulau Sangiang, Selat Sunda.</p>
       </div>
       <div><h5>Trip</h5><ul>
-        <li><a href="#paket">Open Trip Reguler</a></li>
-        <li><a href="#paket">Open Trip Premium</a></li>
-        <li><a href="#paket">Private Trip Premium</a></li>
-        <li><a href="#destinasi">Destinasi Pulau Sangiang</a></li>
+        <li><a href="#/paket">Open Trip Reguler</a></li>
+        <li><a href="#/paket">Open Trip Premium</a></li>
+        <li><a href="#/paket">Private Trip Premium</a></li>
+        <li><a href="#/destinasi">Destinasi Pulau Sangiang</a></li>
       </ul></div>
       <div><h5>Informasi</h5><ul>
-        <li><a href="#jadwal">Jadwal keberangkatan</a></li>
-        <li><a href="#keamanan">Keselamatan &amp; asuransi</a></li>
-        <li><a href="#lokasi">Meeting point</a></li>
-        <li><a href="#registrasi">Registrasi &amp; pembayaran</a></li>
-        <li><a href="#faq">FAQ</a></li>
-        <li><a href="#syarat">Syarat &amp; ketentuan</a></li>
-        <li><a href="#syarat">Kebijakan pembatalan &amp; refund</a></li>
+        <li><a href="#/jadwal">Jadwal keberangkatan</a></li>
+        <li><a href="#/keselamatan">Keselamatan &amp; asuransi</a></li>
+        <li><a href="#/lokasi">Meeting point</a></li>
+        <li><a href="#/registrasi">Registrasi &amp; pembayaran</a></li>
+        <li><a href="#/faq">FAQ</a></li>
+        <li><a href="#/syarat">Syarat &amp; ketentuan</a></li>
+        <li><a href="#/syarat">Kebijakan pembatalan &amp; refund</a></li>
       </ul></div>
       <div><h5>Hubungi kami</h5><ul>
         <li><a href="https://wa.me/6281286133202">WhatsApp 0812 8613 3202</a></li>
@@ -1818,7 +1829,7 @@ html{-webkit-text-size-adjust:100%}
 <header class="hdr">
   <div class="wrap">
     <a class="brand" href="#/">
-      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#FFFFFF"/><path d="M8 21h16M9 17l7-9 7 9" stroke="#0B7BBF" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <img src="assets/logo/logo-emblem.png" alt="Logo Nena Adventure" width="34" height="34" style="flex:0 0 auto;object-fit:contain">
       <span><b>NENA ADVENTURE</b><span>Booking online</span></span>
     </a>
     <p class="help"><span class="help-txt">Butuh bantuan?</span> <a id="waHelp" href="https://wa.me/6281286133202">WhatsApp <span class="help-txt">0812 8613 3202</span></a></p>
@@ -1988,14 +1999,21 @@ html{-webkit-text-size-adjust:100%}
       </div>
 
       <div class="field">
-        <label id="lblMetode">Metode pembayaran</label>
-        <div class="pays" role="radiogroup" aria-labelledby="lblMetode">
-          <label class="opt"><input type="radio" name="metode" value="QRIS" checked><span class="dot" aria-hidden="true"></span><span class="body"><b>QRIS</b><small>Semua e-wallet dan m-banking</small></span></label>
-          <label class="opt"><input type="radio" name="metode" value="Virtual Account BCA"><span class="dot" aria-hidden="true"></span><span class="body"><b>Virtual account</b><small>BCA, Mandiri, BNI, BRI, Permata</small></span></label>
-          <label class="opt"><input type="radio" name="metode" value="E-wallet"><span class="dot" aria-hidden="true"></span><span class="body"><b>E-wallet</b><small>GoPay, OVO, DANA, ShopeePay</small></span></label>
-          <label class="opt"><input type="radio" name="metode" value="Kartu kredit"><span class="dot" aria-hidden="true"></span><span class="body"><b>Kartu kredit / debit</b><small>Visa, Mastercard, JCB</small></span></label>
+        <label id="lblMetode">Cara membayar</label>
+        <div class="opts" role="radiogroup" aria-labelledby="lblMetode">
+          <label class="opt">
+            <input type="radio" name="metode" value="Transfer Bank" checked>
+            <span class="dot" aria-hidden="true"></span>
+            <span class="body"><b>Transfer Bank BCA</b><small>Ke rekening resmi Nena Adventure Nusantara</small></span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="metode" value="QRIS">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="body"><b>QRIS</b><small>Pindai kode QRIS resmi Nena Adventure</small></span>
+          </label>
         </div>
-        <p class="hint">Pembayaran diproses oleh payment gateway berlisensi Bank Indonesia. Data kartu tidak disimpan di server kami.</p>
+        <div class="vabox" id="metodeBox" style="margin-top:14px;text-align:left;padding:18px 20px"></div>
+        <p class="hint">Setelah membayar, unggah bukti transfer/bayar dan konfirmasi ke admin lewat WhatsApp di langkah berikutnya.</p>
       </div>
 
       <div class="notice">
@@ -2005,13 +2023,13 @@ html{-webkit-text-size-adjust:100%}
 
       <label class="check">
         <input type="checkbox" id="setuju">
-        <span>Saya sudah membaca dan menyetujui <a href="#">Syarat &amp; Ketentuan</a>, <a href="#">Kebijakan Pembatalan &amp; Refund</a>, serta <a href="#">Kebijakan Privasi</a>, dan setuju data peserta digunakan untuk pendaftaran asuransi perjalanan.</span>
+        <span>Saya sudah membaca dan menyetujui <a href="#/syarat" target="_blank">Syarat &amp; Ketentuan</a>, <a href="#/syarat" target="_blank">Kebijakan Pembatalan &amp; Refund</a>, serta Kebijakan Privasi, dan setuju data peserta digunakan untuk pendaftaran asuransi perjalanan.</span>
       </label>
       <p class="err" id="errSetuju">Centang persetujuan untuk melanjutkan.</p>
 
       <div class="nav-row">
         <button class="btn btn--out" id="back2" type="button">Kembali</button>
-        <button class="btn btn--go" id="bayar" type="button">Bayar <span id="bayarNominal" class="num"></span></button>
+        <button class="btn btn--go" id="bayar" type="button">Saya sudah bayar <span id="bayarNominal" class="num"></span></button>
       </div>
     </section>
 
@@ -2019,12 +2037,18 @@ html{-webkit-text-size-adjust:100%}
     <section class="panel hidden" id="s4">
       <div class="done-hero">
         <span class="tick"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h2>Booking dibuat. Tinggal selesaikan pembayaran.</h2>
+        <h2>Booking dibuat. Tinggal upload bukti &amp; konfirmasi.</h2>
         <p class="sub" style="margin-bottom:0">Kode booking Anda</p>
         <span class="code" id="kode">NA-000000</span>
       </div>
 
       <div class="vabox" id="payBox"></div>
+
+      <div class="field" style="margin-top:20px">
+        <label for="buktiUpload">Upload bukti transfer / bayar</label>
+        <input class="inp" id="buktiUpload" type="file" accept="image/*,.pdf">
+        <p class="hint" id="buktiHint">Format JPG, PNG, atau PDF. File ini membantu admin memverifikasi lebih cepat.</p>
+      </div>
 
       <p style="text-align:center;font-size:14.5px;color:var(--mut);margin-bottom:24px">
         Selesaikan dalam <span class="countdown" id="timer">60:00</span> atau kursi dilepas kembali.
@@ -2035,11 +2059,11 @@ html{-webkit-text-size-adjust:100%}
 
       <div class="notice" style="margin-top:24px">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M10 6.2v4.4M10 13.4v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <p>Setelah pembayaran terverifikasi, e-voucher dan nomor polis asuransi dikirim ke email dan WhatsApp Anda, biasanya dalam 5 menit. Tunjukkan e-voucher saat registrasi ulang di meeting point.</p>
+        <p>Tombol di bawah membuka WhatsApp dengan pesan konfirmasi yang sudah terisi kode booking dan nominal — lampirkan foto bukti transfer yang sama di chat tersebut agar admin bisa langsung verifikasi. Setelah terverifikasi, e-voucher dan nomor polis asuransi dikirim ke email dan WhatsApp Anda.</p>
       </div>
 
       <div class="nav-row">
-        <a class="btn btn--go" id="waKonfirmasi" href="#">Kirim bukti lewat WhatsApp</a>
+        <a class="btn btn--go" id="waKonfirmasi" href="#">Konfirmasi ke admin via WhatsApp</a>
         <a class="btn btn--out" href="#/">Kembali ke beranda</a>
       </div>
     </section>
@@ -2073,7 +2097,7 @@ html{-webkit-text-size-adjust:100%}
 
 <nav class="side" aria-label="Menu admin">
   <div class="brand">
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#FFFFFF"/><path d="M8 21h16M9 17l7-9 7 9" stroke="#0B7BBF" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <img src="assets/logo/logo-emblem.png" alt="Logo Nena Adventure" width="32" height="32" style="flex:0 0 auto;object-fit:contain">
     <span><b>NENA ADVENTURE</b><span>Panel admin</span></span>
   </div>
   <button data-tab="ringkasan" aria-current="page"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="10" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="2" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="10" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg> Ringkasan</button>
@@ -2588,12 +2612,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Sesi pagi punya jarak pandang terbaik. Menjelang siang angin naik dan permukaan air mulai berombak.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2621,12 +2645,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Jangan menyentuh, mengejar, atau memberi makan penyu. Jaga jarak minimal tiga meter dan biarkan mereka lewat lebih dulu.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2648,12 +2672,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Airnya paling tenang saat surut. Ini juga lokasi paling nyaman buat peserta yang ingin santai tanpa ikut tracking.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2681,12 +2705,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Pakai sepatu atau sandal gunung bertapak. Sandal jepit sangat licin di jalur ini, apalagi sehabis hujan.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2708,12 +2732,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Pagi hari suara burungnya paling ramai. Simpan barang elektronik di dry bag, cipratan air cukup sering.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2735,12 +2759,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Jangan menyalakan lampu ke arah langit-langit goa dan hindari suara keras. Koloni kelelawar mudah panik.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1751517617051-24583509a103?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1751517617051-24583509a103?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2762,12 +2786,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Bawa air minimal satu liter per orang dan mulai lebih pagi. Sinar matahari di puncak tidak terhalang pohon.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2795,12 +2819,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Sudut foto terbaik menghadap barat. Pegang topi dan barang ringan, anginnya lebih kuat dari yang terlihat.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2822,12 +2846,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Minta izin sebelum memotret warga atau bagian dalam rumah. Belanja di warung setempat sangat membantu ekonomi pulau.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1724258221877-ea2f92c6368f?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1724258221877-ea2f92c6368f?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1548574505-5e239809ee19?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1548574505-5e239809ee19?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2849,12 +2873,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Cahaya paling bagus di sore hari. Pastikan barang bawaan sudah lengkap sebelum naik kapal, tidak ada sesi kembali ke titik ini.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2876,12 +2900,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Datang dengan kondisi fisik prima dan jangan free diving sendirian — guide selalu mendampingi dari permukaan.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -2903,12 +2927,12 @@ html{-webkit-text-size-adjust:100%}
       "tip": "Cuaca cerah memberi jarak pandang terbaik ke arah Krakatau. Konfirmasi ke guide apakah titik ini masuk rute hari itu.",
       "extra": [
         [
-          "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=300&q=60"
         ],
         [
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=76",
-          "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=300&q=60"
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=1200&q=76",
+          "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=300&q=60"
         ]
       ],
       "ulasan": [
@@ -3138,8 +3162,22 @@ html{-webkit-text-size-adjust:100%}
 
   function paket(){ var p = document.querySelector('#view-booking input[name="pkg"]:checked'); return p ? p.value : "reguler"; }
   function mpKey(){ var m = document.querySelector('#view-booking input[name="mp"]:checked'); return m ? m.dataset.mp : "anyer"; }
-  function metode(){ var m = document.querySelector('#view-booking input[name="metode"]:checked'); return m ? m.value : "QRIS"; }
   function skema(){ var b = document.querySelector('#view-booking input[name="bayar"]:checked'); return b ? b.value : "lunas"; }
+  function metode(){ var m = document.querySelector('#view-booking input[name="metode"]:checked'); return m ? m.value : "Transfer Bank"; }
+
+  function renderMetodeBox(el, nominal){
+    if (!el) return;
+    if (metode() === "QRIS"){
+      el.innerHTML = '<small>Pindai kode QRIS resmi Nena Adventure</small>'
+        + '<div class="qr" role="img" aria-label="Kode QRIS Nena Adventure"></div>'
+        + '<b class="num">' + rupiah(nominal) + '</b>'
+        + '<small>QRIS a.n. Nena Adventure Nusantara</small>';
+    } else {
+      el.innerHTML = '<small>Transfer ke rekening resmi</small>'
+        + '<b class="num">6510693653</b>'
+        + '<small>BCA — a.n. Nena Adventure Nusantara — nominal <strong>' + rupiah(nominal) + '</strong></small>';
+    }
+  }
 
   function tierPrivate(n){
     for (var i = 0; i < TIER_PRIVATE.length; i++){
@@ -3216,6 +3254,7 @@ html{-webkit-text-size-adjust:100%}
     $("amtLunas").textContent = rupiah(h.total);
     $("amtDp").textContent = rupiah(h.dp);
     $("bayarNominal").textContent = rupiah(lunas ? h.total : h.dp);
+    renderMetodeBox($("metodeBox"), lunas ? h.total : h.dp);
 
     var sisa = sel.value ? stok[sel.value] : null;
     $("sisaInfo").textContent = h.pk === "private"
@@ -3325,26 +3364,8 @@ html{-webkit-text-size-adjust:100%}
     var h = hitung(), lunas = skema() === "lunas", nominal = lunas ? h.total : h.dp;
     var kode = "NA-" + String(Math.floor(100000 + Math.random() * 900000));
     $("kode").textContent = kode;
-
-    var m = metode(), box = $("payBox");
-    if (m === "QRIS"){
-      box.innerHTML = '<small>Pindai dengan aplikasi e-wallet atau m-banking</small>'
-        + '<div class="qr" role="img" aria-label="Contoh kode QRIS"></div>'
-        + '<b class="num">' + rupiah(nominal) + '</b>'
-        + '<small>QRIS atas nama Nena Adventure Nusantara</small>';
-    } else if (m === "Virtual Account BCA"){
-      box.innerHTML = '<small>Transfer ke virtual account BCA</small>'
-        + '<b class="num">8808 ' + kode.slice(3) + ' 01</b>'
-        + '<small>Nominal <strong>' + rupiah(nominal) + '</strong> — a.n. Nena Adventure Nusantara</small>';
-    } else if (m === "E-wallet"){
-      box.innerHTML = '<small>Anda akan diarahkan ke aplikasi e-wallet</small>'
-        + '<b class="num">' + rupiah(nominal) + '</b>'
-        + '<small>Buka notifikasi di aplikasi untuk menyetujui pembayaran.</small>';
-    } else {
-      box.innerHTML = '<small>Halaman pembayaran kartu akan terbuka</small>'
-        + '<b class="num">' + rupiah(nominal) + '</b>'
-        + '<small>Transaksi diamankan 3-D Secure. Data kartu tidak disimpan di server kami.</small>';
-    }
+    var m = metode();
+    renderMetodeBox($("payBox"), nominal);
 
     var namaPkg = LABEL_PKG[paket()];
     $("recap").innerHTML =
@@ -3355,21 +3376,32 @@ html{-webkit-text-size-adjust:100%}
       + '<li><span>Meeting point</span><b>' + LABEL_MP[mpKey()] + '</b></li>'
       + '<li><span>Pemesan</span><b>' + $("nama").value + '</b></li>'
       + '<li><span>Kontak</span><b>' + $("hp").value + '</b></li>'
-      + '<li><span>Metode</span><b>' + m + '</b></li>'
+      + '<li><span>Cara bayar</span><b>' + m + '</b></li>'
       + '<li><span>Total tagihan</span><b>' + rupiah(h.total) + '</b></li>'
       + '<li><span>Dibayar sekarang</span><b>' + rupiah(nominal) + '</b></li>';
 
     $("waKonfirmasi").href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(
-      "Halo Nena Adventure, saya sudah booking.\n"
+      "Halo Nena Adventure, saya sudah booking dan bayar.\n"
       + "Kode: " + kode + "\n"
       + "Paket: " + namaPkg + "\n"
       + "Tanggal: " + labelTanggal(sel.value) + "\n"
       + "Peserta: " + pax + " orang\n"
-      + "Nominal: " + rupiah(nominal) + " (" + m + ")"
+      + "Cara bayar: " + m + "\n"
+      + "Nominal dibayar: " + rupiah(nominal) + "\n"
+      + "(Bukti pembayaran akan saya lampirkan di sini.)"
     );
 
     keLangkah(4);
     mulaiTimer(60 * 60);
+  });
+
+  /* ── Upload bukti transfer (arsip lokal, tetap dilampirkan manual di WhatsApp) ── */
+  var buktiUpload = $("buktiUpload");
+  if (buktiUpload) buktiUpload.addEventListener("change", function(){
+    var f = buktiUpload.files && buktiUpload.files[0];
+    $("buktiHint").textContent = f
+      ? "Terpilih: " + f.name + ". Lampirkan file yang sama saat chat WhatsApp dengan admin."
+      : "Format JPG, PNG, atau PDF. File ini membantu admin memverifikasi lebih cepat.";
   });
 
   var jam = null;
@@ -3398,7 +3430,7 @@ html{-webkit-text-size-adjust:100%}
     tandai(sel, "errTanggal", false);
   });
   document.addEventListener("change", function(e){
-    if (e.target.name === "pkg" || e.target.name === "mp" || e.target.name === "bayar") render();
+    if (e.target.name === "pkg" || e.target.name === "mp" || e.target.name === "bayar" || e.target.name === "metode") render();
     if (e.target.id === "setuju" && e.target.checked) $("errSetuju").classList.remove("on");
   });
 
@@ -3605,23 +3637,36 @@ html{-webkit-text-size-adjust:100%}
 (function(){
   "use strict";
   var VIEWS = { home:"view-home", booking:"view-booking", admin:"view-admin" };
-  var aktif = null;
+  /* Sub-halaman di dalam #view-home — tiap satu section.page berid page-xxx */
+  var PAGES = ["beranda","paket","itinerary","destinasi","keselamatan","jadwal","lokasi","registrasi","syarat","faq"];
+  var aktif = null, aktifPage = null;
 
   function baca(){
     var h = location.hash.replace(/^#\/?/, "");
     var nama = h.split("?")[0];
     var key = (nama === "booking" || nama === "admin") ? nama : "home";
-    return { key:key, view:key, query:(h.split("?")[1] || "") };
+    var page = PAGES.indexOf(nama) > -1 ? nama : "beranda";
+    return { key:key, view:key, page:page, query:(h.split("?")[1] || "") };
   }
 
   function route(){
-    var r = baca(), ganti = (r.key !== aktif);
+    var r = baca(), ganti = (r.key !== aktif) || (r.key === "home" && r.page !== aktifPage);
     for (var k in VIEWS){
       document.getElementById(VIEWS[k]).hidden = (k !== r.key);
+    }
+    if (r.key === "home"){
+      PAGES.forEach(function(p){
+        var el = document.getElementById("page-" + p);
+        if (el) el.hidden = (p !== r.page);
+      });
+      document.querySelectorAll("[data-page-link]").forEach(function(a){
+        a.classList.toggle("on", a.dataset.pageLink === r.page);
+      });
     }
     document.body.style.overflow = "";
     if (ganti){
       aktif = r.key;
+      aktifPage = r.page;
       window.scrollTo(0, 0);
     }
     window.dispatchEvent(new CustomEvent("nena:route", { detail:r }));
