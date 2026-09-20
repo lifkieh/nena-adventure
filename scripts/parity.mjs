@@ -91,10 +91,17 @@ const INIT = `
   globalThis.Date = FD;
   // Bekukan timer supaya countdown tidak berjalan
   globalThis.setInterval = () => 0;
+  // Scroll selalu instan & ke atas — cegah posisi sticky (ringkasan booking)
+  // berbeda antar-run akibat animasi smooth-scroll yang belum selesai.
+  window.scrollTo = () => {};
+  window.scrollBy = () => {};
+  if (window.Element) Element.prototype.scrollIntoView = () => {};
 })();
 `;
 
-const NORM_CSS = `*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}`;
+const NORM_CSS = `*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}
+html{scroll-behavior:auto!important}
+:focus{outline:none!important}`;
 
 function normalizeHtml(html) {
   return html
@@ -112,7 +119,7 @@ async function gotoHash(page, hash) {
 async function captureView(page, hash, selector) {
   await gotoHash(page, hash);
   const html = await page.$eval(selector, (el) => el.outerHTML).catch(() => null);
-  const shot = await page.screenshot({ fullPage: true });
+  const shot = await page.screenshot({ fullPage: true, animations: "disabled" });
   return { html: html ? normalizeHtml(html) : null, shot };
 }
 
@@ -122,7 +129,7 @@ async function driveBooking(page) {
   const grab = async (label) => {
     await page.waitForTimeout(120);
     const html = await page.$eval("#view-booking", (el) => el.outerHTML);
-    const shot = await page.screenshot({ fullPage: true });
+    const shot = await page.screenshot({ fullPage: true, animations: "disabled" });
     caps.push({ label, html: normalizeHtml(html), shot });
   };
 

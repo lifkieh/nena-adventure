@@ -19,10 +19,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(apiRoutes, { prefix: "/api" });
 
   // Situs publik statis (apps/site) di root — pengganti Live Server.
+  // wildcard:true = lookup filesystem per-request (mendukung file & subfolder
+  // apa pun: styles/, src/, src/data/) dengan MIME benar; file hilang jatuh ke
+  // setNotFoundHandler (SPA fallback ke index.html).
   await app.register(fastifyStatic, {
     root: SITE_DIR,
     prefix: "/",
-    wildcard: false,
+    wildcard: true,
   });
 
   // 404: /api/* -> JSON seragam; selain itu fallback ke index.html situs.
