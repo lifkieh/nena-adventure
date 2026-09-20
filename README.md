@@ -1,25 +1,61 @@
-# Nena Adventure — Website
+# Nena Adventure
 
-Website satu halaman (single-file) untuk Nena Adventure: beranda publik, alur booking online, dan panel admin internal. Semua ada di `index.html` (HTML, CSS, dan JavaScript digabung dalam satu file supaya gampang di-hosting di mana saja tanpa proses build).
+Monorepo (npm workspaces) untuk Nena Adventure: situs publik statis, API backend, dan panel admin.
 
 ## Struktur folder
 
 ```
 nena-adventure/
-├── index.html              ← seluruh website (beranda, booking, admin)
-├── README.md                ← file ini
-└── assets/
-    ├── logo/                 ← logo resmi Nena Adventure
-    ├── images/
-    │   ├── hero/             ← foto banner utama beranda
-    │   ├── destinasi/        ← foto tiap titik kunjungan di Pulau Sangiang
-    │   ├── gallery/          ← foto untuk section "Galeri"
-    │   ├── feature/          ← foto besar di section "Adventure yang bikin kangen pulang"
-    │   └── adventure/        ← foto untuk lingkaran meeting point (Anyer, Jakarta, dst.)
-    └── video/                ← video profil / cuplikan trip
+├── apps/
+│   ├── site/                ← situs publik (index.html modular + styles/ + src/ + assets/)
+│   └── panel/               ← panel admin (Vite + React + TypeScript)
+├── services/
+│   └── api/                 ← API (Fastify + Drizzle + SQLite)
+├── packages/
+│   └── shared/              ← tipe + skema Zod dipakai bersama api & panel
+├── scripts/parity.mjs       ← gate parity visual situs (Playwright)
+└── README.md
 ```
 
-Saat ini folder `assets/` masih kosong (baru ada file `.gitkeep` supaya foldernya ikut ter-upload ke Git). Semua foto yang tampil di `index.html` masih pakai foto stok sementara dari Unsplash — tinggal ganti sesuai panduan di bawah begitu foto/video/logo asli sudah ada.
+Aset situs kini di `apps/site/assets/` (bukan lagi `assets/` di root — sesuaikan path pada tabel aset di bawah). Foto isi masih memakai stok Unsplash sementara.
+
+## Perintah (dari root)
+
+```
+npm install            # sekali; membangun better-sqlite3 native
+npm run dev            # api :3000 (sekaligus menyajikan apps/site) + panel :5173
+npm run migrate        # terapkan migrasi DB
+npm run seed           # data awal (owner, settings, dll)
+npm run typecheck      # tsc semua workspace
+npm run test           # vitest (arsitektur, MIME statis, enum, dst.)
+npm run parity         # gate parity visual situs (lihat bawah)
+```
+
+Buka: situs `http://localhost:3000/`, health `http://localhost:3000/api/health`, panel `http://localhost:5173/panel/`.
+
+## Parity gate (`npm run parity`)
+
+Membuktikan situs tetap tampil IDENTIK setelah perubahan. Untuk tiap sub-halaman + langkah
+booking, pada viewport 1440 & 390: bandingkan outerHTML ternormalisasi (harus 0 selisih) dan
+screenshot full-page (diff piksel harus < 0.1%) terhadap sebuah baseline git.
+
+```
+npm run parity                          # baseline default: tag `pre-1a` (monolith beku)
+npm run parity -- --baseline main       # bandingkan terhadap branch/tag/sha lain
+npm run parity -- --baseline=<ref>      # bentuk =  juga didukung
+```
+
+Baseline di-checkout otomatis lewat `git worktree`, disajikan bersama working tree, lalu
+dirender headless dengan Math.random/Date/timer/scroll dibekukan + jaringan eksternal diblok
+supaya kedua build identik. Gagal → exit 1 + artefak di `.parity-out/`.
+
+Harness ini permanen: **Fase 5** akan memakainya untuk membuktikan situs yang membaca konten
+dari API tampil identik dengan situs yang membaca dari file data — cukup arahkan `--baseline`
+ke commit situs-baca-file.
+
+---
+
+## Panduan aset (foto/video/logo)
 
 ## Cara pasang aset asli
 

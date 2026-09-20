@@ -218,11 +218,21 @@ function pixelDiff(aBuf, bBuf, key) {
 }
 
 /* ── main ────────────────────────────────────────────────── */
+function parseBaseline(argv) {
+  // Prioritas: --baseline <ref> / --baseline=<ref>  >  env  >  default tag pre-1a
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--baseline") return argv[i + 1];
+    if (a.startsWith("--baseline=")) return a.slice("--baseline=".length);
+  }
+  return process.env.PARITY_BASELINE || "pre-1a";
+}
+
 async function main() {
-  // Baseline = keadaan situs SEBELUM modularisasi (monolith), dibekukan di tag
-  // git `pre-1a`. Gate ini selalu membandingkan working tree terhadap monolith
-  // itu, bukan commit sebelumnya (yang bisa saja sudah termodularisasi).
-  const BASELINE = process.env.PARITY_BASELINE || "pre-1a";
+  // Baseline = ref git pembanding (tag/branch/sha). Default: tag `pre-1a`
+  // (monolith beku sebelum modularisasi). Fase 5 memakai harness sama untuk
+  // membandingkan situs-baca-API vs situs-baca-file: `npm run parity -- --baseline <ref>`.
+  const BASELINE = parseBaseline(process.argv.slice(2));
 
   // Siapkan worktree baseline
   rmSync(WORKTREE, { recursive: true, force: true });
