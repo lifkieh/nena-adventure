@@ -1,0 +1,7 @@
+/* ── Kerangka view (beranda publik, booking publik, admin internal) ── */
+#view-home[hidden],#view-booking[hidden],#view-admin[hidden]{display:none}
+#view-home .page[hidden]{display:none}
+#view-home .pagehead{padding:26px 0 6px}
+#view-home .pagehead .back{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--hull)}
+#view-home .pagehead .back:hover{text-decoration:underline}
+#view-booking,#view-admin{min-height:100vh}

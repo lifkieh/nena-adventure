@@ -29,3 +29,7 @@ services/api/data/
 *.db
 *.db-shm
 *.db-wal
+
+# Parity harness
+.parity-baseline/
+.parity-out/
