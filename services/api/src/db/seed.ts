@@ -55,7 +55,7 @@ function main(): void {
   ];
   for (const sec of sections) {
     db.insert(contentSections)
-      .values({ key: sec.key, title: sec.title, status: "draft" })
+      .values({ key: sec.key, title: sec.title })
       .onConflictDoNothing({ target: contentSections.key })
       .run();
   }

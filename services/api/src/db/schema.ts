@@ -49,7 +49,8 @@ export const users = sqliteTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     name: text("name").notNull(),
-    role: text("role").notNull().default("staff"), // owner | admin | staff
+    // owner | admin | operasional | keuangan | viewer  (lihat shared permissions.ts)
+    role: text("role").notNull().default("viewer"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: tsNow("created_at"),
     updatedAt: tsNow("updated_at"),
@@ -125,7 +126,11 @@ export const crew = sqliteTable("crew", {
 });
 
 /* ── schedules ───────────────────────────────────────────── */
-/** TIDAK ada kolom counter kursi di sini (lihat catatan seat_ledger). */
+/**
+ * TIDAK ada kolom counter kursi di sini (lihat catatan seat_ledger).
+ * `threshold` = ambang kursi tersisa untuk memicu status "hampir penuh"
+ * (bukan counter kursi terpakai).
+ */
 export const schedules = sqliteTable(
   "schedules",
   {
@@ -135,9 +140,12 @@ export const schedules = sqliteTable(
       onDelete: "set null",
     }),
     capacity: integer("capacity").notNull().default(24),
+    threshold: integer("threshold").notNull().default(6),
     departureTime: text("departure_time"), // HH:MM waktu lokal Jakarta
     meetingPoint: text("meeting_point"),
     status: text("status").notNull().default("open"), // open | closed | cancelled
+    publicNote: text("public_note"),
+    closedReason: text("closed_reason"),
     notes: text("notes"),
     createdAt: tsNow("created_at"),
     updatedAt: tsNow("updated_at"),
@@ -174,7 +182,11 @@ export const bookings = sqliteTable(
       .notNull()
       .references(() => schedules.id),
     packageType: text("package_type").notNull(), // reguler | premium | private
-    status: text("status").notNull().default("pending"), // pending|dp|paid|cancelled|expired
+    // Status alur (shared bookingStatusSchema):
+    // baru_masuk | menunggu_bayar | verifikasi_bukti | menunggu_pelunasan |
+    // siap_jalan | selesai | kadaluarsa | batal
+    status: text("status").notNull().default("baru_masuk"),
+    source: text("source").notNull().default("web"), // web | manual
     customerName: text("customer_name").notNull(),
     customerPhone: text("customer_phone").notNull(),
     customerEmail: text("customer_email").notNull(),
@@ -185,10 +197,23 @@ export const bookings = sqliteTable(
     serviceFee: money("service_fee"),
     total: money("total"),
     amountPaid: money("amount_paid"),
+    // Skema pembayaran TERPISAH dari status alur — jangan dilebur.
     paymentScheme: text("payment_scheme").notNull().default("lunas"), // lunas | dp
     promoId: text("promo_id"),
+    refundAmount: money("refund_amount"),
+    priceOverrideReason: text("price_override_reason"),
+    cancelReason: text("cancel_reason"),
+    cancelledBy: text("cancelled_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdByUserId: text("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     notes: text("notes"),
-    expiresAt: ts("expires_at"), // batas tahan kursi (60 menit)
+    holdExpiresAt: ts("hold_expires_at"), // batas tahan kursi (60 menit)
+    balanceDueAt: ts("balance_due_at"), // batas pelunasan (H-3)
+    statusChangedAt: ts("status_changed_at"),
+    confirmedAt: ts("confirmed_at"),
     createdAt: tsNow("created_at"),
     updatedAt: tsNow("updated_at"),
   },
@@ -210,6 +235,8 @@ export const bookingParticipants = sqliteTable(
     name: text("name").notNull(),
     birthDate: text("birth_date"), // YYYY-MM-DD
     idNumber: text("id_number"), // KTP/paspor/KIA (terenkripsi di lapisan aplikasi)
+    idNumberLast4: text("id_number_last4"), // 4 digit terakhir, aman untuk tampilan
+    piiPurgedAt: ts("pii_purged_at"), // waktu idNumber dihapus (retensi PII)
     isLead: integer("is_lead", { mode: "boolean" }).notNull().default(false),
     createdAt: tsNow("created_at"),
   },
@@ -253,6 +280,8 @@ export const payments = sqliteTable(
     method: text("method").notNull(), // transfer | qris
     kind: text("kind").notNull().default("full"), // dp | pelunasan | full
     status: text("status").notNull().default("pending"), // pending | verified | rejected
+    provider: text("provider").notNull().default("manual"), // manual | midtrans | xendit
+    providerRef: text("provider_ref"),
     proofMediaId: text("proof_media_id"),
     reference: text("reference"),
     paidAt: ts("paid_at"),
@@ -260,6 +289,8 @@ export const payments = sqliteTable(
       onDelete: "set null",
     }),
     verifiedAt: ts("verified_at"),
+    rejectedReason: text("rejected_reason"),
+    rejectedAt: ts("rejected_at"),
     createdAt: tsNow("created_at"),
   },
   (t) => [index("ix_payments_booking").on(t.bookingId)],
@@ -327,8 +358,8 @@ export const contentSections = sqliteTable(
     id: pk(),
     key: text("key").notNull(), // hero, paket, faq, syarat, ...
     title: text("title").notNull(),
-    status: text("status").notNull().default("draft"), // draft | published
-    currentVersionId: text("current_version_id"),
+    draftVersionId: text("draft_version_id"),
+    publishedVersionId: text("published_version_id"),
     updatedAt: tsNow("updated_at"),
   },
   (t) => [uniqueIndex("ux_content_sections_key").on(t.key)],
@@ -360,6 +391,9 @@ export const media = sqliteTable(
     filename: text("filename").notNull(),
     mime: text("mime").notNull(),
     size: integer("size").notNull().default(0), // byte
+    width: integer("width"),
+    height: integer("height"),
+    alt: text("alt"),
     path: text("path").notNull(),
     sha256: text("sha256"),
     uploadedBy: text("uploaded_by").references(() => users.id, {

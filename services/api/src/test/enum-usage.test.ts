@@ -5,22 +5,27 @@ import { bookingStatusSchema } from "@nena/shared";
 import { repoRoot } from "../db/paths.js";
 
 /**
- * Enum status booking hidup di SATU tempat: packages/shared (bookingStatusSchema).
- * Test ini gagal kalau ada literal status booking ad-hoc/legacy diketik langsung
- * di services/api/src atau apps/panel/src — memaksa impor dari shared.
+ * Enum status booking hidup di SATU tempat: packages/shared (bookingStatusSchema),
+ * dan ditegakkan PRIMER oleh tipe branded `BookingStatus` — string mentah tidak
+ * bisa ditugaskan tanpa asBookingStatus()/konstanta BookingStatus.*, jadi tsc
+ * yang menegakkan. Test ini adalah JARING KEDUA (regex) untuk mencegah literal
+ * status booking LAMA (pra-realignment) muncul lagi.
+ *
+ * Kanonik sekarang: baru_masuk | menunggu_bayar | verifikasi_bukti |
+ * menunggu_pelunasan | siap_jalan | selesai | kadaluarsa | batal.
  */
 
-// Literal status booking legacy/ad-hoc yang tidak boleh muncul di mana pun.
-// (Canonical: pending | dp | paid | cancelled | expired — dari shared.)
-const FORBIDDEN = [
-  "menunggu_bayar",
-  "menunggu_pembayaran",
-  "dp_dibayar",
-  "sudah_bayar",
-  "dibatalkan",
-  "kadaluarsa",
-  "kedaluwarsa",
-];
+// Literal booking-only yang tidak ambigu -> dilarang di mana pun (sebagai string).
+const STRICT_FORBIDDEN = ["paid", "expired"];
+
+// Ambigu dgn domain lain (pembayaran/jadwal/skema) -> hanya dilarang di KONTEKS
+// booking, dan tidak jika baris menyebut domain lain.
+//   'pending'   sah utk payments.status
+//   'dp'        sah utk paymentScheme & payments.kind
+//   'cancelled' sah utk schedules.status
+const CONTEXTUAL_FORBIDDEN = ["pending", "dp", "cancelled"];
+const OTHER_DOMAIN = /payment|schedule|scheme|kind|jadwal/i;
+const BOOKING_CTX = /booking|BookingStatus|bookings\.status/;
 
 const SCAN_DIRS = ["services/api/src", "apps/panel/src"];
 const SELF = "enum-usage.test.ts";
@@ -38,8 +43,12 @@ function sourceFiles(dir: string): string[] {
     );
 }
 
-describe("penegakan enum status booking (shared adalah satu-satunya sumber)", () => {
-  it("tidak ada literal status booking legacy di api/panel", () => {
+function quoted(word: string): RegExp {
+  return new RegExp(`["'\`]${word}["'\`]`);
+}
+
+describe("penegakan enum status booking (shared = satu sumber)", () => {
+  it("tidak ada literal status booking LAMA di api/panel", () => {
     const offenders: string[] = [];
     for (const rel of SCAN_DIRS) {
       const dir = resolve(repoRoot, rel);
@@ -47,9 +56,18 @@ describe("penegakan enum status booking (shared adalah satu-satunya sumber)", ()
         if (file.endsWith(SELF)) continue;
         const lines = readFileSync(file, "utf8").split(/\r?\n/);
         lines.forEach((line, i) => {
-          for (const bad of FORBIDDEN) {
-            if (line.includes(bad)) {
-              offenders.push(`${file}:${i + 1} -> "${bad}"`);
+          for (const bad of STRICT_FORBIDDEN) {
+            if (quoted(bad).test(line)) {
+              offenders.push(`${file}:${i + 1} -> "${bad}" (booking-only)`);
+            }
+          }
+          for (const bad of CONTEXTUAL_FORBIDDEN) {
+            if (
+              quoted(bad).test(line) &&
+              BOOKING_CTX.test(line) &&
+              !OTHER_DOMAIN.test(line)
+            ) {
+              offenders.push(`${file}:${i + 1} -> "${bad}" (booking context)`);
             }
           }
         });
@@ -57,17 +75,20 @@ describe("penegakan enum status booking (shared adalah satu-satunya sumber)", ()
     }
     expect(
       offenders,
-      `Status booking legacy ditemukan. Impor dari @nena/shared bookingStatusSchema:\n${offenders.join("\n")}`,
+      `Literal status booking lama ditemukan. Pakai @nena/shared BookingStatus / asBookingStatus:\n${offenders.join("\n")}`,
     ).toEqual([]);
   });
 
-  it("shared mengekspor enum status booking kanonik", () => {
+  it("shared mengekspor 8 status kanonik dalam urutan alur", () => {
     expect(bookingStatusSchema.options).toEqual([
-      "pending",
-      "dp",
-      "paid",
-      "cancelled",
-      "expired",
+      "baru_masuk",
+      "menunggu_bayar",
+      "verifikasi_bukti",
+      "menunggu_pelunasan",
+      "siap_jalan",
+      "selesai",
+      "kadaluarsa",
+      "batal",
     ]);
   });
 });

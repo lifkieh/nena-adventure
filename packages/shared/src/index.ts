@@ -30,8 +30,8 @@ export type ErrorEnvelope = z.infer<typeof errorEnvelopeSchema>;
 
 /* ── Enum domain ─────────────────────────────────────────── */
 
-export const userRoleSchema = z.enum(["owner", "admin", "staff"]);
-export type UserRole = z.infer<typeof userRoleSchema>;
+// Role & permissions (userRoleSchema, UserRole, Permission, ROLE_PERMISSIONS, can).
+export * from "./permissions.js";
 
 export const packageTypeSchema = z.enum(["reguler", "premium", "private"]);
 export type PackageType = z.infer<typeof packageTypeSchema>;
@@ -42,14 +42,40 @@ export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 export const paymentSchemeSchema = z.enum(["lunas", "dp"]);
 export type PaymentScheme = z.infer<typeof paymentSchemeSchema>;
 
-export const bookingStatusSchema = z.enum([
-  "pending", // menunggu pembayaran
-  "dp", // DP dibayar
-  "paid", // lunas
-  "cancelled", // dibatalkan
-  "expired", // kadaluarsa (kursi dilepas)
-]);
-export type BookingStatus = z.infer<typeof bookingStatusSchema>;
+/**
+ * Status alur booking — urutan mengikuti alur nyata.
+ * baru_masuk -> menunggu_bayar -> verifikasi_bukti -> menunggu_pelunasan ->
+ * siap_jalan -> selesai ; cabang: kadaluarsa, batal.
+ * CATATAN: paymentScheme (lunas|dp) TERPISAH, jangan dilebur ke status ini.
+ */
+export const BOOKING_STATUSES = [
+  "baru_masuk",
+  "menunggu_bayar",
+  "verifikasi_bukti",
+  "menunggu_pelunasan",
+  "siap_jalan",
+  "selesai",
+  "kadaluarsa",
+  "batal",
+] as const;
+export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
+export type BookingStatusValue = z.infer<typeof bookingStatusSchema>;
+
+// Tipe BRANDED: string mentah TIDAK bisa ditugaskan ke BookingStatus.
+// Compiler yang menegakkan enum tunggal — pakai konstanta BookingStatus.* atau
+// asBookingStatus() untuk memvalidasi input eksternal.
+declare const bookingStatusBrand: unique symbol;
+export type BookingStatus = BookingStatusValue & {
+  readonly [bookingStatusBrand]: true;
+};
+export const BookingStatus = Object.freeze(
+  Object.fromEntries(BOOKING_STATUSES.map((s) => [s, s])),
+) as unknown as { readonly [K in BookingStatusValue]: BookingStatus };
+
+/** Validasi + brand string dari sumber eksternal (DB, HTTP) menjadi BookingStatus. */
+export function asBookingStatus(v: unknown): BookingStatus {
+  return bookingStatusSchema.parse(v) as BookingStatus;
+}
 
 export const scheduleStatusSchema = z.enum(["open", "closed", "cancelled"]);
 export type ScheduleStatus = z.infer<typeof scheduleStatusSchema>;
