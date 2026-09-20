@@ -1,0 +1,30 @@
+{
+  "name": "nena-adventure",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/panel"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,panel -c blue,magenta \"npm:dev:api\" \"npm:dev:panel\"",
+    "dev:api": "npm run dev -w @nena/api",
+    "dev:panel": "npm run dev -w @nena/panel",
+    "build": "npm run build -w @nena/panel",
+    "generate": "npm run generate -w @nena/api",
+    "migrate": "npm run migrate -w @nena/api",
+    "seed": "npm run seed -w @nena/api",
+    "typecheck": "npm run typecheck -w @nena/shared && npm run typecheck -w @nena/api && npm run typecheck -w @nena/panel",
+    "test": "npm run test -w @nena/api",
+    "parity": "node scripts/parity.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "drizzle-orm": "^0.45.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
