@@ -219,9 +219,10 @@ function pixelDiff(aBuf, bBuf, key) {
 
 /* ── main ────────────────────────────────────────────────── */
 async function main() {
-  // Baseline = commit sebelum refactor. Setelah refactor di-commit, itu HEAD~1.
-  // Selama iterasi (refactor belum di-commit) lewatkan PARITY_BASELINE=<sha 1b>.
-  const BASELINE = process.env.PARITY_BASELINE || "HEAD~1";
+  // Baseline = keadaan situs SEBELUM modularisasi (monolith), dibekukan di tag
+  // git `pre-1a`. Gate ini selalu membandingkan working tree terhadap monolith
+  // itu, bukan commit sebelumnya (yang bisa saja sudah termodularisasi).
+  const BASELINE = process.env.PARITY_BASELINE || "pre-1a";
 
   // Siapkan worktree baseline
   rmSync(WORKTREE, { recursive: true, force: true });
