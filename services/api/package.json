@@ -15,7 +15,8 @@
     "job:purge-pii": "tsx src/db/job-purge-pii.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:content": "tsx src/db/seed-content.ts"
+    "seed:content": "tsx src/db/seed-content.ts",
+    "content:verify": "tsx src/db/content-verify.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

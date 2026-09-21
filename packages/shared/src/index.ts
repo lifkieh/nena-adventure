@@ -121,6 +121,34 @@ export function formatJakarta(
   }).format(new Date(iso));
 }
 
+/* ── Kalender jadwal (pemilihan bulan default) ───────────── */
+
+/** Selisih bulan antar kunci "YYYY-MM" (bisa negatif). */
+export function monthKeyDiff(from: string, to: string): number {
+  const [ay, am] = from.split("-").map(Number) as [number, number];
+  const [by, bm] = to.split("-").map(Number) as [number, number];
+  return (by - ay) * 12 + (bm - am);
+}
+
+/**
+ * Offset bulan awal kalender jadwal dari bulan berjalan:
+ *   - bulan berjalan punya jadwal  -> 0
+ *   - bulan berjalan kosong        -> bulan pertama yang punya jadwal (>= sekarang;
+ *                                     kalau semua sudah lewat, pakai yang paling awal)
+ *   - tak ada jadwal sama sekali   -> 0
+ * `monthsPresent`: daftar "YYYY-MM" yang punya jadwal. `currentKey`: "YYYY-MM" sekarang.
+ */
+export function pickScheduleMonthOffset(
+  monthsPresent: string[],
+  currentKey: string,
+): number {
+  if (monthsPresent.length === 0) return 0;
+  if (monthsPresent.includes(currentKey)) return 0;
+  const future = monthsPresent.filter((m) => m >= currentKey).sort();
+  const target = future[0] ?? monthsPresent.slice().sort()[0]!;
+  return monthKeyDiff(currentKey, target);
+}
+
 /* ── Health ──────────────────────────────────────────────── */
 
 export const migrationStatusSchema = z.object({

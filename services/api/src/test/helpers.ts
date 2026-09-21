@@ -74,7 +74,12 @@ export function seedPricing(): void {
       { minPax: 12, maxPax: 14, price: 7300000 },
     ];
     for (const t of tiers)
-      db.insert(packageTiers).values({ packageId: priv.id, ...t }).run();
+      db.insert(packageTiers)
+        .values({ packageId: priv.id, ...t })
+        .onConflictDoNothing({
+          target: [packageTiers.packageId, packageTiers.minPax, packageTiers.maxPax],
+        })
+        .run();
   }
   setSetting("pricing.service_fee", 5000);
   setSetting("pricing.dp_percent", 50);

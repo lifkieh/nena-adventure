@@ -261,7 +261,11 @@ export const packageTiers = sqliteTable(
     price: integer("price").notNull(), // rupiah per rombongan
     createdAt: tsNow("created_at"),
   },
-  (t) => [index("ix_package_tiers_pkg").on(t.packageId)],
+  (t) => [
+    index("ix_package_tiers_pkg").on(t.packageId),
+    // Satu tier unik per (paket, rentang pax) — cegah duplikasi.
+    uniqueIndex("ux_package_tiers_range").on(t.packageId, t.minPax, t.maxPax),
+  ],
 );
 
 /* ── booking_participants ────────────────────────────────── */

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../lib/api";
 import { useMe, usePermissions } from "../lib/useAuth";
@@ -21,21 +20,25 @@ const KONTEN: NavItem[] = [
   { to: "/content", label: "Konten situs", perm: "content:read" },
   { to: "/media", label: "Media library", perm: "content:read" },
 ];
+const KONTEN_PATHS = KONTEN.map((n) => n.to);
+
+/** Workspace ditentukan oleh RUTE (bukan state), supaya buka /panel/content
+ *  langsung ikut memindahkan header & sidebar ke Konten. */
+function workspaceForPath(pathname: string): "operasional" | "konten" {
+  return KONTEN_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    ? "konten"
+    : "operasional";
+}
 
 export function Layout() {
   const { data } = useMe();
   const { has } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
-  const uid = data?.user.id ?? "anon";
-  const wsKey = `nena_ws_${uid}`;
-  const [ws, setWs] = useState<"operasional" | "konten">(
-    () => (localStorage.getItem(wsKey) as "operasional" | "konten") || "operasional",
-  );
+  const ws = workspaceForPath(location.pathname);
   function switchWs(next: "operasional" | "konten") {
-    setWs(next);
-    localStorage.setItem(wsKey, next); // diingat per user
     navigate(next === "konten" ? "/content" : "/");
   }
 

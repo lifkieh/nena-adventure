@@ -26,6 +26,7 @@
     "extract:faq": "node scripts/extract-faq.mjs",
     "test:e2e": "node scripts/e2e-booking.mjs",
     "seed:content": "npm run seed:content -w @nena/api",
+    "content:verify": "npm run content:verify -w @nena/api",
     "test:e2e-panel": "node scripts/e2e-panel.mjs"
   },
   "devDependencies": {

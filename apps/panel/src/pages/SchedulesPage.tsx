@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatJakarta } from "@nena/shared";
+import { formatJakarta, pickScheduleMonthOffset } from "@nena/shared";
 import { ApiError, schedulesApi, type ScheduleDto } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
@@ -12,12 +12,6 @@ const PKGS = ["reguler", "premium", "private"];
 /** "YYYY-MM-DD" -> "26 September 2026" (tampilan Indonesia). */
 function idDate(iso: string): string {
   return formatJakarta(iso + "T00:00:00Z", { day: "numeric", month: "long", year: "numeric" });
-}
-/** Selisih bulan antar kunci "YYYY-MM". */
-function monthDiff(from: string, to: string): number {
-  const [ay, am] = from.split("-").map(Number) as [number, number];
-  const [by, bm] = to.split("-").map(Number) as [number, number];
-  return (by - ay) * 12 + (bm - am);
 }
 function currentMonthKey(): string {
   const d = new Date();
@@ -53,12 +47,8 @@ export function SchedulesPage() {
   const allQ = useQuery({ queryKey: ["schedules", "all"], queryFn: () => schedulesApi.list(), enabled: has("schedule:read") });
   useEffect(() => {
     if (navigated || !allQ.data || allQ.data.length === 0) return;
-    const cur = currentMonthKey();
     const months = allQ.data.map((s) => s.date.slice(0, 7));
-    if (months.includes(cur)) return; // bulan berjalan sudah ada jadwal
-    const future = months.filter((m) => m >= cur).sort();
-    const target = future[0] ?? months.slice().sort()[0];
-    if (target) setOffset(monthDiff(cur, target));
+    setOffset(pickScheduleMonthOffset(months, currentMonthKey()));
   }, [allQ.data, navigated]);
   const goMonth = (delta: number) => { setNavigated(true); setOffset(offset + delta); };
   const refresh = () => qc.invalidateQueries({ queryKey: ["schedules"] });

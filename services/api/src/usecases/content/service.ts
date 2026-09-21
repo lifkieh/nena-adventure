@@ -64,6 +64,32 @@ export function saveDraft(key: string, body: unknown, ctx: ActorContext) {
   return getSection(key);
 }
 
+/**
+ * Rekonsiliasi section ke body kanonik: kalau versi TERBIT beda (atau belum ada),
+ * simpan+terbitkan body kanonik. Kalau sudah cocok tapi masih ada draf nyangkut,
+ * setel draf = terbit supaya tak ada "draf belum diterbitkan" sisa pengujian.
+ */
+export function reconcile(
+  key: string,
+  body: unknown,
+  ctx: ActorContext,
+  equals: (a: unknown, b: unknown) => boolean,
+): "republished" | "draft-reset" | "unchanged" {
+  const s = repo.findByKey(key);
+  const curPublished = s?.publishedVersionId ? parse(s.publishedVersionId) : null;
+  if (!s || !s.publishedVersionId || !equals(curPublished, body)) {
+    saveDraft(key, body, ctx);
+    publish(key, ctx);
+    return "republished";
+  }
+  if (s.draftVersionId && s.draftVersionId !== s.publishedVersionId) {
+    repo.setPointers(s.id, { draftVersionId: s.publishedVersionId });
+    record(ctx, { action: "content_draft_reset", entity: "content", entityId: key });
+    return "draft-reset";
+  }
+  return "unchanged";
+}
+
 export function publish(key: string, ctx: ActorContext) {
   const s = repo.findByKey(key);
   if (!s) throw AppError.notFound("Section tidak ditemukan.");

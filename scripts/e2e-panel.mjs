@@ -71,8 +71,14 @@ try {
   // ── A. Owner: publish konten -> situs berubah -> revert ──
   const owner = await (await browser.newContext()).newPage();
   await loginUI(owner, OWNER_EMAIL, OWNER_PASSWORD);
-  await owner.click('button:has-text("Konten")');
-  await owner.click('a:has-text("Konten situs")');
+  // #4 Buka /panel/content LANGSUNG lewat URL -> workspace pindah ke Konten
+  //    (header + sidebar), bukan tersangkut di Operasional.
+  await owner.goto(base + "/panel/content", { waitUntil: "load" });
+  await owner.waitForSelector("aside nav");
+  const hdrTxt = await owner.$eval("header h1", (e) => e.textContent || "");
+  if (!/Konten/.test(hdrTxt)) fail("buka /panel/content langsung: header bukan Konten: " + hdrTxt);
+  if (!(await owner.$('aside nav a:has-text("Konten situs")'))) fail("buka /panel/content langsung: sidebar tak menampilkan nav Konten");
+  if (await owner.$('aside nav a:has-text("Ringkasan")')) fail("buka /panel/content langsung: sidebar masih Operasional");
   await owner.waitForSelector('[data-testid="hero-heading"]');
   // #3 terbitkan jujur: ketik lalu LANGSUNG Terbitkan (tanpa Save) -> tersimpan+terbit.
   await owner.fill('[data-testid="hero-heading"]', HERO_NEW);

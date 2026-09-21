@@ -88,7 +88,26 @@ function main(): void {
       .run();
   }
 
-  // Paket & harga (nilai PERSIS dari apps/site/src/data/harga.js).
+  seedPackages();
+
+  // Jadwal operasional: seluruh Sabtu & Minggu untuk 3 bulan ke depan (idempoten).
+  const added = seedOperationalSchedules(3);
+  // Konten CMS verbatim (idempoten).
+  seedContent();
+
+  console.log(
+    `Seed selesai. Owner: ${env.OWNER_EMAIL}. Jadwal akhir pekan baru: ${added}.`,
+  );
+  sqliteConn.close();
+}
+
+/**
+ * Seed paket + tier Private Trip. IDEMPOTEN:
+ * - packages: upsert-nothing per key.
+ * - package_tiers: upsert-nothing per (package_id, min_pax, max_pax) — dijamin
+ *   unik oleh index ux_package_tiers_range, jadi jalan berkali-kali tak menambah baris.
+ */
+export function seedPackages(): void {
   const pkgs: { key: string; name: string; prices: Record<string, number> }[] = [
     { key: "reguler", name: "Open Trip Reguler", prices: { anyer: 385000 } },
     {
@@ -110,38 +129,30 @@ function main(): void {
     .prepare("UPDATE packages SET prices='{}' WHERE key='private' AND prices='{\"anyer\":0}'")
     .run();
 
-  // Tier Private Trip (per rombongan).
   const privatePkg = db
     .select()
     .from(packages)
     .where(eq(packages.key, "private"))
     .get();
   if (privatePkg) {
-    const existing = sqliteConn
-      .prepare("SELECT COUNT(*) AS n FROM package_tiers WHERE package_id = ?")
-      .get(privatePkg.id) as { n: number };
-    if (existing.n === 0) {
-      const tiers = [
-        { minPax: 1, maxPax: 6, price: 4500000 },
-        { minPax: 7, maxPax: 9, price: 5500000 },
-        { minPax: 10, maxPax: 11, price: 6300000 },
-        { minPax: 12, maxPax: 14, price: 7300000 },
-      ];
-      for (const t of tiers) {
-        db.insert(packageTiers).values({ packageId: privatePkg.id, ...t }).run();
-      }
+    const tiers = [
+      { minPax: 1, maxPax: 6, price: 4500000 },
+      { minPax: 7, maxPax: 9, price: 5500000 },
+      { minPax: 10, maxPax: 11, price: 6300000 },
+      { minPax: 12, maxPax: 14, price: 7300000 },
+    ];
+    for (const t of tiers) {
+      db.insert(packageTiers)
+        .values({ packageId: privatePkg.id, ...t })
+        .onConflictDoNothing({
+          target: [packageTiers.packageId, packageTiers.minPax, packageTiers.maxPax],
+        })
+        .run();
     }
   }
-
-  // Jadwal operasional: seluruh Sabtu & Minggu untuk 3 bulan ke depan (idempoten).
-  const added = seedOperationalSchedules(3);
-  // Konten CMS verbatim (idempoten).
-  seedContent();
-
-  console.log(
-    `Seed selesai. Owner: ${env.OWNER_EMAIL}. Jadwal akhir pekan baru: ${added}.`,
-  );
-  sqliteConn.close();
 }
 
-main();
+// Jalur CLI: hanya jalankan seed penuh saat dieksekusi langsung (bukan diimpor test).
+if (process.argv[1] && /seed\.ts$/.test(process.argv[1])) {
+  main();
+}
