@@ -14,7 +14,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const src = resolve(ROOT, process.env.DB_PATH || "services/api/data/nena.db");
 if (!existsSync(src)) { console.error("DB tidak ditemukan:", src); process.exit(1); }
 
-const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15); // YYYYMMDD-HHMMSS-ish
+// YYYYMMDD-HHMMSS (buang milidetik & zona; pisahkan tanggal-jam dgn '-').
+const stamp = new Date().toISOString().replace(/\.\d+Z$/, "").replace(/[-:]/g, "").replace("T", "-");
 const dir = resolve(ROOT, "services/api/data/backups");
 mkdirSync(dir, { recursive: true });
 const dest = resolve(dir, basename(src, ".db") + "-" + stamp + ".db");

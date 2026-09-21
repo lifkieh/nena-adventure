@@ -23,6 +23,16 @@ interface PaketCard { key: string; name: string; sub: string; unit: string; note
 const ICON_OPTS = ["pin", "kalender", "telepon", "jam"];
 const SIZE_OPTS = ["", "w2", "h2", "w2 h2"];
 
+/** Pengelompokan tab CMS supaya tak jadi deretan panjang. Section di luar daftar
+ *  ini otomatis masuk grup "Lainnya". */
+const SECTION_GROUPS: { label: string; keys: string[] }[] = [
+  { label: "Beranda", keys: ["hero", "adventure", "destinasi", "galeri", "testimoni"] },
+  { label: "Paket & Harga", keys: ["paket"] },
+  { label: "Perjalanan", keys: ["itinerary", "keselamatan", "registrasi"] },
+  { label: "Kepercayaan & Legal", keys: ["faq", "syarat"] },
+  { label: "Footer & Global", keys: ["navbar", "kontak", "meta"] },
+];
+
 function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
   if (j < 0 || j >= arr.length) return arr;
@@ -137,12 +147,34 @@ export function ContentPage() {
       <h2 className="text-xl font-extrabold text-slate-800">Konten situs</h2>
 
       {listQ.isLoading ? <Loading /> : listQ.isError ? <ErrorState message="Tidak bisa memuat section." onRetry={() => listQ.refetch()} /> : (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {listQ.data?.map((s) => (
-            <button key={s.key} type="button" onClick={() => setKey(s.key)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${key === s.key ? "bg-laut text-white" : "bg-slate-100 text-slate-600"}`}>
-              {s.title}{s.hasDraft ? " •" : ""}
-            </button>
-          ))}
+        <div className="mt-4 space-y-3">
+          {(() => {
+            const secs = listQ.data ?? [];
+            const grouped = new Set<string>();
+            const groupBtns = (keys: string[]) =>
+              keys.map((k) => secs.find((s) => s.key === k)).filter((s): s is NonNullable<typeof s> => !!s);
+            const rows = SECTION_GROUPS.map((g) => {
+              const items = groupBtns(g.keys);
+              items.forEach((s) => grouped.add(s.key));
+              return { label: g.label, items };
+            });
+            const rest = secs.filter((s) => !grouped.has(s.key));
+            if (rest.length) rows.push({ label: "Lainnya", items: rest });
+            return rows
+              .filter((r) => r.items.length > 0)
+              .map((r) => (
+                <div key={r.label}>
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">{r.label}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {r.items.map((s) => (
+                      <button key={s.key} type="button" onClick={() => setKey(s.key)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${key === s.key ? "bg-laut text-white" : "bg-slate-100 text-slate-600"}`}>
+                        {s.title}{s.hasDraft ? " •" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ));
+          })()}
         </div>
       )}
 

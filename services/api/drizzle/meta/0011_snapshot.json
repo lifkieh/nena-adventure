@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "78e8c104-b4c0-4b66-a83e-e22153349927",
-  "prevId": "91e121e5-3a10-44aa-a7da-370dde59e5df",
+  "id": "b21f2bb6-95b2-4b37-afab-f784f528b6f1",
+  "prevId": "879435ee-4da7-40e1-86e7-265417c77a5e",
   "tables": {
     "audit_logs": {
       "name": "audit_logs",
@@ -183,6 +183,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "birth_date": {
@@ -486,6 +493,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "is_test": {
+          "name": "is_test",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -949,6 +964,15 @@
             "package_id"
           ],
           "isUnique": false
+        },
+        "ux_package_tiers_range": {
+          "name": "ux_package_tiers_range",
+          "columns": [
+            "package_id",
+            "min_pax",
+            "max_pax"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -1362,6 +1386,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "packages": {
+          "name": "packages",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "active": {
           "name": "active",

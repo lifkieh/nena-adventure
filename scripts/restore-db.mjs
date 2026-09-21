@@ -7,6 +7,7 @@
 import { copyFileSync, existsSync, rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import Database from "better-sqlite3";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -19,11 +20,22 @@ if (!existsSync(backup)) { console.error("File backup tidak ada:", backup); proc
 const dest = resolve(ROOT, process.env.DB_PATH || "services/api/data/nena.db");
 
 if (existsSync(dest)) {
+  // Gabungkan WAL ke main & lepas kunci sidecar dulu (checkpoint TRUNCATE), supaya
+  // -wal/-shm bisa dihapus tanpa EPERM di Windows dan tak ada WAL basi tersisa.
+  try {
+    const d = new Database(dest);
+    d.pragma("wal_checkpoint(TRUNCATE)");
+    d.close();
+  } catch { /* db mungkin sudah tak konsisten; tetap lanjut backup + timpa */ }
   const bak = dest + ".pre-restore.bak";
   copyFileSync(dest, bak);
   console.log("DB lama diamankan ke", bak);
 }
 // Bersihkan sidecar WAL/SHM agar tak bentrok dengan file yang dipulihkan.
-for (const ext of ["-wal", "-shm"]) rmSync(dest + ext, { force: true });
+// force + retry: file bisa sesaat terkunci OS di Windows. Abaikan bila memang tak ada.
+for (const ext of ["-wal", "-shm"]) {
+  try { rmSync(dest + ext, { force: true, maxRetries: 10, retryDelay: 150 }); }
+  catch (e) { if (e.code !== "ENOENT") console.warn("Peringatan hapus sidecar", ext, e.code); }
+}
 copyFileSync(backup, dest);
 console.log("Restore selesai <-", backup, "\nJalankan server lagi.");

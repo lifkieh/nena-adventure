@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5fdbd387-fc2f-47af-ae65-19a4c63553f4",
-  "prevId": "ef10c081-51ad-4080-afa3-a52396ac78c9",
+  "id": "f4cf4780-f582-4f71-86dc-95937c918768",
+  "prevId": "78e8c104-b4c0-4b66-a83e-e22153349927",
   "tables": {
     "audit_logs": {
       "name": "audit_logs",
