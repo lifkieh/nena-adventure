@@ -123,6 +123,23 @@ export function formatJakarta(
 
 /* ── Kalender jadwal (pemilihan bulan default) ───────────── */
 
+/**
+ * Rentang tanggal satu bulan (offset dari bulan `base`), sebagai string LOKAL
+ * "YYYY-MM-DD" — TANPA toISOString (yang menggeser tgl-1 ke bulan sebelumnya di
+ * zona UTC+). Aman di zona mana pun. Dipakai kalender jadwal panel.
+ */
+export function monthRangeFor(
+  base: Date,
+  offset: number,
+): { from: string; to: string; year: number; monthIndex0: number } {
+  const d = new Date(base.getFullYear(), base.getMonth() + offset, 1);
+  const y = d.getFullYear();
+  const m = d.getMonth(); // 0-based, sudah dinormalisasi oleh Date
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const days = new Date(y, m + 1, 0).getDate();
+  return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(days)}`, year: y, monthIndex0: m };
+}
+
 /** Selisih bulan antar kunci "YYYY-MM" (bisa negatif). */
 export function monthKeyDiff(from: string, to: string): number {
   const [ay, am] = from.split("-").map(Number) as [number, number];

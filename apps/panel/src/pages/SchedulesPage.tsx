@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatJakarta, pickScheduleMonthOffset } from "@nena/shared";
+import { formatJakarta, monthRangeFor, pickScheduleMonthOffset } from "@nena/shared";
 import { ApiError, schedulesApi, type ScheduleDto } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
@@ -19,12 +19,10 @@ function currentMonthKey(): string {
 }
 
 function monthRange(offset: number) {
-  const d = new Date();
-  d.setMonth(d.getMonth() + offset, 1);
-  const from = new Date(d.getFullYear(), d.getMonth(), 1);
-  const to = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  const iso = (x: Date) => x.toISOString().slice(0, 10);
-  return { from: iso(from), to: iso(to), label: formatJakarta(iso(from) + "T00:00:00Z", { month: "long", year: "numeric" }) };
+  const r = monthRangeFor(new Date(), offset);
+  // Label dari tanggal pertengahan bulan (aman dari geser batas bulan).
+  const label = formatJakarta(`${r.from.slice(0, 8)}15T00:00:00Z`, { month: "long", year: "numeric" });
+  return { from: r.from, to: r.to, label };
 }
 
 export function SchedulesPage() {

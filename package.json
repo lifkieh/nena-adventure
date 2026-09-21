@@ -27,6 +27,8 @@
     "test:e2e": "node scripts/e2e-booking.mjs",
     "seed:content": "npm run seed:content -w @nena/api",
     "content:verify": "npm run content:verify -w @nena/api",
+    "packages:verify": "npm run packages:verify -w @nena/api",
+    "extract:prices": "node scripts/extract-prices.mjs",
     "test:e2e-panel": "node scripts/e2e-panel.mjs"
   },
   "devDependencies": {

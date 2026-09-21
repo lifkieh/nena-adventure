@@ -296,7 +296,37 @@ import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/ap
     );
   }
 
+  /* Banner galat pemesanan — DISISIPKAN dinamis hanya saat gagal (agar tak
+     mengubah DOM jalur sukses / parity). Selalu sertakan jalur WhatsApp. */
+  function bayarErrEl(){
+    var el = document.getElementById("bayarErr");
+    if (!el){
+      el = document.createElement("p");
+      el.className = "err"; el.id = "bayarErr"; el.setAttribute("role", "alert");
+      var row = document.querySelector('#s3 .nav-row');
+      if (row && row.parentNode) row.parentNode.insertBefore(el, row);
+    }
+    return el;
+  }
+  function tampilBayarError(msg){
+    var el = bayarErrEl();
+    el.textContent = msg + " ";
+    var a = document.createElement("a");
+    a.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(
+      "Halo Nena Adventure, saya gagal menyelesaikan booking di website dan butuh bantuan.");
+    a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Hubungi kami via WhatsApp";
+    el.appendChild(a);
+    el.classList.add("on");
+    el.scrollIntoView({ block: "center" });
+  }
+  function sembunyiBayarError(){
+    var el = document.getElementById("bayarErr");
+    if (el) el.classList.remove("on");
+  }
+
   $("bayar").addEventListener("click", async function(){
+    sembunyiBayarError();
     var setuju = $("setuju");
     if (!setuju.checked){
       $("errSetuju").classList.add("on");
@@ -305,7 +335,7 @@ import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/ap
     }
     $("errSetuju").classList.remove("on");
     if (!sel.value || !idByIso[sel.value]){
-      alert("Silakan pilih tanggal keberangkatan lebih dulu.");
+      tampilBayarError("Silakan pilih tanggal keberangkatan lebih dulu.");
       return;
     }
 
@@ -330,16 +360,17 @@ import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/ap
         }));
       } catch (e) { /* sessionStorage penuh/diblok — abaikan */ }
 
+      sembunyiBayarError();
       isiRingkasan(res.code, nominal);
       keLangkah(4);
       mulaiTimerHingga(res.holdExpiresAt);
       idemKey = null; // sukses -> kunci baru untuk pesanan berikutnya
     } catch (err) {
-      var pesan = err && err.message ? err.message : "Terjadi kesalahan. Coba lagi.";
-      if (err && err.code === "SEAT_UNAVAILABLE"){
-        pesan = err.message + " Silakan pilih tanggal lain.";
-      }
-      alert(pesan);
+      // Jangan gagal diam: tampilkan pesan Bahasa Indonesia jelas + jalur WhatsApp,
+      // dan kembalikan tombol ke keadaan bisa ditekan (finally).
+      var pesan = (err && err.message) ? err.message : "Pemesanan gagal. Silakan coba lagi.";
+      if (err && err.code === "SEAT_UNAVAILABLE") pesan = err.message + " Silakan pilih tanggal lain.";
+      tampilBayarError(pesan);
     } finally {
       btn.disabled = false;
     }

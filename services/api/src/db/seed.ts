@@ -12,6 +12,7 @@ import {
 } from "./schema.js";
 import { seedOperationalSchedules } from "./seed-schedules.js";
 import { seedContent } from "./seed-content.js";
+import { packageDefs } from "./package-baseline.js";
 
 /** Isi data awal minimal (idempoten). Fase 1B: owner, settings, kapal, seksi konten. */
 function main(): void {
@@ -102,48 +103,28 @@ function main(): void {
 }
 
 /**
- * Seed paket + tier Private Trip. IDEMPOTEN:
- * - packages: upsert-nothing per key.
- * - package_tiers: upsert-nothing per (package_id, min_pax, max_pax) — dijamin
- *   unik oleh index ux_package_tiers_range, jadi jalan berkali-kali tak menambah baris.
+ * Seed paket + tier. Akar masalah harga hilang: UPSERT sejati berdasar key —
+ * TIDAK PERNAH delete lalu buat ulang, jadi ID paket STABIL lintas seed (tier
+ * yang mereferensi package_id tidak pernah jadi yatim). Idempoten.
  */
 export function seedPackages(): void {
-  const pkgs: { key: string; name: string; prices: Record<string, number> }[] = [
-    { key: "reguler", name: "Open Trip Reguler", prices: { anyer: 385000 } },
-    {
-      key: "premium",
-      name: "Open Trip Premium",
-      prices: { anyer: 525000, serang: 650000, tangerang: 800000, jakarta: 850000 },
-    },
-    // Private: harga per rombongan lewat tier (bukan per meeting point) -> prices {}.
-    { key: "private", name: "Private Trip Premium", prices: {} },
-  ];
-  for (const p of pkgs) {
+  for (const def of packageDefs()) {
+    // Upsert paket by key: baris ada -> update name/prices, ID dipertahankan.
     db.insert(packages)
-      .values({ key: p.key, name: p.name, prices: JSON.stringify(p.prices) })
-      .onConflictDoNothing({ target: packages.key })
+      .values({ key: def.key, name: def.name, prices: JSON.stringify(def.prices) })
+      .onConflictDoUpdate({
+        target: packages.key,
+        set: { name: def.name, prices: JSON.stringify(def.prices) },
+      })
       .run();
-  }
-  // Perbaiki data lama: private {anyer:0} -> {} (bukan Rp0 palsu).
-  sqliteConn
-    .prepare("UPDATE packages SET prices='{}' WHERE key='private' AND prices='{\"anyer\":0}'")
-    .run();
 
-  const privatePkg = db
-    .select()
-    .from(packages)
-    .where(eq(packages.key, "private"))
-    .get();
-  if (privatePkg) {
-    const tiers = [
-      { minPax: 1, maxPax: 6, price: 4500000 },
-      { minPax: 7, maxPax: 9, price: 5500000 },
-      { minPax: 10, maxPax: 11, price: 6300000 },
-      { minPax: 12, maxPax: 14, price: 7300000 },
-    ];
-    for (const t of tiers) {
+    const row = db.select().from(packages).where(eq(packages.key, def.key)).get();
+    if (!row) continue;
+    // Tier: upsert-nothing per (package_id,min_pax,max_pax) — tak menambah baris,
+    // tak menimpa harga hasil edit admin (unique index menjamin idempotensi).
+    for (const t of def.tiers) {
       db.insert(packageTiers)
-        .values({ packageId: privatePkg.id, ...t })
+        .values({ packageId: row.id, ...t })
         .onConflictDoNothing({
           target: [packageTiers.packageId, packageTiers.minPax, packageTiers.maxPax],
         })

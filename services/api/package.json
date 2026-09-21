@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed:content": "tsx src/db/seed-content.ts",
-    "content:verify": "tsx src/db/content-verify.ts"
+    "content:verify": "tsx src/db/content-verify.ts",
+    "packages:verify": "tsx src/db/packages-verify.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
