@@ -267,6 +267,10 @@ body{
   font-weight:800;font-size:14px;display:grid;place-items:center}
 #view-home .tflow b{display:block;font-size:15.5px}
 #view-home .tflow p{color:var(--mut);font-size:14.5px;margin-top:2px}
+/* Perbaikan bug laten pre-1a: li grid punya ::before + <b> + <p> (3 item) sehingga
+   <p> jatuh ke kolom counter (36px) = satu kata per baris. Paksa b+p ke kolom 2.
+   CSS-only, DOM tidak berubah. Lihat KNOWN-DEVIATIONS.md (registrasi). */
+#view-home .tflow li > b, #view-home .tflow li > p{grid-column:2}
 #view-home .accord{border-top:1px solid var(--line);max-width:none}
 #view-home .accord details{border-bottom:1px solid var(--line)}
 #view-home .accord summary{padding:16px 40px 16px 0;cursor:pointer;font-size:16px;font-weight:700;position:relative;list-style:none}

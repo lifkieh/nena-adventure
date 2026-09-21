@@ -1,5 +1,5 @@
 import { AppError } from "../../lib/errors.js";
-import { formatRupiah } from "@nena/shared";
+import { formatRupiah, normalizeWa } from "@nena/shared";
 import { getSetting, setSetting } from "../../repos/settings.repo.js";
 import * as bookingsRepo from "../../repos/bookings.repo.js";
 import * as schedulesRepo from "../../repos/schedules.repo.js";
@@ -58,7 +58,7 @@ export function renderForBooking(bookingId: string, key: string, ctx: ActorConte
   const subject = fill(saved.subject, map);
   const body = fill(saved.body, map);
   const contact = getPublicContact();
-  const phone = String(b.customerPhone || "").replace(/\D/g, "");
+  const phone = normalizeWa(b.customerPhone || "");
   const waLink = saved.channel === "wa" && phone ? `https://wa.me/${phone}?text=${encodeURIComponent(body)}` : null;
   const mailto = saved.channel === "email" ? `mailto:${b.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` : null;
   record(ctx, { action: "notification_sent", entity: "booking", entityId: bookingId, data: { key, channel: saved.channel } });

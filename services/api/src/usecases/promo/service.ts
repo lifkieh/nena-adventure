@@ -82,3 +82,9 @@ export function validateAndCompute(code: string, packageKey: string, pax: number
 export function markUsed(promoId: string): void {
   repo.incrementUsed(promoId);
 }
+
+/** Lepas kuota (booking batal/kadaluarsa). Clamp >=0. Catat audit. */
+export function releaseUse(promoId: string, ctx: ActorContext): void {
+  repo.decrementUsed(promoId);
+  record(ctx, { action: "promo_released", entity: "promo", entityId: promoId });
+}

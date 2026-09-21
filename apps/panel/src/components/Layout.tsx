@@ -14,6 +14,7 @@ const OPERASIONAL: NavItem[] = [
   { to: "/packages", label: "Paket & harga", perm: "package:read" },
   { to: "/promos", label: "Promo / voucher", perm: "package:read" },
   { to: "/reports", label: "Laporan", perm: "report:read" },
+  { to: "/notifications", label: "Template notifikasi", perm: "content:read" },
   { to: "/settings", label: "Pengaturan owner", perm: "settings:write" },
   { to: "/users", label: "Pengguna & peran", perm: "user:manage" },
   { to: "/audit", label: "Audit log", perm: "user:read" },
@@ -21,7 +22,6 @@ const OPERASIONAL: NavItem[] = [
 const KONTEN: NavItem[] = [
   { to: "/content", label: "Konten situs", perm: "content:read" },
   { to: "/media", label: "Media library", perm: "content:read" },
-  { to: "/notifications", label: "Template notifikasi", perm: "content:read" },
 ];
 const KONTEN_PATHS = KONTEN.map((n) => n.to);
 

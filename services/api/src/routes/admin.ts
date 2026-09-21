@@ -41,6 +41,8 @@ import * as mediaLibrary from "../usecases/media-library.js";
 import * as promoService from "../usecases/promo/service.js";
 import * as notifService from "../usecases/notification/service.js";
 
+// Pagination via `page` + `pageSize` (maks 100, default 20). Param `limit` TIDAK
+// didukung — gunakan pageSize. Kunci tak dikenal diabaikan oleh Zod.
 const bookingListQuerySchema = z.object({
   status: z.string().optional(),
   source: z.string().optional(),

@@ -103,6 +103,14 @@ export const isoDateTimeSchema = z.string().datetime({ offset: true });
 export const TIMEZONE = "Asia/Jakarta" as const;
 
 /** Format rupiah untuk tampilan, mis. 385000 -> "Rp385.000". */
+/** Normalkan nomor WA ke format internasional untuk wa.me: 08xx->628xx, +62->62, buang non-digit. */
+export function normalizeWa(raw: string): string {
+  let s = String(raw ?? "").replace(/[^\d+]/g, ""); // buang spasi/tanda hubung/kurung
+  if (s.startsWith("+")) s = s.slice(1);
+  if (s.startsWith("0")) s = "62" + s.slice(1);
+  return s.replace(/\D/g, "");
+}
+
 export function formatRupiah(n: number): string {
   const v = Math.round(n);
   // Minus di DEPAN Rp: "−Rp1.865.000" (bukan "Rp-1.865.000"). Pakai U+2212.

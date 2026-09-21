@@ -24,7 +24,11 @@ import { PromosPage } from "./pages/PromosPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import "./index.css";
 
-const queryClient = new QueryClient();
+// refetchOnWindowFocus:false — akar "klik pertama hilang": refetch saat window
+// fokus memicu re-render yang menelan klik pertama setelah load/alih-fokus.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 15_000 } },
+});
 
 const router = createBrowserRouter(
   [

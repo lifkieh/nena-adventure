@@ -22,3 +22,7 @@ export function update(id: string, patch: Partial<typeof promos.$inferInsert>): 
 export function incrementUsed(id: string): void {
   db.update(promos).set({ usedCount: sql`${promos.usedCount} + 1` }).where(eq(promos.id, id)).run();
 }
+/** Kurangi pemakaian, tak pernah di bawah 0. */
+export function decrementUsed(id: string): void {
+  db.update(promos).set({ usedCount: sql`MAX(0, ${promos.usedCount} - 1)` }).where(eq(promos.id, id)).run();
+}

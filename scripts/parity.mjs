@@ -438,10 +438,15 @@ async function main() {
   api.stop();
   execSync(`git worktree remove --force "${WORKTREE}"`, { cwd: ROOT, stdio: "ignore" });
 
-  // Bandingkan
+  // Penyimpangan PIKSEL yang disetujui (lihat KNOWN-DEVIATIONS.md). DOM/teks tetap
+  // WAJIB 0 untuk SEMUA kapture — hanya dimensi piksel yang boleh divergen di sini.
+  const PIXEL_DEVIATIONS = new Set(["1440/registrasi", "390/registrasi"]);
+
+  // Bandingkan — dua dimensi terpisah: DOM (konten) & piksel (visual).
   const keys = Object.keys(A);
   let domFails = 0;
   let pixFails = 0;
+  let pixDeviations = 0;
   let maxRatio = 0;
   const rows = [];
   for (const k of keys) {
@@ -450,27 +455,35 @@ async function main() {
     const domOk = a.html === b.html && a.html !== null;
     const { ratio, note } = pixelDiff(a.shot, b.shot, k);
     maxRatio = Math.max(maxRatio, ratio);
-    const pixOk = ratio <= PIXEL_THRESHOLD;
+    const pixRaw = ratio <= PIXEL_THRESHOLD;
+    const deviated = PIXEL_DEVIATIONS.has(k);
+    const pixOk = pixRaw || deviated; // penyimpangan piksel terdaftar tak dihitung gagal
     if (!domOk) domFails++;
-    if (!pixOk) pixFails++;
+    if (!pixRaw && deviated) pixDeviations++;
+    else if (!pixOk) pixFails++;
+    const pixTag = pixRaw ? "OK " : deviated ? "DEV" : "PIX";
     rows.push(
-      `${domOk ? "OK " : "DOM"} ${pixOk ? "OK " : "PIX"}  ${k.padEnd(22)} pix=${(ratio * 100).toFixed(4)}%${note ? " " + note : ""}`,
+      `${domOk ? "OK " : "DOM"} ${pixTag}  ${k.padEnd(22)} pix=${(ratio * 100).toFixed(4)}%${note ? " " + note : ""}`,
     );
   }
 
   console.log("\n── Hasil parity ──");
   for (const r of rows) console.log(r);
   console.log(
-    `\nCapture: ${keys.length} | DOM gagal: ${domFails} | Pixel gagal: ${pixFails} | pixel maks: ${(maxRatio * 100).toFixed(4)}%`,
+    `\nCapture: ${keys.length} | DOM gagal: ${domFails} | Pixel gagal: ${pixFails} | Penyimpangan piksel disetujui (DEV): ${pixDeviations} | pixel maks: ${(maxRatio * 100).toFixed(4)}%`,
   );
 
+  // DOM/teks WAJIB 0 di SEMUA kapture (termasuk registrasi). Piksel: gagal hanya
+  // bila di luar daftar penyimpangan yang disetujui.
   if (domFails > 0 || pixFails > 0) {
     console.error(
-      `\nPARITY GAGAL. DOM diff harus 0 (sekarang ${domFails}), pixel < 0.1% (gagal ${pixFails}). Artefak: .parity-out/`,
+      `\nPARITY GAGAL. DOM diff harus 0 (sekarang ${domFails}), pixel < 0.1% di luar daftar penyimpangan (gagal ${pixFails}). Artefak: .parity-out/`,
     );
     process.exit(1);
   }
-  console.log("\nPARITY LULUS — 0 selisih DOM, semua pixel < 0.1%.");
+  console.log(
+    `\nPARITY LULUS — 0 selisih DOM/teks di semua kapture; piksel 0 kecuali ${pixDeviations} penyimpangan disetujui (KNOWN-DEVIATIONS.md).`,
+  );
 }
 
 main().catch((e) => {

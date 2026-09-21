@@ -380,6 +380,11 @@ export function applyTransition(
         break;
     }
 
+    // Lepas kuota promo saat batal/kadaluarsa (state machine cegah dobel: tak bisa
+    // cancel/expire dari status terminal). Clamp >=0 di repo.
+    if ((action === "cancel" || action === "expire") && booking.promoId) {
+      promoService.releaseUse(booking.promoId, opts.ctx);
+    }
     // amountPaid SELALU turunan dari payments (satu-satunya tempat menulisnya).
     patch.amountPaid = paymentsRepo.sumVerified(booking.id);
     const updated = bookingsRepo.update(booking.id, patch);
@@ -512,27 +517,21 @@ export function getBookingDetail(id: string) {
     proofUrl: p.proofMediaId ? `/api/admin/media/${p.proofMediaId}` : null,
     createdAt: p.createdAt,
   }));
-  // Sisi uang keluar: refund + pembatalan.
+  // Sisi uang keluar: refund + pembatalan. Refund = baris verified NEGATIF di
+  // ledger (dari cancel/reconcile) — TIDAK menambah baris sintetis (cegah dobel).
   const cancelledByEmail = booking.cancelledBy ? usersRepo.findById(booking.cancelledBy)?.email ?? null : null;
+  const refundFromLedger = payments
+    .filter((p) => p.status === "verified" && p.amount < 0)
+    .reduce((a, p) => a + p.amount, 0); // negatif
   const cancellation =
-    booking.refundAmount > 0 || booking.cancelReason || booking.cancelledBy
-      ? { refundAmount: booking.refundAmount, cancelReason: booking.cancelReason, cancelledByEmail }
+    refundFromLedger < 0 || booking.cancelReason || booking.cancelledBy
+      ? { refundAmount: -refundFromLedger, cancelReason: booking.cancelReason, cancelledByEmail }
       : null;
-  // Refund tampil juga sebagai entri "uang keluar" di riwayat pembayaran.
-  if (booking.refundAmount > 0) {
-    payments.push({
-      id: "refund-" + booking.id,
-      amount: -booking.refundAmount,
-      method: "refund",
-      kind: "refund",
-      status: "refunded",
-      paidAt: null,
-      verifiedAt: booking.statusChangedAt,
-      rejectedReason: null,
-      proofUrl: null,
-      createdAt: booking.statusChangedAt ?? booking.createdAt,
-    });
-  }
+  // "Sudah dibayar" = BRUTO (SUM baris positif verified). amountPaid (kolom) = neto.
+  const grossPaid = payments
+    .filter((p) => p.status === "verified" && p.amount > 0)
+    .reduce((a, p) => a + p.amount, 0);
+  const terminal = booking.status === "batal" || booking.status === "kadaluarsa" || booking.status === "selesai";
   return {
     booking: toBookingDto(booking),
     participants,
@@ -545,8 +544,8 @@ export function getBookingDetail(id: string) {
       discount: booking.discount,
       serviceFee: booking.serviceFee,
       total: booking.total,
-      amountPaid: booking.amountPaid,
-      outstanding: booking.total - booking.amountPaid,
+      amountPaid: grossPaid, // bruto dibayar
+      outstanding: terminal ? 0 : booking.total - booking.amountPaid, // 0 utk batal/kadaluarsa/selesai
     },
     cancellation,
     payments,

@@ -96,15 +96,19 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
   /* ── Kontak dari Pengaturan owner: nomor WA + URL peta (sumber tunggal) ── */
   loadContact().then(function(k){
     if (!k) return;
+    // Normalkan ke format internasional (08xx->628xx, +62->62, buang non-digit).
+    var normWa = function(raw){ var s = String(raw || "").replace(/[^\d+]/g, ""); if (s.charAt(0) === "+") s = s.slice(1); if (s.charAt(0) === "0") s = "62" + s.slice(1); return s.replace(/\D/g, ""); };
     // Ganti nomor primary & sekunder secara TERPISAH (pesan tetap).
     if (k.whatsapp){
+      var wa1 = normWa(k.whatsapp);
       document.querySelectorAll('a[href*="wa.me/' + WA_PRIMARY + '"]').forEach(function(a){
-        a.href = a.href.split("wa.me/" + WA_PRIMARY).join("wa.me/" + k.whatsapp);
+        a.href = a.href.split("wa.me/" + WA_PRIMARY).join("wa.me/" + wa1);
       });
     }
     if (k.whatsappSecondary){
+      var wa2 = normWa(k.whatsappSecondary);
       document.querySelectorAll('a[href*="wa.me/' + WA_SECONDARY + '"]').forEach(function(a){
-        a.href = a.href.split("wa.me/" + WA_SECONDARY).join("wa.me/" + k.whatsappSecondary);
+        a.href = a.href.split("wa.me/" + WA_SECONDARY).join("wa.me/" + wa2);
       });
     }
     if (k.mapUrl){
