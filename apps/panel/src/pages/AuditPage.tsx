@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { formatJakarta } from "@nena/shared";
+import { formatJakarta, auditActionLabel } from "@nena/shared";
 import { auditApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 
@@ -35,7 +35,7 @@ export function AuditPage() {
                 <td className="px-4 py-2 text-slate-500">
                   {formatJakarta(r.createdAt)}
                 </td>
-                <td className="px-4 py-2 font-semibold">{r.action}</td>
+                <td className="px-4 py-2 font-semibold">{auditActionLabel(String(r.action))}</td>
                 <td className="px-4 py-2">
                   {r.entity}
                   {r.entityId ? ` · ${r.entityId}` : ""}

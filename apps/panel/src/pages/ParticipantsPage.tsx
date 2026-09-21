@@ -9,8 +9,9 @@ export function ParticipantsPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [pii, setPii] = useState<{ name: string; idNumber: string | null }[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const listQ = useQuery({ queryKey: ["bookings", "participants"], queryFn: () => bookingsApi.list({ pageSize: "50" }), enabled: has("booking:read") });
+  const listQ = useQuery({ queryKey: ["bookings", "participants", search], queryFn: () => bookingsApi.list({ pageSize: "50", ...(search ? { search } : {}) }), enabled: has("booking:read") });
   const detailQ = useQuery({ queryKey: ["booking", selected], queryFn: () => bookingsApi.detail(selected!), enabled: !!selected });
 
   if (!has("booking:read")) return <NoAccess />;
@@ -27,6 +28,7 @@ export function ParticipantsPage() {
     <section>
       <h2 className="text-xl font-extrabold text-slate-800">Data peserta</h2>
       <p className="mt-1 text-sm text-slate-500">NIK ter-mask secara default. Buka data utuh butuh izin & tercatat di audit.</p>
+      <input className="mt-3 w-full max-w-xs rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Cari kode/nama/HP" value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {listQ.isLoading ? <Loading /> : listQ.isError ? <ErrorState message="Tidak bisa memuat booking." onRetry={() => listQ.refetch()} />
         : (listQ.data?.items.length ?? 0) === 0 ? <EmptyState title="Belum ada booking." hint="Peserta muncul setelah ada booking." />

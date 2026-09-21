@@ -393,6 +393,7 @@ export const promos = sqliteTable(
     validUntil: ts("valid_until"),
     maxUses: integer("max_uses"),
     usedCount: integer("used_count").notNull().default(0),
+    packages: text("packages"), // JSON array key paket berlaku; null = semua paket
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: tsNow("created_at"),
   },

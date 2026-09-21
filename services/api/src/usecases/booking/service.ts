@@ -11,6 +11,7 @@ import * as seatRepo from "../../repos/seat-ledger.repo.js";
 import * as participantsRepo from "../../repos/participants.repo.js";
 import * as paymentsRepo from "../../repos/payments.repo.js";
 import * as packagesRepo from "../../repos/packages.repo.js";
+import * as promoService from "../promo/service.js";
 import * as usersRepo from "../../repos/users.repo.js";
 import * as auditRepo from "../../repos/audit.repo.js";
 import type { Booking } from "../../db/schema.js";
@@ -206,13 +207,23 @@ export function createManualBooking(input: {
   participants: ParticipantIn[];
   priceOverride?: number;
   priceOverrideReason?: string;
+  notes?: string;
+  promoCode?: string;
   ctx: ActorContext;
 }): Booking {
   const price = computePrice(input);
   if (input.priceOverride != null && !input.priceOverrideReason) {
     throw AppError.validation("Override harga wajib menyertakan alasan.");
   }
-  const total = input.priceOverride ?? price.total;
+  // Promo (opsional): validasi di server -> diskon masuk breakdown & total (ledger).
+  let promoId: string | null = null;
+  let discount = price.discount;
+  if (input.promoCode && input.priceOverride == null) {
+    const r = promoService.validateAndCompute(input.promoCode, input.packageKey, input.pax, price.subtotal);
+    promoId = r.promoId;
+    discount += r.discount;
+  }
+  const total = input.priceOverride ?? (price.subtotal - discount + price.serviceFee);
 
   return txImmediate((): Booking => {
     const sched = schedulesRepo.findById(input.scheduleId);
@@ -235,16 +246,19 @@ export function createManualBooking(input: {
       meetingPoint: input.meetingPoint,
       pax: input.pax,
       subtotal: price.subtotal,
-      discount: price.discount,
+      discount,
       serviceFee: price.serviceFee,
       total,
       amountPaid: 0,
       paymentScheme: input.paymentScheme,
+      promoId,
       priceOverrideReason: input.priceOverrideReason ?? null,
+      notes: input.notes ?? null,
       createdByUserId: input.ctx.userId,
       statusChangedAt: nowIso,
     });
     participantsRepo.addMany(booking.id, input.participants);
+    if (promoId) promoService.markUsed(promoId);
     seatRepo.add({
       scheduleId: input.scheduleId,
       bookingId: booking.id,
@@ -455,6 +469,10 @@ export function expireOverdueHolds(nowIso: string = new Date().toISOString()): n
     } catch {
       // Sudah berubah status (mis. run job lain) -> lewati (tidak double release).
     }
+  }
+  // Ringkasan batch ke audit (selain booking_expire per baris) — jumlah terdampak.
+  if (n > 0) {
+    record(SYSTEM_CTX, { action: "holds_expired", entity: "booking", data: { count: n } });
   }
   return n;
 }

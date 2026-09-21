@@ -5,7 +5,8 @@ import {
   BOOKING_ACTIONS, bookingActionMeta, auditActionLabel, bookingStatusLabel,
   legalActionsFor, formatJakarta, formatRupiah, scheduleStatusLabel, type BookingAction,
 } from "@nena/shared";
-import { ApiError, bookingsApi, type HistoryItem } from "../lib/api";
+import { ApiError, bookingsApi, notifApi, type HistoryItem, type NotifTemplate } from "../lib/api";
+import { useQuery as useRQ } from "@tanstack/react-query";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
 import { BookingStatus } from "../components/StatusPill";
@@ -22,6 +23,7 @@ export function BookingDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [pii, setPii] = useState<Record<number, string | null> | null>(null);
 
+  const notifQ = useRQ({ queryKey: ["notif-templates"], queryFn: notifApi.list, enabled: has("booking:write") });
   const q = useQuery({ queryKey: ["booking", id], queryFn: () => bookingsApi.detail(id), enabled: has("booking:read") && !!id });
   const hist = useQuery({ queryKey: ["booking-history", id], queryFn: () => bookingsApi.history(id), enabled: has("booking:read") && !!id });
 
@@ -49,6 +51,15 @@ export function BookingDetailPage() {
     }
     const p = a === "cancel" ? bookingsApi.cancel(id, reason!) : bookingsApi.transition(id, a, reason);
     p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Aksi gagal."));
+  }
+
+  async function sendNotif(key: string) {
+    try {
+      const r = await notifApi.send(id, key);
+      const url = r.waLink || r.mailto;
+      if (url) window.open(url, "_blank", "noopener");
+      setErr(null);
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal menyiapkan notifikasi."); }
   }
 
   async function openPii() {
@@ -90,6 +101,16 @@ export function BookingDetailPage() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Kirim notifikasi manual (buka WhatsApp/email; tercatat di audit) */}
+      {canWrite && (notifQ.data?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+          <span className="font-semibold text-slate-500">Kirim notifikasi:</span>
+          {notifQ.data!.map((t: NotifTemplate) => (
+            <button key={t.key} className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold hover:bg-slate-50" onClick={() => sendNotif(t.key)}>{t.label}</button>
+          ))}
         </div>
       )}
 

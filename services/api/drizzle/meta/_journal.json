@@ -64,6 +64,13 @@
       "when": 1790100000000,
       "tag": "0008_booking_is_test",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790200000000,
+      "tag": "0009_promo_packages",
+      "breakpoints": true
     }
   ]
 }

@@ -30,12 +30,16 @@ import * as paymentService from "../usecases/payment/service.js";
 import * as voucherService from "../usecases/voucher/service.js";
 import { getMedia } from "../usecases/media.js";
 import { exportZurich } from "../usecases/export-zurich.js";
-import { summary as reportSummary, dashboard as reportDashboard } from "../usecases/reports.js";
+import { summary as reportSummary, dashboard as reportDashboard, reportTables, reportCsv } from "../usecases/reports.js";
+import { record as auditRecord } from "../usecases/audit.js";
+import { todayJakarta } from "../lib/date.js";
 import * as scheduleService from "../usecases/schedule/service.js";
 import * as packageService from "../usecases/package/service.js";
 import * as settingsService from "../usecases/settings/service.js";
 import * as contentService from "../usecases/content/service.js";
 import * as mediaLibrary from "../usecases/media-library.js";
+import * as promoService from "../usecases/promo/service.js";
+import * as notifService from "../usecases/notification/service.js";
 
 const bookingListQuerySchema = z.object({
   status: z.string().optional(),
@@ -69,6 +73,8 @@ const manualBookingSchema = z.object({
     .min(1),
   priceOverride: z.number().int().optional(),
   priceOverrideReason: z.string().optional(),
+  notes: z.string().optional(),
+  promoCode: z.string().optional(),
 });
 
 const transitionSchema = z.object({
@@ -341,6 +347,22 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
     async () => reportDashboard(),
   );
+  app.get(
+    "/reports/tables",
+    { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
+    async () => reportTables(todayJakarta()),
+  );
+  app.get(
+    "/reports/export.csv",
+    { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
+    async (req, reply) => {
+      const csv = reportCsv(todayJakarta());
+      auditRecord(actorFromReq(req), { action: "report_exported", entity: "report", data: { format: "csv" } });
+      reply.header("content-disposition", `attachment; filename="laporan-${todayJakarta()}.csv"`);
+      reply.type("text/csv; charset=utf-8");
+      return csv;
+    },
+  );
 
   /* ── Jadwal (schedule:read / schedule:write) ────────────── */
   const rd = (p: Permission) => ({ config: { permission: p }, preHandler: [requirePermission(p)] });
@@ -442,4 +464,31 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.delete("/media-library/:id", rd("content:write"), async (req) =>
     mediaLibrary.removeImage((req.params as { id: string }).id, actorFromReq(req)),
   );
+
+  /* ── Promo / voucher (package:write) ─────────────────────── */
+  const promoSchema = z.object({
+    code: z.string().min(2),
+    type: z.enum(["percent", "amount"]),
+    value: z.number().int().nonnegative(),
+    minPax: z.number().int().positive().optional(),
+    validFrom: z.string().optional().nullable(),
+    validUntil: z.string().optional().nullable(),
+    maxUses: z.number().int().positive().optional().nullable(),
+    packages: z.array(z.string()).optional().nullable(),
+    active: z.boolean().optional(),
+  });
+  app.get("/promos", rd("package:read"), async () => promoService.list());
+  app.post("/promos", rd("package:write"), async (req) => promoService.create(promoSchema.parse(req.body), actorFromReq(req)));
+  app.put("/promos/:id", rd("package:write"), async (req) => promoService.update((req.params as { id: string }).id, promoSchema.parse(req.body), actorFromReq(req)));
+
+  /* ── Template notifikasi (content:read/write) + kirim manual (booking:write) ── */
+  const notifSchema = z.object({ channel: z.enum(["wa", "email"]).optional(), subject: z.string(), body: z.string().min(1) });
+  app.get("/notification-templates", rd("content:read"), async () => notifService.listTemplates());
+  app.put("/notification-templates/:key", rd("content:write"), async (req) =>
+    notifService.updateTemplate((req.params as { key: string }).key, notifSchema.parse(req.body), actorFromReq(req)),
+  );
+  app.post("/bookings/:id/notify", rd("booking:write"), async (req) => {
+    const { key } = z.object({ key: z.string() }).parse(req.body);
+    return notifService.renderForBooking((req.params as { id: string }).id, key, actorFromReq(req));
+  });
 }

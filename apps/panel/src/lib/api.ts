@@ -149,6 +149,7 @@ export interface HistoryItem { action: string; createdAt: string; actorEmail: st
 
 export const bookingsApi = {
   list: (q: Record<string, string> = {}) => req<Paginated<Record<string, unknown>>>("/admin/bookings?" + new URLSearchParams(q).toString()),
+  createManual: (b: unknown) => req<{ id: string; code: string }>("/admin/bookings", { method: "POST", body: JSON.stringify(b) }),
   detail: (id: string) => req<BookingDetailDto>(`/admin/bookings/${id}`),
   history: (id: string) => req<{ items: HistoryItem[] }>(`/admin/bookings/${id}/history`),
   transition: (id: string, action: string, reason?: string) => req<unknown>(`/admin/bookings/${id}/transition`, { method: "POST", body: JSON.stringify({ action, reason }) }),
@@ -173,6 +174,17 @@ export const contentApi = {
   revert: (key: string) => req<unknown>(`/admin/content/${key}/revert`, { method: "POST", body: "{}" }),
 };
 
+export interface PromoDto {
+  id: string; code: string; type: string; value: number; minPax: number;
+  validFrom: string | null; validUntil: string | null; maxUses: number | null;
+  usedCount: number; active: boolean; packages: string[] | null;
+}
+export const promosApi = {
+  list: () => req<PromoDto[]>("/admin/promos"),
+  create: (b: unknown) => req<PromoDto>("/admin/promos", { method: "POST", body: JSON.stringify(b) }),
+  update: (id: string, b: unknown) => req<PromoDto>(`/admin/promos/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+};
+
 export const mediaApi = {
   list: () => req<{ id: string; url: string; alt: string; width: number | null }[]>("/admin/media-library"),
   remove: (id: string) => req<{ ok: true }>(`/admin/media-library/${id}`, { method: "DELETE" }),
@@ -188,6 +200,20 @@ export interface DashboardDto {
   nearestNearlyFull: { id: string; date: string; capacity: number; threshold: number; remaining: number } | null;
   asOf: string;
 }
+export interface ReportTables {
+  monthlyRevenue: { month: string; amount: number }[];
+  bookingsByStatus: { status: string; count: number }[];
+  seatsPerSchedule: { date: string; capacity: number; sold: number }[];
+}
+export interface NotifTemplate { key: string; label: string; channel: string; subject: string; body: string }
+export interface NotifRendered { key: string; channel: string; subject: string; body: string; waLink: string | null; mailto: string | null; to: string; from: string }
+export const notifApi = {
+  list: () => req<NotifTemplate[]>("/admin/notification-templates"),
+  update: (key: string, b: unknown) => req<NotifTemplate>(`/admin/notification-templates/${key}`, { method: "PUT", body: JSON.stringify(b) }),
+  send: (bookingId: string, key: string) => req<NotifRendered>(`/admin/bookings/${bookingId}/notify`, { method: "POST", body: JSON.stringify({ key }) }),
+};
+
 export const reportsApi = {
   dashboard: () => req<DashboardDto>("/admin/reports/dashboard"),
+  tables: () => req<ReportTables>("/admin/reports/tables"),
 };

@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { BOOKING_STATUSES, bookingStatusMeta, formatRupiah } from "@nena/shared";
 import { bookingsApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { BookingStatus } from "../components/StatusPill";
 import { Countdown, holdDeadline } from "../components/Countdown";
+import { ManualBookingModal } from "../components/ManualBookingModal";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
 export function BookingsPage() {
   const { has } = usePermissions();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["bookings", status, search],
@@ -24,7 +28,12 @@ export function BookingsPage() {
 
   return (
     <section>
-      <h2 className="text-xl font-extrabold text-slate-800">Booking</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-extrabold text-slate-800">Booking</h2>
+        {has("booking:write") && <button className="rounded-lg bg-laut px-3 py-1.5 text-sm font-bold text-white" onClick={() => setShowAdd(true)}>+ Tambah booking</button>}
+      </div>
+      {msg && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
+      {showAdd && <ManualBookingModal onClose={() => setShowAdd(false)} onCreated={(code) => { setShowAdd(false); setMsg(`Booking ${code} dibuat (status Baru masuk).`); qc.invalidateQueries({ queryKey: ["bookings"] }); }} />}
 
       <div className="mt-3 flex flex-wrap items-center gap-1">
         <button onClick={() => setStatus("")} className={`rounded px-2 py-1 text-xs font-semibold ${status === "" ? "bg-laut text-white" : "bg-slate-100"}`}>Semua</button>

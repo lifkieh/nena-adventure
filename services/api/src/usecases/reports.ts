@@ -3,6 +3,33 @@ import * as reportsRepo from "../repos/reports.repo.js";
 const WIB_MS = 7 * 3600 * 1000;
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** Data laporan panel (pendapatan/bulan, booking/status, kursi/jadwal). */
+export function reportTables(todayIso: string) {
+  return {
+    monthlyRevenue: reportsRepo.monthlyRevenue(),
+    bookingsByStatus: reportsRepo.bookingsByStatusAll(),
+    seatsPerSchedule: reportsRepo.seatsSoldPerSchedule(todayIso),
+  };
+}
+
+/** CSV gabungan laporan (dipakai endpoint export dgn audit). */
+export function reportCsv(todayIso: string): string {
+  const t = reportTables(todayIso);
+  const lines: string[] = [];
+  lines.push("Pendapatan bersih per bulan");
+  lines.push("bulan,rupiah");
+  for (const r of t.monthlyRevenue) lines.push(`${r.month},${r.amount}`);
+  lines.push("");
+  lines.push("Booking per status");
+  lines.push("status,jumlah");
+  for (const r of t.bookingsByStatus) lines.push(`${r.status},${r.count}`);
+  lines.push("");
+  lines.push("Kursi terjual per jadwal");
+  lines.push("tanggal,kapasitas,terjual");
+  for (const r of t.seatsPerSchedule) lines.push(`${r.date},${r.capacity},${r.sold}`);
+  return lines.join("\r\n");
+}
+
 /**
  * Dashboard ringkasan — semua angka dari query, zona Asia/Jakarta.
  * `now` bisa diinjeksi untuk test deterministik.

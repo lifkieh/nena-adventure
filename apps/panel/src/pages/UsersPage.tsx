@@ -10,6 +10,7 @@ export function UsersPage() {
   const { has } = usePermissions();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     email: "",
     name: "",
@@ -108,7 +109,8 @@ export function UsersPage() {
       </form>
 
       {/* Daftar pengguna */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <input className="mt-4 w-full max-w-xs rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Cari email/nama/peran" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-slate-200 text-left text-slate-500">
             <tr>
@@ -120,7 +122,7 @@ export function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {usersQuery.data?.map((u) => (
+            {usersQuery.data?.filter((u) => { const s = search.trim().toLowerCase(); return !s || u.email.toLowerCase().includes(s) || (u.name ?? "").toLowerCase().includes(s) || u.role.includes(s); }).map((u) => (
               <UserRow key={u.id} user={u} onError={setError} onDone={refresh} wrap={wrap} />
             ))}
           </tbody>

@@ -19,6 +19,9 @@ import { ParticipantsPage } from "./pages/ParticipantsPage";
 import { PackagesPage } from "./pages/PackagesPage";
 import { MediaPage } from "./pages/MediaPage";
 import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { PromosPage } from "./pages/PromosPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -39,8 +42,11 @@ const router = createBrowserRouter(
         { path: "participants", element: <ParticipantsPage /> },
         { path: "packages", element: <PackagesPage /> },
         { path: "settings", element: <OwnerSettingsPage /> },
+        { path: "reports", element: <ReportsPage /> },
+        { path: "promos", element: <PromosPage /> },
         { path: "content", element: <ContentPage /> },
         { path: "media", element: <MediaPage /> },
+        { path: "notifications", element: <NotificationsPage /> },
         { path: "users", element: <UsersPage /> },
         { path: "audit", element: <AuditPage /> },
         { path: "*", element: <NotFoundPage /> },

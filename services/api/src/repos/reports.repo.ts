@@ -115,6 +115,37 @@ export function nearestNearlyFull(today: string): {
   return r ?? null;
 }
 
+/** Pendapatan bersih per bulan (dari ledger payments verified, refund negatif). Kecuali data uji. */
+export function monthlyRevenue(): { month: string; amount: number }[] {
+  return sqliteConn
+    .prepare(
+      `SELECT substr(p.verified_at,1,7) AS month, COALESCE(SUM(p.amount),0) AS amount
+       FROM payments p JOIN bookings b ON b.id = p.booking_id
+       WHERE p.status='verified' AND p.verified_at IS NOT NULL AND b.is_test = 0
+       GROUP BY month ORDER BY month DESC`,
+    )
+    .all() as { month: string; amount: number }[];
+}
+
+/** Jumlah booking per status (kecuali data uji). */
+export function bookingsByStatusAll(): { status: string; count: number }[] {
+  return sqliteConn
+    .prepare("SELECT status, COUNT(*) AS count FROM bookings WHERE is_test = 0 GROUP BY status")
+    .all() as { status: string; count: number }[];
+}
+
+/** Kursi terjual per jadwal mendatang (net SUM delta, kecuali data uji). */
+export function seatsSoldPerSchedule(fromDate: string): { date: string; capacity: number; sold: number }[] {
+  return sqliteConn
+    .prepare(
+      `SELECT s.date AS date, s.capacity AS capacity,
+              COALESCE((SELECT SUM(l.delta) FROM seat_ledger l LEFT JOIN bookings b ON b.id=l.booking_id
+                        WHERE l.schedule_id=s.id AND COALESCE(b.is_test,0)=0),0) AS sold
+       FROM schedules s WHERE s.date >= ? ORDER BY s.date ASC`,
+    )
+    .all(fromDate) as { date: string; capacity: number; sold: number }[];
+}
+
 export function outstandingDp() {
   return sqliteConn
     .prepare(
