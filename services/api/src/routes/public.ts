@@ -6,9 +6,13 @@ import { actorFromReq } from "../plugins/auth.js";
 import * as service from "../usecases/booking/service.js";
 import { submitProof } from "../usecases/payment/service.js";
 import { getPublicVoucher } from "../usecases/voucher/service.js";
+import { publicContent } from "../usecases/content/service.js";
 
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
   app.get("/schedules", async () => service.listPublicSchedules());
+
+  // Konten terbit untuk situs publik (snapshot; situs cache + fallback).
+  app.get("/content", async () => publicContent());
 
   app.post("/bookings", async (req, reply) => {
     const rl = hit(`booking:${req.ip}`, 10, 60_000);

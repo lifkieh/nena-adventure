@@ -3,11 +3,20 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   auditQuerySchema,
+  bulkScheduleStatusSchema,
   createUserInputSchema,
+  ownerSettingsSchema,
+  packageInputSchema,
   packageTypeSchema,
   paymentSchemeSchema,
+  type Permission,
   resetPasswordInputSchema,
+  saveDraftSchema,
+  scheduleGeneratorSchema,
+  scheduleInputSchema,
+  scheduleStatusSchema,
   setActiveInputSchema,
+  tierInputSchema,
   updateUserRoleInputSchema,
 } from "@nena/shared";
 import { toUserDto } from "../lib/dto.js";
@@ -21,6 +30,11 @@ import * as voucherService from "../usecases/voucher/service.js";
 import { getMedia } from "../usecases/media.js";
 import { exportZurich } from "../usecases/export-zurich.js";
 import { summary as reportSummary } from "../usecases/reports.js";
+import * as scheduleService from "../usecases/schedule/service.js";
+import * as packageService from "../usecases/package/service.js";
+import * as settingsService from "../usecases/settings/service.js";
+import * as contentService from "../usecases/content/service.js";
+import * as mediaLibrary from "../usecases/media-library.js";
 
 const bookingListQuerySchema = z.object({
   status: z.string().optional(),
@@ -319,4 +333,100 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return reportSummary(from, to);
     },
   );
+
+  /* ── Jadwal (schedule:read / schedule:write) ────────────── */
+  const rd = (p: Permission) => ({ config: { permission: p }, preHandler: [requirePermission(p)] });
+  app.get("/schedules", rd("schedule:read"), async (req) =>
+    scheduleService.list(
+      z.object({ monthFrom: z.string().optional(), monthTo: z.string().optional(), status: z.string().optional() }).parse(req.query),
+    ),
+  );
+  app.get("/schedules/:id", rd("schedule:read"), async (req) =>
+    scheduleService.getOne((req.params as { id: string }).id),
+  );
+  app.post("/schedules", rd("schedule:write"), async (req, reply) => {
+    reply.status(201);
+    return scheduleService.create(scheduleInputSchema.parse(req.body), actorFromReq(req));
+  });
+  app.patch("/schedules/:id", rd("schedule:write"), async (req) =>
+    scheduleService.update((req.params as { id: string }).id, scheduleInputSchema.parse(req.body), actorFromReq(req)),
+  );
+  app.delete("/schedules/:id", rd("schedule:write"), async (req) => {
+    scheduleService.remove((req.params as { id: string }).id, actorFromReq(req));
+    return { ok: true };
+  });
+  app.post("/schedules/:id/duplicate", rd("schedule:write"), async (req) => {
+    const { date } = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(req.body);
+    return scheduleService.duplicate((req.params as { id: string }).id, date, actorFromReq(req));
+  });
+  app.post("/schedules/:id/status", rd("schedule:write"), async (req) => {
+    const { status } = z.object({ status: scheduleStatusSchema }).parse(req.body);
+    return scheduleService.setStatus((req.params as { id: string }).id, status, actorFromReq(req));
+  });
+  app.post("/schedules/bulk-status", rd("schedule:write"), async (req) => {
+    const { ids, status } = bulkScheduleStatusSchema.parse(req.body);
+    return { updated: scheduleService.bulkStatus(ids, status, actorFromReq(req)) };
+  });
+  app.post("/schedules/generate/preview", rd("schedule:write"), async (req) =>
+    ({ items: scheduleService.generatePreview(scheduleGeneratorSchema.parse(req.body)) }),
+  );
+  app.post("/schedules/generate/commit", rd("schedule:write"), async (req) =>
+    scheduleService.generateCommit(scheduleGeneratorSchema.parse(req.body), actorFromReq(req)),
+  );
+
+  /* ── Paket & harga (settings:read / settings:write) ─────── */
+  app.get("/packages", rd("settings:read"), async () => packageService.list());
+  app.post("/packages", rd("settings:write"), async (req, reply) => {
+    reply.status(201);
+    return packageService.create(packageInputSchema.parse(req.body), actorFromReq(req));
+  });
+  app.put("/packages/:id", rd("settings:write"), async (req) =>
+    packageService.update((req.params as { id: string }).id, packageInputSchema.parse(req.body), actorFromReq(req)),
+  );
+  app.delete("/packages/:id", rd("settings:write"), async (req) => {
+    packageService.remove((req.params as { id: string }).id, actorFromReq(req));
+    return { ok: true };
+  });
+  app.post("/packages/:id/tiers", rd("settings:write"), async (req) =>
+    packageService.addTier((req.params as { id: string }).id, tierInputSchema.parse(req.body), actorFromReq(req)),
+  );
+  app.put("/tiers/:id", rd("settings:write"), async (req) =>
+    packageService.updateTier((req.params as { id: string }).id, tierInputSchema.parse(req.body), actorFromReq(req)),
+  );
+  app.delete("/tiers/:id", rd("settings:write"), async (req) => {
+    packageService.removeTier((req.params as { id: string }).id, actorFromReq(req));
+    return { ok: true };
+  });
+
+  /* ── Pengaturan owner-only (settings:read / settings:write) ── */
+  app.get("/settings/owner", rd("settings:read"), async () => settingsService.getOwnerSettings());
+  app.put("/settings/owner", rd("settings:write"), async (req) =>
+    settingsService.setOwnerSettings(ownerSettingsSchema.parse(req.body), actorFromReq(req)),
+  );
+
+  /* ── CMS konten (content:read / content:write / content:publish) ── */
+  app.get("/content", rd("content:read"), async () => contentService.listSections());
+  app.get("/content/:key", rd("content:read"), async (req) =>
+    contentService.getSection((req.params as { key: string }).key),
+  );
+  app.put("/content/:key/draft", rd("content:write"), async (req) => {
+    const { body } = saveDraftSchema.parse(req.body);
+    return contentService.saveDraft((req.params as { key: string }).key, body, actorFromReq(req));
+  });
+  app.post("/content/:key/publish", rd("content:publish"), async (req) =>
+    contentService.publish((req.params as { key: string }).key, actorFromReq(req)),
+  );
+  app.post("/content/:key/revert", rd("content:publish"), async (req) =>
+    contentService.revert((req.params as { key: string }).key, actorFromReq(req)),
+  );
+
+  /* ── Media library publik (content:read / content:write) ── */
+  app.get("/media-library", rd("content:read"), async () => mediaLibrary.listLibrary());
+  app.post("/media-library", rd("content:write"), async (req) => {
+    const { alt } = z.object({ alt: z.string().min(1, "Teks alt wajib.") }).parse(req.query);
+    const file = await req.file();
+    if (!file) throw new Error("File wajib.");
+    const buffer = await file.toBuffer();
+    return mediaLibrary.uploadImage({ buffer, alt, ctx: actorFromReq(req) });
+  });
 }

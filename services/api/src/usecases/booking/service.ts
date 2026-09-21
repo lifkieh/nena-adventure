@@ -119,7 +119,7 @@ export function createWebBooking(input: CreateWebInput): CreateResult {
     }
 
     const sched = schedulesRepo.findById(input.scheduleId);
-    if (!sched || sched.status !== "open") {
+    if (!sched || sched.status !== "terbit") {
       throw AppError.validation("Jadwal tidak tersedia.");
     }
     if (sched.date < todayJakarta()) {

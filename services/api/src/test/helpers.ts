@@ -95,7 +95,7 @@ export function makeSchedule(input: {
     .values({
       date: input.date,
       capacity: input.capacity,
-      status: input.status ?? "open",
+      status: input.status ?? "terbit",
       threshold: input.threshold ?? 6,
     })
     .returning()

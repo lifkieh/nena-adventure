@@ -46,7 +46,7 @@ function main(): void {
         date: iso(d),
         capacity: cap,
         threshold: 6,
-        status: "open",
+        status: "terbit",
         departureTime: "07:00",
         meetingPoint: "Pantai Pangaradan, Anyer",
       })

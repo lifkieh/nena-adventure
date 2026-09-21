@@ -78,7 +78,8 @@ export function asBookingStatus(v: unknown): BookingStatus {
   return bookingStatusSchema.parse(v) as BookingStatus;
 }
 
-export const scheduleStatusSchema = z.enum(["open", "closed", "cancelled"]);
+// draft (belum terbit) | terbit (publik) | tutup (pendaftaran ditutup) | arsip
+export const scheduleStatusSchema = z.enum(["draft", "terbit", "tutup", "arsip"]);
 export type ScheduleStatus = z.infer<typeof scheduleStatusSchema>;
 
 /** Alasan mutasi seat_ledger (append-only). */
@@ -255,4 +256,86 @@ export interface PublicScheduleDto {
   remaining: number;
   label: string; // "kursi masih banyak" | "sisa N kursi" | "kuota penuh"
   publicNote: string | null;
+}
+
+/* ── Admin: jadwal ───────────────────────────────────────── */
+
+export const scheduleInputSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid."),
+  capacity: z.number().int().min(0).max(200),
+  threshold: z.number().int().min(0).max(200).default(6),
+  departureTime: z.string().optional(),
+  meetingPoint: z.string().optional(),
+  publicNote: z.string().optional().nullable(),
+  closedReason: z.string().optional().nullable(),
+  status: scheduleStatusSchema.default("draft"),
+  availablePackages: z.array(packageTypeSchema).optional(),
+});
+export type ScheduleInput = z.infer<typeof scheduleInputSchema>;
+
+export const scheduleGeneratorSchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  weekdays: z.array(z.number().int().min(0).max(6)).min(1), // 0=Min .. 6=Sab
+  capacity: z.number().int().min(0).max(200).default(24),
+  threshold: z.number().int().min(0).max(200).default(6),
+  status: scheduleStatusSchema.default("terbit"),
+});
+export type ScheduleGeneratorInput = z.infer<typeof scheduleGeneratorSchema>;
+
+export const bulkScheduleStatusSchema = z.object({
+  ids: z.array(z.string()).min(1),
+  status: scheduleStatusSchema,
+});
+
+/* ── Admin: paket & harga ────────────────────────────────── */
+
+export const packageInputSchema = z.object({
+  key: z.string().min(2).max(40),
+  name: z.string().min(2),
+  prices: z.record(z.string(), z.number().int().nonnegative()),
+  active: z.boolean().default(true),
+});
+export type PackageInput = z.infer<typeof packageInputSchema>;
+
+export const tierInputSchema = z.object({
+  minPax: z.number().int().positive(),
+  maxPax: z.number().int().positive(),
+  price: z.number().int().nonnegative(),
+});
+export type TierInput = z.infer<typeof tierInputSchema>;
+
+/* ── Admin: pengaturan owner-only ────────────────────────── */
+
+export const ownerSettingsSchema = z.object({
+  bankAccount: z.string().optional(),
+  serviceFee: z.number().int().nonnegative().optional(),
+  dpPercent: z.number().int().min(0).max(100).optional(),
+  cutoffDays: z.number().int().min(0).optional(),
+});
+export type OwnerSettingsInput = z.infer<typeof ownerSettingsSchema>;
+
+/* ── CMS konten ──────────────────────────────────────────── */
+
+export const contentSectionKeys = [
+  "hero",
+  "paket",
+  "itinerary",
+  "faq",
+  "syarat",
+  "testimoni",
+  "kontak",
+] as const;
+
+export const saveDraftSchema = z.object({
+  body: z.unknown(), // struktur per-tipe divalidasi di editor; JSON di DB
+});
+
+export interface ContentSectionDto {
+  id: string;
+  key: string;
+  title: string;
+  hasDraft: boolean;
+  hasPublished: boolean;
+  updatedAt: string;
 }

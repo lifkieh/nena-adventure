@@ -38,7 +38,7 @@ export function seedOperationalSchedules(monthsAhead = 3): number {
             date: key,
             capacity: 24,
             threshold: 6,
-            status: "open",
+            status: "terbit",
             departureTime: "07:00",
             meetingPoint: "Pantai Pangaradan, Anyer",
           })

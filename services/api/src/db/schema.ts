@@ -146,9 +146,12 @@ export const schedules = sqliteTable(
     threshold: integer("threshold").notNull().default(6),
     departureTime: text("departure_time"), // HH:MM waktu lokal Jakarta
     meetingPoint: text("meeting_point"),
-    status: text("status").notNull().default("open"), // open | closed | cancelled
+    // Vocab app: draft | terbit | tutup | arsip. Default DB dibiarkan "open"
+    // (nilai lama) agar migrasi cukup ADD COLUMN; app SELALU set status eksplisit.
+    status: text("status").notNull().default("open"),
     publicNote: text("public_note"),
     closedReason: text("closed_reason"),
+    availablePackages: text("available_packages"), // JSON array key paket (null = semua)
     notes: text("notes"),
     createdAt: tsNow("created_at"),
     updatedAt: tsNow("updated_at"),
@@ -434,6 +437,7 @@ export const media = sqliteTable(
     width: integer("width"),
     height: integer("height"),
     alt: text("alt"),
+    scope: text("scope").notNull().default("private"), // private (bukti) | public (CMS)
     path: text("path").notNull(),
     sha256: text("sha256"),
     uploadedBy: text("uploaded_by").references(() => users.id, {
