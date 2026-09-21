@@ -40,54 +40,56 @@ export function statusCounts(from: string, to: string): {
 
 /* ── Dashboard ringkasan ─────────────────────────────────── */
 
-/** Booking AKTIF (bukan batal/kadaluarsa) dibuat sejak instan UTC. */
+/** Booking AKTIF (bukan batal/kadaluarsa) dibuat sejak instan UTC. Kecuali data uji. */
 export function countActiveBookingsCreatedSince(sinceIso: string): number {
   const r = sqliteConn
-    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status NOT IN ('batal','kadaluarsa')")
+    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status NOT IN ('batal','kadaluarsa') AND is_test = 0")
     .get(sinceIso) as { c: number };
   return r.c;
 }
-/** Booking batal/kadaluarsa dibuat sejak instan UTC (untuk label terpisah). */
+/** Booking batal/kadaluarsa dibuat sejak instan UTC (untuk label terpisah). Kecuali data uji. */
 export function countInactiveBookingsCreatedSince(sinceIso: string): number {
   const r = sqliteConn
-    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status IN ('batal','kadaluarsa')")
+    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status IN ('batal','kadaluarsa') AND is_test = 0")
     .get(sinceIso) as { c: number };
   return r.c;
 }
 
-/** Jumlah booking pada status tertentu. */
+/** Jumlah booking pada status tertentu (kecuali data uji). */
 export function countBookingsByStatus(status: string): number {
   const r = sqliteConn
-    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE status = ?")
+    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE status = ? AND is_test = 0")
     .get(status) as { c: number };
   return r.c;
 }
 
-/** Kursi terjual (net SUM(delta)) untuk jadwal dengan tanggal di [from,to]. */
+/** Kursi terjual (net SUM(delta)) untuk jadwal dengan tanggal di [from,to]. Kecuali data uji. */
 export function seatsSoldBetween(from: string, to: string): number {
   const r = sqliteConn
     .prepare(
       `SELECT COALESCE(SUM(l.delta),0) AS seats
        FROM seat_ledger l JOIN schedules s ON s.id = l.schedule_id
-       WHERE s.date BETWEEN ? AND ?`,
+       LEFT JOIN bookings b ON b.id = l.booking_id
+       WHERE s.date BETWEEN ? AND ? AND COALESCE(b.is_test, 0) = 0`,
     )
     .get(from, to) as { seats: number };
   return r.seats;
 }
 
 /**
- * Pendapatan TERVERIFIKASI BERSIH sejak instan UTC, TANPA memandang status booking:
- *   SUM(pembayaran verified, verified_at>=since) - SUM(refund, status_changed_at>=since).
- * Contoh: booking batal yang sudah bayar 775rb lalu direfund 387,5rb -> bersih 387,5rb.
+ * Pendapatan BERSIH sejak instan UTC = SUM(amount) baris payments VERIFIED yang
+ * verified_at-nya >= since (refund sudah baris NEGATIF), TANPA memandang status
+ * booking. Data uji (is_test) dikecualikan dari Ringkasan.
  */
 export function verifiedRevenueSince(sinceIso: string): number {
-  const gross = (sqliteConn
-    .prepare("SELECT COALESCE(SUM(amount),0) AS a FROM payments WHERE status='verified' AND verified_at >= ?")
-    .get(sinceIso) as { a: number }).a;
-  const refunds = (sqliteConn
-    .prepare("SELECT COALESCE(SUM(refund_amount),0) AS a FROM bookings WHERE refund_amount > 0 AND status_changed_at >= ?")
-    .get(sinceIso) as { a: number }).a;
-  return gross - refunds;
+  const r = sqliteConn
+    .prepare(
+      `SELECT COALESCE(SUM(p.amount),0) AS a
+       FROM payments p JOIN bookings b ON b.id = p.booking_id
+       WHERE p.status='verified' AND p.verified_at >= ? AND b.is_test = 0`,
+    )
+    .get(sinceIso) as { a: number };
+  return r.a;
 }
 
 /** Jadwal terbit terdekat (date>=today) yang hampir penuh: 0 < sisa <= threshold. */

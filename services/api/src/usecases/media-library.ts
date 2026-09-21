@@ -81,8 +81,9 @@ export function removeImage(id: string, ctx: ActorContext) {
   const m = mediaRepo.findById(id);
   if (!m) throw AppError.notFound("Media tidak ditemukan.");
   const url = `/media/${m.filename}`;
-  if (contentRepo.anyVersionReferences(url)) {
-    throw AppError.conflict("Media masih dipakai di konten (mis. galeri). Lepas dari konten dulu sebelum menghapus.");
+  const used = contentRepo.sectionsReferencing(url); // hanya versi AKTIF (draft+published)
+  if (used.length > 0) {
+    throw AppError.conflict(`Masih dipakai di section ${used.join(", ")}. Lepas dari section itu dulu sebelum menghapus.`);
   }
   mediaRepo.remove(id);
   record(ctx, { action: "media_deleted", entity: "media", entityId: id, data: { filename: m.filename } });

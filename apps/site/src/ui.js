@@ -1,16 +1,21 @@
 import { SPOT } from "./data/spot.js";
-import { WA_PRIMARY } from "./data/wa.js";
+import { WA_PRIMARY, WA_SECONDARY } from "./data/wa.js";
 import { loadContent, loadContact, loadPackages } from "./data/api.js";
-import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml, galeriHtml, paketCardsHtml, paketTablesHtml } from "./render.js";
+import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml, galeriHtml, paketCardsHtml, paketTablesHtml, adventureHtml, destinasiHtml, keselamatanHtml, keselamatanPolicyHtml } from "./render.js";
 (function(){
   "use strict";
 
   /* ── Konten dari CMS (fallback ke konten bawaan HTML) ───── */
   loadContent().then(function(c){
     if (!c) return;
-    if (c.hero && typeof c.hero.heading === "string"){
-      var h = document.querySelector('#view-home .hero2-copy h1');
-      if (h) h.textContent = c.hero.heading;
+    if (c.hero){
+      var setText = function(sel, val){ if (typeof val === "string"){ var el = document.querySelector(sel); if (el) el.textContent = val; } };
+      setText('#view-home .hero2-copy h1', c.hero.title || c.hero.heading);
+      setText('#view-home .hero2-copy p', c.hero.subtitle);
+      setText('.band h2', c.hero.bandHeading);
+      setText('.band p', c.hero.bandSubtitle);
+      setText('.band a.btn--go', c.hero.ctaPrimary);
+      setText('#waBand', c.hero.ctaSecondary);
     }
     if (c.faq && Array.isArray(c.faq.items)){
       var f = document.querySelector('#faq .faq');
@@ -39,7 +44,20 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
     }
     if (c.galeri && Array.isArray(c.galeri.items)){
       var gal = document.getElementById('gal');
-      if (gal){ gal.innerHTML = galeriHtml(c.galeri.items); if (window.__nenaBindGaleri) window.__nenaBindGaleri(); }
+      if (gal){ gal.innerHTML = galeriHtml(c.galeri.items); if (window.__nenaBindTiles) window.__nenaBindTiles("#gal"); }
+    }
+    if (c.adventure && Array.isArray(c.adventure.points)){
+      var adv = document.querySelector('ol.feat2-steps');
+      if (adv) adv.innerHTML = adventureHtml(c.adventure.points);
+    }
+    if (c.destinasi && Array.isArray(c.destinasi.cards)){
+      var de = document.querySelector('.dests');
+      if (de){ de.innerHTML = destinasiHtml(c.destinasi.cards); if (window.__nenaBindTiles) window.__nenaBindTiles(".dests"); }
+    }
+    if (c.keselamatan && Array.isArray(c.keselamatan.cards)){
+      var sf = document.querySelector('#keamanan .safe');
+      if (sf) sf.innerHTML = keselamatanHtml(c.keselamatan.cards);
+      if (c.keselamatan.policy){ var po = document.querySelector('#keamanan .policy'); if (po) po.innerHTML = keselamatanPolicyHtml(c.keselamatan.policy); }
     }
     if (c.paket && Array.isArray(c.paket.cards)){
       loadPackages().then(function(prices){
@@ -55,10 +73,15 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
   /* ── Kontak dari Pengaturan owner: nomor WA + URL peta (sumber tunggal) ── */
   loadContact().then(function(k){
     if (!k) return;
+    // Ganti nomor primary & sekunder secara TERPISAH (pesan tetap).
     if (k.whatsapp){
-      // Ganti HANYA nomor primary (bukan nomor sekunder di footer). Pesan tetap.
       document.querySelectorAll('a[href*="wa.me/' + WA_PRIMARY + '"]').forEach(function(a){
         a.href = a.href.split("wa.me/" + WA_PRIMARY).join("wa.me/" + k.whatsapp);
+      });
+    }
+    if (k.whatsappSecondary){
+      document.querySelectorAll('a[href*="wa.me/' + WA_SECONDARY + '"]').forEach(function(a){
+        a.href = a.href.split("wa.me/" + WA_SECONDARY).join("wa.me/" + k.whatsappSecondary);
       });
     }
     if (k.mapUrl){
@@ -231,7 +254,7 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
     });
   }
   bindTiles("#gal, .dests");
-  window.__nenaBindGaleri = function(){ bindTiles("#gal"); }; // dipakai setelah galeri dirender dari API
+  window.__nenaBindTiles = bindTiles; // dipakai ulang setelah galeri/destinasi dirender dari API
   lbBody.addEventListener("click", function(e){
     var th = e.target.closest(".spot-thumb");
     if (th){

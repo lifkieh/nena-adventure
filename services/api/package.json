@@ -17,7 +17,8 @@
     "test": "vitest run",
     "seed:content": "tsx src/db/seed-content.ts",
     "content:verify": "tsx src/db/content-verify.ts",
-    "packages:verify": "tsx src/db/packages-verify.ts"
+    "packages:verify": "tsx src/db/packages-verify.ts",
+    "reconcile:ledger": "tsx src/db/reconcile-ledger.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

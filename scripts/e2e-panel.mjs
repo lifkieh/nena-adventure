@@ -139,7 +139,7 @@ try {
   await syaSite2.waitForFunction((t) => (document.querySelector("#syarat .accord summary")?.textContent || "") === t, SYA_ORIG, { timeout: 8000 })
     .catch(() => fail("Syarat tidak kembali ke judul asli"));
 
-  // ── #4 Hapus jadwal ber-booking aktif -> ditolak lewat modal ──
+  // ── #4 Jadwal ber-booking: modal menawarkan Arsipkan (bukan Hapus) ──
   await owner.click('button:has-text("Operasional")');
   await owner.goto(base + "/panel/schedules", { waitUntil: "load" });
   await owner.waitForTimeout(600);
@@ -152,10 +152,10 @@ try {
   else {
     await owner.click(`[data-testid="del-${schedDate}"]`);
     await owner.waitForSelector('[data-testid="confirm-modal"]', { timeout: 5000 });
-    await owner.click('[data-testid="confirm-ok"]');
+    const cbody = await owner.$eval('[data-testid="confirm-body"]', (e) => e.textContent || "").catch(() => "");
+    if (!/booking/i.test(cbody)) fail("modal jadwal ber-booking tak sebut jumlah booking: " + cbody);
+    await owner.click('[data-testid="confirm-ok"]'); // Arsipkan
     await owner.waitForTimeout(600);
-    const schedErr = await owner.$eval('[data-testid="sched-error"]', (e) => e.textContent || "").catch(() => "");
-    if (!/riwayat booking/i.test(schedErr)) fail("hapus jadwal ber-booking tidak ditolak: " + schedErr);
   }
 
   // ── Detail booking: aksi = transisi legal + tak ada enum mentah di DOM ──

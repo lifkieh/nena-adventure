@@ -1,0 +1,112 @@
+{
+  "cards": [
+    {
+      "spot": "turtle-area",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=480&q=68",
+      "alt": "Penyu berenang di perairan Pulau Sangiang",
+      "name": "Turtle Area",
+      "tag": "Berfoto dengan kura-kura"
+    },
+    {
+      "spot": "tembuyung",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1550031676-35e3bb00fefe?auto=format&fit=crop&w=480&q=68",
+      "alt": "Paddle board di Tembuyung Beach",
+      "name": "Tembuyung Beach",
+      "tag": "Paddle board"
+    },
+    {
+      "spot": "legon-bajo",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1759414386298-e62b69085e50?auto=format&fit=crop&w=480&q=68",
+      "alt": "Terumbu karang di Legon Bajo",
+      "name": "Legon Bajo",
+      "tag": "Snorkeling"
+    },
+    {
+      "spot": "legon-waru",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=480&q=68",
+      "alt": "Free diving di Legon Waru",
+      "name": "Legon Waru",
+      "tag": "Free diving · Private Trip"
+    },
+    {
+      "spot": "mangrove",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1704365159871-6bf63f00b9c8?auto=format&fit=crop&w=480&q=68",
+      "alt": "Kanal Mangrove River",
+      "name": "Mangrove River",
+      "tag": "Alam"
+    },
+    {
+      "spot": "desa-sangiang",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1724258221877-ea2f92c6368f?auto=format&fit=crop&w=480&q=68",
+      "alt": "Permukiman warga Desa Sangiang",
+      "name": "Desa Sangiang",
+      "tag": "Budaya"
+    },
+    {
+      "spot": "hutan-hujan",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1673625578217-9bedc6fff7e4?auto=format&fit=crop&w=480&q=68",
+      "alt": "Jalur tracking hutan hujan",
+      "name": "Hutan Hujan Pulau Sangiang",
+      "tag": "Tracking"
+    },
+    {
+      "spot": "goa-kelelawar",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1751517617051-24583509a103?auto=format&fit=crop&w=480&q=68",
+      "alt": "Mulut Goa Kelelawar",
+      "name": "Goa Kelelawar",
+      "tag": "Eksplorasi"
+    },
+    {
+      "spot": "puncak-begal",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1675263889817-f2e4b3a780af?auto=format&fit=crop&w=480&q=68",
+      "alt": "Panorama dari Puncak Begal",
+      "name": "Puncak Begal",
+      "tag": "Viewpoint"
+    },
+    {
+      "spot": "puncak-harapan",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1770838129435-ada65d5d845a?auto=format&fit=crop&w=480&q=68",
+      "alt": "Puncak Harapan menghadap Selat Sunda",
+      "name": "Puncak Harapan",
+      "tag": "Viewpoint"
+    },
+    {
+      "spot": "krakatoa-view",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1768680884256-d60cf0e8a916?auto=format&fit=crop&w=480&q=68",
+      "alt": "Panorama menghadap Gunung Krakatau",
+      "name": "Krakatoa View",
+      "tag": "Viewpoint · Private Trip"
+    },
+    {
+      "spot": "sepanjang",
+      "width": 480,
+      "height": 640,
+      "img": "https://images.unsplash.com/photo-1784057098851-b31bb06b66e5?auto=format&fit=crop&w=480&q=68",
+      "alt": "Garis pantai Sepanjang Beach",
+      "name": "Sepanjang Beach",
+      "tag": "Pantai"
+    }
+  ]
+}

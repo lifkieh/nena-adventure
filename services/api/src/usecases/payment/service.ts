@@ -144,13 +144,15 @@ export function approve(paymentId: string, ctx: ActorContext) {
 
   providerFor(payment.provider).verify(payment); // manual: selalu ok
 
-  const action = payment.kind === "dp" ? "approve_dp" : "approve_full";
-  const updated = applyTransition(booking.id, action, { ctx });
+  // Verifikasi baris payment DULU supaya transisi menghitung uang dari ledger
+  // (tanpa top-up ganda) — amountPaid diturunkan dari SUM payments verified.
   paymentsRepo.update(payment.id, {
     status: "verified",
     verifiedBy: ctx.userId,
     verifiedAt: new Date().toISOString(),
   });
+  const action = payment.kind === "dp" ? "approve_dp" : "approve_full";
+  const updated = applyTransition(booking.id, action, { ctx });
   record(ctx, {
     action: "payment_verified",
     entity: "payment",

@@ -104,7 +104,9 @@ export const TIMEZONE = "Asia/Jakarta" as const;
 
 /** Format rupiah untuk tampilan, mis. 385000 -> "Rp385.000". */
 export function formatRupiah(n: number): string {
-  return "Rp" + Math.round(n).toLocaleString("id-ID");
+  const v = Math.round(n);
+  // Minus di DEPAN Rp: "−Rp1.865.000" (bukan "Rp-1.865.000"). Pakai U+2212.
+  return (v < 0 ? "−Rp" : "Rp") + Math.abs(v).toLocaleString("id-ID");
 }
 
 /** Format waktu UTC ISO ke zona Asia/Jakarta untuk tampilan. */
@@ -375,6 +377,7 @@ export const ownerSettingsSchema = z.object({
   cutoffDays: z.number().int().min(0).optional(),
   // Nomor WhatsApp: angka saja (format internasional tanpa +), 8–15 digit.
   whatsapp: z.string().regex(/^\d{8,15}$/, "Nomor WhatsApp hanya angka (8–15 digit).").optional(),
+  whatsappSecondary: z.string().regex(/^\d{8,15}$/, "Nomor WhatsApp sekunder hanya angka (8–15 digit).").optional(),
   // URL peta harus https.
   mapUrl: z.string().url().refine((u) => u.startsWith("https://"), "URL peta harus https.").optional(),
 });

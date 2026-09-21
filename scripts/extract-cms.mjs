@@ -120,15 +120,78 @@ function extractPaket(doc) {
     const features = [];
     const li = /<li class="(yes|no)">[\s\S]*?<\/svg><span>([\s\S]*?)<\/span><\/li>/g;
     let x;
-    while ((x = li.exec(inner)) !== null) features.push({ included: x[1] === "yes", html: x[2] }); // html VERBATIM (ada &amp; / <strong>)
+    while ((x = li.exec(inner)) !== null) {
+      const spanInner = x[2];
+      const boldM = spanInner.match(/^<strong>([\s\S]*)<\/strong>$/);
+      // Simpan sebagai TEKS biasa (entity di-decode); render meng-escape ulang.
+      features.push({ included: x[1] === "yes", bold: !!boldM, text: decode(boldM ? boldM[1] : spanInner) });
+    }
     const cta = inner.match(/<a class="([^"]*)" href="([^"]*)">([\s\S]*?)<\/a>/);
     cards.push({ key: href, name: decode(name), sub: decode(sub), unit: decode(unit), note: decode(note), tag: tag ? decode(tag) : null, highlight: !!m[1], features, ctaClass: cta[1], ctaHref: cta[2], ctaText: decode(cta[3]) });
   }
   return { cards };
 }
 
+function extractHero(doc) {
+  const copy = doc.match(/<div class="hero2-copy">\s*<h1>([\s\S]*?)<\/h1>\s*<p>([\s\S]*?)<\/p>/);
+  const band = doc.match(/<section class="sec--tight band">[\s\S]*?<h2>([\s\S]*?)<\/h2>\s*<p>([\s\S]*?)<\/p>[\s\S]*?<a class="btn btn--go" href="#\/booking">([\s\S]*?)<\/a>\s*<a class="btn btn--out" id="waBand"[^>]*>([\s\S]*?)<\/a>/);
+  return {
+    title: decode(copy[1].trim()),
+    subtitle: decode(copy[2].trim()),
+    bandHeading: decode(band[1].trim()),
+    bandSubtitle: decode(band[2].trim()),
+    ctaPrimary: decode(band[3].trim()),
+    ctaSecondary: decode(band[4].trim()),
+  };
+}
+
+function extractAdventure(doc) {
+  const ol = doc.match(/<h2>Adventure yang bikin kangen pulang\.<\/h2>[\s\S]*?<ol[^>]*>([\s\S]*?)<\/ol>/)[1];
+  const points = [];
+  const re = /<li><span class="feat2-n feat2-n--\d+">\d+<\/span>\s*<div><h4>([\s\S]*?)<\/h4><p>([\s\S]*?)<\/p><\/div><\/li>/g;
+  let m;
+  while ((m = re.exec(ol)) !== null) points.push({ title: decode(m[1]), body: decode(m[2]) });
+  return { points };
+}
+
+function extractDestinasi(doc) {
+  const inner = doc.match(/<ul class="dests">([\s\S]*?)<\/ul>/)[1];
+  const cards = [];
+  const re = /<li><button class="dest" data-type="spot" data-spot="([^"]*)"><img loading="lazy" width="(\d+)" height="(\d+)" src="([^"]*)" alt="([^"]*)"><span class="cue">Detail<\/span><span class="ov"><b>([\s\S]*?)<\/b><small>([\s\S]*?)<\/small><\/span><\/button><\/li>/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) {
+    cards.push({ spot: m[1], width: Number(m[2]), height: Number(m[3]), img: m[4], alt: decode(m[5]), name: decode(m[6]), tag: decode(m[7]) });
+  }
+  return { cards };
+}
+
+function extractKeselamatan(doc) {
+  const safe = doc.match(/<div class="safe">([\s\S]*?)<\/div>\s*<div class="policy">/)[1];
+  const cards = [];
+  const re = /<article class="safecard">\s*<span class="safeicon">(<svg[\s\S]*?<\/svg>)<\/span>\s*<h4>([\s\S]*?)<\/h4>\s*<p>([\s\S]*?)<\/p>\s*<ul>([\s\S]*?)<\/ul>\s*<\/article>/g;
+  let m;
+  while ((m = re.exec(safe)) !== null) {
+    const items = [];
+    const li = /<li>([\s\S]*?)<\/li>/g;
+    let x;
+    while ((x = li.exec(m[4])) !== null) {
+      let t = x[1]
+        .replace(/<strong>Rp50\.000\.000<\/strong>/, "{{santunan_meninggal}}")
+        .replace(/<strong>Rp5\.000\.000<\/strong>/, "{{santunan_pengobatan}}");
+      items.push(decode(t));
+    }
+    cards.push({ iconSvg: m[1], title: decode(m[2]), body: decode(m[3]), items });
+  }
+  const pol = doc.match(/<div class="policy">\s*<h4>([\s\S]*?)<\/h4>\s*<p>([\s\S]*?)<\/p>\s*<\/div>/);
+  return { cards, policy: { heading: decode(pol[1]), body: decode(pol[2]) } };
+}
+
 const doc = html();
 const outputs = {
+  "hero.pre-1a.json": extractHero(doc),
+  "adventure.pre-1a.json": extractAdventure(doc),
+  "destinasi.pre-1a.json": extractDestinasi(doc),
+  "keselamatan.pre-1a.json": extractKeselamatan(doc),
   "paket.pre-1a.json": extractPaket(doc),
   "galeri.pre-1a.json": extractGaleri(doc),
   "syarat.pre-1a.json": extractSyarat(doc),

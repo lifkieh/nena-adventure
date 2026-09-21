@@ -309,6 +309,19 @@ export function applyTransition(
     const sched = schedulesRepo.findById(booking.scheduleId);
     const dpPercent = getSetting<number>("pricing.dp_percent", 50);
 
+    // Top-up: pastikan uang terverifikasi mencapai `target` dengan MENULIS baris
+    // payments (bukan menyentuh amountPaid). Idempoten: hanya isi selisih.
+    const ensurePaid = (target: number, kind: string) => {
+      const gap = target - paymentsRepo.sumVerified(booking.id);
+      if (gap > 0) {
+        paymentsRepo.insert({
+          bookingId: booking.id, amount: gap, method: "transfer", kind,
+          status: "verified", provider: "manual",
+          verifiedBy: opts.ctx.userId, verifiedAt: nowIso, paidAt: nowIso,
+        });
+      }
+    };
+
     switch (action) {
       case "send_invoice": {
         const hours = getSetting<number>("booking.manual_hold_hours", 24);
@@ -321,11 +334,11 @@ export function applyTransition(
         break;
       case "approve_dp":
         patch.balanceDueAt = sched ? dateAtOffset(sched.date, -3) : null;
-        patch.amountPaid = Math.round((booking.total * dpPercent) / 100);
+        ensurePaid(Math.round((booking.total * dpPercent) / 100), "dp");
         break;
       case "approve_full":
         patch.confirmedAt = nowIso;
-        patch.amountPaid = booking.total;
+        ensurePaid(booking.total, booking.paymentScheme === "dp" ? "pelunasan" : "full");
         break;
       case "reject": {
         const holdMinutes = getSetting<number>("booking.hold_minutes", 60);
@@ -334,17 +347,27 @@ export function applyTransition(
         ).toISOString();
         break;
       }
-      case "cancel":
-        patch.refundAmount = sched
-          ? computeRefund(booking.amountPaid, sched.date, nowIso)
-          : 0;
+      case "cancel": {
+        const refund = sched ? computeRefund(paymentsRepo.sumVerified(booking.id), sched.date, nowIso) : 0;
+        patch.refundAmount = refund;
         patch.cancelReason = opts.reason ?? null;
         patch.cancelledBy = opts.ctx.userId;
+        // Refund = baris payments NEGATIF (uang keluar), bukan sekadar kolom.
+        if (refund > 0) {
+          paymentsRepo.insert({
+            bookingId: booking.id, amount: -refund, method: "transfer", kind: "refund",
+            status: "verified", provider: "manual",
+            verifiedBy: opts.ctx.userId, verifiedAt: nowIso, paidAt: nowIso,
+          });
+        }
         break;
+      }
       default:
         break;
     }
 
+    // amountPaid SELALU turunan dari payments (satu-satunya tempat menulisnya).
+    patch.amountPaid = paymentsRepo.sumVerified(booking.id);
     const updated = bookingsRepo.update(booking.id, patch);
     record(opts.ctx, {
       action: `booking_${action}`,

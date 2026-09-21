@@ -11,35 +11,43 @@
       "features": [
         {
           "included": true,
-          "html": "Kapal tradisional, captain, dan ABK"
+          "bold": false,
+          "text": "Kapal tradisional, captain, dan ABK"
         },
         {
           "included": true,
-          "html": "Tiket masuk seluruh destinasi"
+          "bold": false,
+          "text": "Tiket masuk seluruh destinasi"
         },
         {
           "included": true,
-          "html": "Life jacket dan peralatan snorkeling"
+          "bold": false,
+          "text": "Life jacket dan peralatan snorkeling"
         },
         {
           "included": true,
-          "html": "Dokumentasi underwater GoPro &amp; kamera iPhone 17 Pro Max"
+          "bold": false,
+          "text": "Dokumentasi underwater GoPro & kamera iPhone 17 Pro Max"
         },
         {
           "included": true,
-          "html": "Makan siang, air mineral, tour guide"
+          "bold": false,
+          "text": "Makan siang, air mineral, tour guide"
         },
         {
           "included": true,
-          "html": "First aid kit"
+          "bold": false,
+          "text": "First aid kit"
         },
         {
           "included": false,
-          "html": "Speedboat &amp; transportasi darat PP"
+          "bold": false,
+          "text": "Speedboat & transportasi darat PP"
         },
         {
           "included": false,
-          "html": "Paddle board, drone, asuransi wisata"
+          "bold": false,
+          "text": "Paddle board, drone, asuransi wisata"
         }
       ],
       "ctaClass": "btn btn--out btn--wide",
@@ -57,35 +65,43 @@
       "features": [
         {
           "included": true,
-          "html": "Speedboat, captain, dan ABK"
+          "bold": false,
+          "text": "Speedboat, captain, dan ABK"
         },
         {
           "included": true,
-          "html": "Transportasi PP dari meeting point pilihan"
+          "bold": false,
+          "text": "Transportasi PP dari meeting point pilihan"
         },
         {
           "included": true,
-          "html": "Paddle board / canoeing, makanan ikan"
+          "bold": false,
+          "text": "Paddle board / canoeing, makanan ikan"
         },
         {
           "included": true,
-          "html": "Dokumentasi GoPro, drone + pilot, iPhone 17 Pro Max"
+          "bold": false,
+          "text": "Dokumentasi GoPro, drone + pilot, iPhone 17 Pro Max"
         },
         {
           "included": true,
-          "html": "Kelapa muda di Sepanjang Beach"
+          "bold": false,
+          "text": "Kelapa muda di Sepanjang Beach"
         },
         {
           "included": true,
-          "html": "Asuransi wisata Zurich"
+          "bold": false,
+          "text": "Asuransi wisata Zurich"
         },
         {
           "included": true,
-          "html": "Makan siang, air mineral, tour guide"
+          "bold": false,
+          "text": "Makan siang, air mineral, tour guide"
         },
         {
           "included": false,
-          "html": "Free diving Legon Waru &amp; Krakatoa View"
+          "bold": false,
+          "text": "Free diving Legon Waru & Krakatoa View"
         }
       ],
       "ctaClass": "btn btn--go btn--wide",
@@ -103,31 +119,38 @@
       "features": [
         {
           "included": true,
-          "html": "<strong>Semua fasilitas Open Trip Premium</strong>"
+          "bold": true,
+          "text": "Semua fasilitas Open Trip Premium"
         },
         {
           "included": true,
-          "html": "Kapal eksklusif untuk rombongan sendiri"
+          "bold": false,
+          "text": "Kapal eksklusif untuk rombongan sendiri"
         },
         {
           "included": true,
-          "html": "Free diving di Legon Waru"
+          "bold": false,
+          "text": "Free diving di Legon Waru"
         },
         {
           "included": true,
-          "html": "Panorama Krakatoa View"
+          "bold": false,
+          "text": "Panorama Krakatoa View"
         },
         {
           "included": true,
-          "html": "Jadwal dan itinerary lebih fleksibel"
+          "bold": false,
+          "text": "Jadwal dan itinerary lebih fleksibel"
         },
         {
           "included": true,
-          "html": "Cocok keluarga, komunitas, dan corporate"
+          "bold": false,
+          "text": "Cocok keluarga, komunitas, dan corporate"
         },
         {
           "included": true,
-          "html": "Transportasi PP sesuai kesepakatan"
+          "bold": false,
+          "text": "Transportasi PP sesuai kesepakatan"
         }
       ],
       "ctaClass": "btn btn--out btn--wide",

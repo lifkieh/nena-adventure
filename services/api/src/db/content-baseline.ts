@@ -25,7 +25,7 @@ export function faqBaseline(): FaqItem[] {
 /** Peta section -> body kanonik yang HARUS terbit. */
 export function contentBaseline(): Record<string, unknown> {
   return {
-    hero: { heading: HERO_HEADING },
+    hero: readJson<Record<string, unknown>>("hero.pre-1a.json"),
     faq: { items: faqBaseline() },
     syarat: { groups: readJson<unknown[]>("syarat.pre-1a.json") },
     testimoni: { items: readJson<unknown[]>("testimoni.pre-1a.json") },
@@ -33,6 +33,9 @@ export function contentBaseline(): Record<string, unknown> {
     kontak: { points: readJson<unknown[]>("kontak.pre-1a.json") },
     galeri: { items: readJson<unknown[]>("galeri.pre-1a.json") },
     paket: readJson<{ cards: unknown[] }>("paket.pre-1a.json"),
+    adventure: readJson<{ points: unknown[] }>("adventure.pre-1a.json"),
+    destinasi: readJson<{ cards: unknown[] }>("destinasi.pre-1a.json"),
+    keselamatan: readJson<{ cards: unknown[]; policy: unknown }>("keselamatan.pre-1a.json"),
   };
 }
 
@@ -68,12 +71,18 @@ function richness(key: string, body: unknown): number {
     const points = (body as { points?: unknown[] } | null)?.points;
     return Array.isArray(points) ? points.length : 0;
   }
-  if (key === "paket") {
+  if (key === "paket" || key === "destinasi" || key === "keselamatan") {
     const cards = (body as { cards?: unknown[] } | null)?.cards;
     return Array.isArray(cards) ? cards.length : 0;
   }
-  const h = (body as { heading?: string } | null)?.heading;
-  return typeof h === "string" && h.trim() ? 1 : 0;
+  if (key === "adventure") {
+    const points = (body as { points?: unknown[] } | null)?.points;
+    return Array.isArray(points) ? points.length : 0;
+  }
+  // hero: kaya bila judul terisi.
+  const h = (body as { title?: string; heading?: string } | null);
+  const t = h?.title ?? h?.heading;
+  return typeof t === "string" && t.trim() ? 1 : 0;
 }
 
 export type SectionStatus = "ok" | "mismatch" | "poorer" | "missing";

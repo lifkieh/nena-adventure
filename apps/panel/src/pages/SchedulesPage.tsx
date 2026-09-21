@@ -30,6 +30,7 @@ export function SchedulesPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [edit, setEdit] = useState<ScheduleDto | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -50,7 +51,7 @@ export function SchedulesPage() {
   }, [allQ.data, navigated]);
   const goMonth = (delta: number) => { setNavigated(true); setOffset(offset + delta); };
   const refresh = () => qc.invalidateQueries({ queryKey: ["schedules"] });
-  const run = <T,>(p: Promise<T>) => p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Terjadi kesalahan."));
+  const run = <T,>(p: Promise<T>, okMsg?: string) => p.then(() => { setErr(null); setMsg(okMsg ?? null); refresh(); }).catch((e) => { setMsg(null); setErr(e instanceof ApiError ? e.message : "Terjadi kesalahan."); });
 
   if (!has("schedule:read")) return <NoAccess />;
   const canWrite = has("schedule:write");
@@ -58,9 +59,18 @@ export function SchedulesPage() {
   const byDate = new Map((q.data ?? []).map((s) => [s.date, s]));
 
   async function del(s: ScheduleDto) {
+    // Punya riwayat booking -> jangan tawarkan Hapus; tawarkan Arsipkan langsung.
+    if (s.bookingCount > 0) {
+      const r = await confirm({
+        title: "Jadwal tak bisa dihapus", confirmLabel: "Arsipkan",
+        body: <>Tanggal <b>{idDate(s.date)}</b> punya <b>{s.bookingCount} booking</b> (data transaksi tak boleh dihapus). Arsipkan jadwal ini agar tak tampil?</>,
+      });
+      if (r.confirmed) run(schedulesApi.setStatus(s.id, "arsip"), "Jadwal diarsipkan.");
+      return;
+    }
     const r = await confirm({ title: "Hapus jadwal?", danger: true, confirmLabel: "Hapus",
       body: <>Tanggal <b>{idDate(s.date)}</b> ({s.used}/{s.capacity} kursi) akan dihapus permanen.</> });
-    if (r.confirmed) run(schedulesApi.remove(s.id));
+    if (r.confirmed) run(schedulesApi.remove(s.id), "Jadwal dihapus.");
   }
   async function save() {
     if (!edit) return;
@@ -84,6 +94,7 @@ export function SchedulesPage() {
     <section>
       <h2 className="text-xl font-extrabold text-slate-800">Jadwal</h2>
       {err && <div data-testid="sched-error" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
+      {msg && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
 
       <div className="mt-3 flex items-center gap-3">
         <button className="rounded border border-slate-300 px-2 py-1 text-sm" onClick={() => goMonth(-1)}>‹</button>
@@ -131,7 +142,7 @@ export function SchedulesPage() {
                   <td className="px-3 py-2">{idDate(s.date)}</td>
                   <td className="px-3 py-2">{s.used}/{s.capacity} {s.belowThreshold && <span className="ml-1 rounded bg-amber-100 px-1.5 text-xs font-bold text-amber-700">≤threshold</span>}</td>
                   <td className="px-3 py-2"><ScheduleStatus status={s.status} /></td>
-                  <td className="px-3 py-2">{canWrite && <div className="flex gap-1"><button data-testid={`edit-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => setEdit(s)}>Ubah</button><button data-testid={`del-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600" onClick={() => del(s)}>Hapus</button></div>}</td>
+                  <td className="px-3 py-2">{canWrite && <div className="flex gap-1"><button data-testid={`edit-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => setEdit(s)}>Ubah</button><button data-testid={`del-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600" onClick={() => del(s)}>{s.bookingCount > 0 ? "Arsipkan" : "Hapus"}</button></div>}</td>
                 </tr>
               ))}
             </tbody>

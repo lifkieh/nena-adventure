@@ -10,14 +10,16 @@ export function getOwnerSettings() {
     dpPercent: getSetting<number>("pricing.dp_percent", 50),
     cutoffDays: getSetting<number>("booking.cutoff_days", 3),
     whatsapp: getSetting<string>("contact.whatsapp", "6281286133202"),
+    whatsappSecondary: getSetting<string>("contact.whatsapp_secondary", "6281387128350"),
     mapUrl: getSetting<string>("contact.map_url", "https://www.google.com/maps/search/?api=1&query=Pantai+Pangaradan+Anyer+Banten"),
   };
 }
 
-/** Kontak publik (dibaca situs) — WA + URL peta. */
+/** Kontak publik (dibaca situs) — WA primary + sekunder + URL peta. */
 export function getPublicContact() {
   return {
     whatsapp: getSetting<string>("contact.whatsapp", "6281286133202"),
+    whatsappSecondary: getSetting<string>("contact.whatsapp_secondary", "6281387128350"),
     mapUrl: getSetting<string>("contact.map_url", "https://www.google.com/maps/search/?api=1&query=Pantai+Pangaradan+Anyer+Banten"),
   };
 }
@@ -29,6 +31,7 @@ export function setOwnerSettings(input: OwnerSettingsInput, ctx: ActorContext) {
   if (input.dpPercent !== undefined) setSetting("pricing.dp_percent", input.dpPercent);
   if (input.cutoffDays !== undefined) setSetting("booking.cutoff_days", input.cutoffDays);
   if (input.whatsapp !== undefined) setSetting("contact.whatsapp", input.whatsapp);
+  if (input.whatsappSecondary !== undefined) setSetting("contact.whatsapp_secondary", input.whatsappSecondary);
   if (input.mapUrl !== undefined) setSetting("contact.map_url", input.mapUrl);
   const after = getOwnerSettings();
   record(ctx, {

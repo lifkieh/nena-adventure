@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { AppError } from "../lib/errors.js";
 import {
   auditQuerySchema,
   bulkScheduleStatusSchema,
@@ -430,9 +431,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   /* ── Media library publik (content:read / content:write) ── */
   app.get("/media-library", rd("content:read"), async () => mediaLibrary.listLibrary());
   app.post("/media-library", rd("content:write"), async (req) => {
-    const { alt } = z.object({ alt: z.string().min(1, "Teks alt wajib.") }).parse(req.query);
     const file = await req.file();
-    if (!file) throw new Error("File wajib.");
+    if (!file) throw AppError.validation("File wajib.");
+    // alt dikirim di BODY (field multipart), bukan query.
+    const altField = (file.fields as { alt?: { value?: string } } | undefined)?.alt;
+    const alt = z.string().min(1, "Teks alt wajib.").parse(altField?.value ?? "");
     const buffer = await file.toBuffer();
     return mediaLibrary.uploadImage({ buffer, alt, ctx: actorFromReq(req) });
   });

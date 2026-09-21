@@ -22,6 +22,7 @@ export interface ScheduleDto {
   used: number;
   remaining: number;
   belowThreshold: boolean;
+  bookingCount: number;
 }
 
 function toDto(s: ScheduleRow): ScheduleDto {
@@ -43,6 +44,7 @@ function toDto(s: ScheduleRow): ScheduleDto {
     used,
     remaining,
     belowThreshold: remaining <= s.threshold,
+    bookingCount: repo.bookingCountAny(s.id),
   };
 }
 

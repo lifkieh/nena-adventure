@@ -11,30 +11,33 @@ export function MediaPage() {
   const confirm = useConfirm();
   const [alt, setAlt] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const ok = (m: string) => { setErr(null); setMsg(m); };
+  const bad = (m: string) => { setMsg(null); setErr(m); };
   const q = useQuery({ queryKey: ["media"], queryFn: mediaApi.list, enabled: has("content:read") });
   if (!has("content:read")) return <NoAccess />;
 
   async function del(m: { id: string; alt: string }) {
     const r = await confirm({ title: "Hapus gambar?", danger: true, confirmLabel: "Hapus", body: <>Gambar <b>{m.alt}</b> akan dihapus. Ditolak bila masih dipakai di konten.</> });
     if (!r.confirmed) return;
-    try { await mediaApi.remove(m.id); setMsg("Gambar dihapus."); qc.invalidateQueries({ queryKey: ["media"] }); }
-    catch (e) { setMsg(e instanceof ApiError ? e.message : "Gagal hapus."); }
+    try { await mediaApi.remove(m.id); ok("Gambar dihapus."); qc.invalidateQueries({ queryKey: ["media"] }); }
+    catch (e) { bad(e instanceof ApiError ? e.message : "Gagal menghapus gambar."); }
   }
 
   async function upload(file: File) {
-    setMsg(null);
-    if (!alt.trim()) { setMsg("Teks alt wajib diisi dulu."); return; }
-    const fd = new FormData(); fd.append("file", file);
-    const res = await fetch("/api/admin/media-library?alt=" + encodeURIComponent(alt), { method: "POST", credentials: "include", body: fd });
-    if (!res.ok) { const b = await res.json().catch(() => null); setMsg((b?.error?.message) || "Gagal unggah."); return; }
-    setAlt(""); setMsg("Gambar terunggah."); qc.invalidateQueries({ queryKey: ["media"] });
+    if (!alt.trim()) { bad("Teks alt wajib diisi dulu sebelum unggah."); return; }
+    const fd = new FormData(); fd.append("alt", alt); fd.append("file", file); // alt di BODY, sebelum file
+    const res = await fetch("/api/admin/media-library", { method: "POST", credentials: "include", body: fd });
+    if (!res.ok) { const b = await res.json().catch(() => null); bad((b?.error?.message) || "Gagal mengunggah gambar."); return; }
+    setAlt(""); ok("Gambar terunggah."); qc.invalidateQueries({ queryKey: ["media"] });
   }
 
   return (
     <section>
       <h2 className="text-xl font-extrabold text-slate-800">Media library</h2>
       <p className="mt-1 text-sm text-slate-500">Gambar publik (validasi magic byte, alt wajib). Terpisah dari storage bukti bayar.</p>
-      {msg && <div className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">{msg}</div>}
+      {err && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
+      {msg && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
       {has("content:write") && (
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
           <input className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="Teks alt (wajib)" value={alt} onChange={(e) => setAlt(e.target.value)} />

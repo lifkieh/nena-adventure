@@ -164,7 +164,8 @@ export function paketCardsHtml(cards, prices) {
     var hi = c.highlight ? " pkg--hi" : "";
     var tag = c.tag ? '\n        <span class="pkg-tag">' + esc(c.tag) + "</span>" : "";
     var feats = (c.features || []).map(function (f) {
-      return '<li class="' + (f.included ? "yes" : "no") + '">' + (f.included ? SVG_YES : SVG_NO) + "<span>" + f.html + "</span></li>";
+      var inner = f.bold ? "<strong>" + esc(f.text) + "</strong>" : esc(f.text);
+      return '<li class="' + (f.included ? "yes" : "no") + '">' + (f.included ? SVG_YES : SVG_NO) + "<span>" + inner + "</span></li>";
     }).join("\n          ");
     return '<div class="pkg' + hi + '">' + tag
       + "\n        <h3>" + esc(c.name) + "</h3>"
@@ -199,6 +200,51 @@ export function paketTablesHtml(prices) {
     + "          <thead><tr><th>Private Trip Premium — jumlah peserta</th><th>Harga per rombongan</th></tr></thead>\n"
     + "          <tbody>\n            " + tiers + "\n          </tbody>\n"
     + "        </table>\n      </div>\n    ";
+}
+
+/** HTML 3 poin "Adventure yang bikin kangen pulang" (verbatim). */
+export function adventureHtml(points) {
+  var parts = (points || []).map(function (p, i) {
+    var n = i + 1;
+    return '<li><span class="feat2-n feat2-n--' + n + '">' + (n < 10 ? "0" + n : "" + n) + "</span>\n"
+      + "            <div><h4>" + esc(p.title) + "</h4><p>" + esc(p.body) + "</p></div></li>";
+  });
+  return "\n          " + parts.join("\n          ") + "\n        ";
+}
+
+/** HTML kartu destinasi (verbatim). data-spot merujuk SPOT (detail lightbox). */
+export function destinasiHtml(cards) {
+  var parts = (cards || []).map(function (c) {
+    return '<li><button class="dest" data-type="spot" data-spot="' + c.spot + '"><img loading="lazy" width="'
+      + c.width + '" height="' + c.height + '" src="' + c.img + '" alt="' + escAttr(c.alt) + '">'
+      + '<span class="cue">Detail</span><span class="ov"><b>' + esc(c.name) + "</b><small>" + esc(c.tag) + "</small></span></button></li>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
+// Santunan asuransi — dari KONSTANTA, bukan konten (token di teks item).
+var SANTUNAN = { meninggal: 50000000, pengobatan: 5000000 };
+function kesItem(text) {
+  return esc(text)
+    .replace(/\{\{santunan_meninggal\}\}/g, "<strong>" + rp(SANTUNAN.meninggal) + "</strong>")
+    .replace(/\{\{santunan_pengobatan\}\}/g, "<strong>" + rp(SANTUNAN.pengobatan) + "</strong>");
+}
+/** HTML kartu keselamatan (verbatim). Ikon SVG verbatim; angka santunan dari token. */
+export function keselamatanHtml(cards) {
+  var parts = (cards || []).map(function (c) {
+    var lis = (c.items || []).map(function (it) { return "<li>" + kesItem(it) + "</li>"; }).join("\n          ");
+    return '<article class="safecard">\n'
+      + '        <span class="safeicon">' + c.iconSvg + "</span>\n"
+      + "        <h4>" + esc(c.title) + "</h4>\n"
+      + "        <p>" + esc(c.body) + "</p>\n"
+      + "        <ul>\n          " + lis + "\n        </ul>\n"
+      + "      </article>";
+  });
+  return "\n      " + parts.join("\n\n      ") + "\n    ";
+}
+/** HTML blok kebijakan keselamatan (verbatim). */
+export function keselamatanPolicyHtml(policy) {
+  return "\n      <h4>" + esc(policy.heading) + "</h4>\n      <p>" + esc(policy.body) + "</p>\n    ";
 }
 
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */

@@ -106,7 +106,7 @@ export interface ScheduleDto {
   id: string; date: string; capacity: number; threshold: number;
   status: string; publicNote: string | null; closedReason: string | null;
   availablePackages: string[] | null; used: number; remaining: number;
-  belowThreshold: boolean;
+  belowThreshold: boolean; bookingCount: number;
 }
 export const schedulesApi = {
   list: (q: Record<string, string> = {}) =>
@@ -127,7 +127,7 @@ export const packagesApi = {
 };
 
 export const settingsApi = {
-  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number; whatsapp: string; mapUrl: string }>("/admin/settings/owner"),
+  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number; whatsapp: string; whatsappSecondary: string; mapUrl: string }>("/admin/settings/owner"),
   set: (b: unknown) => req<unknown>("/admin/settings/owner", { method: "PUT", body: JSON.stringify(b) }),
 };
 

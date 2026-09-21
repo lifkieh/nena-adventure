@@ -121,7 +121,7 @@ export function BookingDetailPage() {
             {d.cancellation && (d.cancellation.refundAmount > 0 || d.cancellation.cancelReason) && (
               <>
                 <div className="my-1 border-t border-slate-100" />
-                {d.cancellation.refundAmount > 0 && <Row k="Refund (uang keluar)" v={<span className="text-red-600">- {formatRupiah(d.cancellation.refundAmount)}</span>} rawV />}
+                {d.cancellation.refundAmount > 0 && <Row k="Refund (uang keluar)" v={<span className="text-red-600">{formatRupiah(-d.cancellation.refundAmount)}</span>} rawV />}
                 {d.cancellation.cancelReason && <Row k="Alasan pembatalan" v={d.cancellation.cancelReason} />}
                 {d.cancellation.cancelledByEmail && <Row k="Dibatalkan oleh" v={d.cancellation.cancelledByEmail} />}
               </>
@@ -164,7 +164,7 @@ export function BookingDetailPage() {
                 <li key={p.id} className="flex items-center gap-3 border-b border-slate-100 pb-2">
                   {p.proofUrl && has("payment:read") ? <a href={p.proofUrl} target="_blank" rel="noreferrer"><img src={p.proofUrl} alt="bukti" className="h-12 w-12 rounded object-cover" /></a> : <div className="h-12 w-12 rounded bg-slate-100" />}
                   <div>
-                    <div className={`font-bold ${p.amount < 0 ? "text-red-600" : ""}`}>{p.amount < 0 ? `- ${formatRupiah(-p.amount)}` : formatRupiah(p.amount)} · {p.method === "refund" ? "refund (uang keluar)" : p.method}</div>
+                    <div className={`font-bold ${p.amount < 0 ? "text-red-600" : ""}`}>{formatRupiah(p.amount)} · {p.method === "refund" ? "refund (uang keluar)" : p.method}</div>
                     <div className="text-xs text-slate-500">{p.kind} · {p.status === "verified" ? "terverifikasi" : p.status === "rejected" ? "ditolak" : p.status === "refunded" ? "dikembalikan" : "menunggu"}{p.verifiedAt ? ` · ${formatJakarta(p.verifiedAt)}` : ""}</div>
                     {p.rejectedReason && <div className="text-xs text-red-600">Alasan tolak: {p.rejectedReason}</div>}
                   </div>

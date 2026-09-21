@@ -223,6 +223,7 @@ export const bookings = sqliteTable(
     balanceDueAt: ts("balance_due_at"), // batas pelunasan (H-3)
     statusChangedAt: ts("status_changed_at"),
     confirmedAt: ts("confirmed_at"),
+    isTest: integer("is_test", { mode: "boolean" }).notNull().default(false),
     createdAt: tsNow("created_at"),
     updatedAt: tsNow("updated_at"),
   },

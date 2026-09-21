@@ -7,7 +7,7 @@ import { Loading, ErrorState, NoAccess } from "../components/States";
 export function OwnerSettingsPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ bankAccount: "", serviceFee: 0, dpPercent: 0, cutoffDays: 0, whatsapp: "", mapUrl: "" });
+  const [form, setForm] = useState({ bankAccount: "", serviceFee: 0, dpPercent: 0, cutoffDays: 0, whatsapp: "", whatsappSecondary: "", mapUrl: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["owner-settings"], queryFn: settingsApi.get, enabled: has("settings:read") });
   useEffect(() => { if (q.data) setForm(q.data); }, [q.data]);
@@ -16,10 +16,11 @@ export function OwnerSettingsPage() {
   const canWrite = has("settings:write");
 
   const waInvalid = form.whatsapp !== "" && !/^\d{8,15}$/.test(form.whatsapp);
+  const wa2Invalid = form.whatsappSecondary !== "" && !/^\d{8,15}$/.test(form.whatsappSecondary);
   const mapInvalid = form.mapUrl !== "" && !/^https:\/\//.test(form.mapUrl);
 
   async function save() {
-    if (waInvalid) { setMsg("Nomor WhatsApp hanya angka (8–15 digit)."); return; }
+    if (waInvalid || wa2Invalid) { setMsg("Nomor WhatsApp hanya angka (8–15 digit)."); return; }
     if (mapInvalid) { setMsg("URL peta harus diawali https://."); return; }
     try { await settingsApi.set(form); setMsg("Pengaturan tersimpan."); qc.invalidateQueries({ queryKey: ["owner-settings"] }); }
     catch (e) { setMsg(e instanceof ApiError ? e.message : "Gagal simpan."); }
@@ -48,11 +49,15 @@ export function OwnerSettingsPage() {
             <input data-testid="set-whatsapp" className={`mt-1 w-full rounded border px-2 py-1.5 ${waInvalid ? "border-red-400" : "border-slate-300"}`} value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} disabled={!canWrite} />
             {waInvalid && <span className="text-xs font-semibold text-red-600">Hanya angka, 8–15 digit.</span>}
           </label>
+          <label className="block">Nomor WhatsApp sekunder
+            <input data-testid="set-whatsapp2" className={`mt-1 w-full rounded border px-2 py-1.5 ${wa2Invalid ? "border-red-400" : "border-slate-300"}`} value={form.whatsappSecondary} onChange={(e) => setForm({ ...form, whatsappSecondary: e.target.value })} disabled={!canWrite} />
+            {wa2Invalid && <span className="text-xs font-semibold text-red-600">Hanya angka, 8–15 digit.</span>}
+          </label>
           <label className="block">URL peta (https)
             <input data-testid="set-mapurl" className={`mt-1 w-full rounded border px-2 py-1.5 ${mapInvalid ? "border-red-400" : "border-slate-300"}`} value={form.mapUrl} onChange={(e) => setForm({ ...form, mapUrl: e.target.value })} disabled={!canWrite} />
             {mapInvalid && <span className="text-xs font-semibold text-red-600">Harus diawali https://.</span>}
           </label>
-          {canWrite && <button data-testid="save-settings" disabled={waInvalid || mapInvalid} className="rounded-lg bg-laut px-4 py-2 font-bold text-white disabled:opacity-50" onClick={save}>Simpan</button>}
+          {canWrite && <button data-testid="save-settings" disabled={waInvalid || wa2Invalid || mapInvalid} className="rounded-lg bg-laut px-4 py-2 font-bold text-white disabled:opacity-50" onClick={save}>Simpan</button>}
         </div>
       )}
     </section>

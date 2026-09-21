@@ -12,7 +12,11 @@ interface SyaratGroup { title: string; raw: string; active: boolean }
 interface Trip { title: string; raw: string; active: boolean }
 interface KontakPoint { icon: string; title: string; body: string; active: boolean }
 interface GalItem { type: string; size: string; full?: string; thumb: string; alt: string; cap: string; videoLabel?: string; width: number; height: number; active: boolean }
-interface Feature { included: boolean; html: string }
+interface Feature { included: boolean; bold: boolean; text: string }
+interface AdvPoint { title: string; body: string }
+interface DestCard { spot: string; name: string; tag: string; img: string; alt: string; width: number; height: number }
+interface KesCard { iconSvg: string; title: string; body: string; raw: string }
+interface KesPolicy { heading: string; body: string }
 interface PaketCard { key: string; name: string; sub: string; unit: string; note: string; tag: string | null; highlight: boolean; ctaClass: string; ctaHref: string; ctaText: string; features: Feature[] }
 const ICON_OPTS = ["pin", "kalender", "telepon", "jam"];
 const SIZE_OPTS = ["", "w2", "h2", "w2 h2"];
@@ -31,7 +35,7 @@ export function ContentPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
   const [key, setKey] = useState("hero");
-  const [heading, setHeading] = useState("");
+  const [hero, setHero] = useState<Record<string, string>>({});
   const [faq, setFaq] = useState<FaqItem[]>([]);
   const [testi, setTesti] = useState<TestiItem[]>([]);
   const [groups, setGroups] = useState<SyaratGroup[]>([]);
@@ -39,23 +43,39 @@ export function ContentPage() {
   const [points, setPoints] = useState<KontakPoint[]>([]);
   const [gal, setGal] = useState<GalItem[]>([]);
   const [cards, setCards] = useState<PaketCard[]>([]);
+  const [adv, setAdv] = useState<AdvPoint[]>([]);
+  const [dest, setDest] = useState<DestCard[]>([]);
+  const [kes, setKes] = useState<KesCard[]>([]);
+  const [kesPolicy, setKesPolicy] = useState<KesPolicy>({ heading: "", body: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read") });
-  const mediaQ = useQuery({ queryKey: ["media"], queryFn: mediaApi.list, enabled: has("content:read") });
-  const secQ = useQuery({ queryKey: ["content", key], queryFn: () => contentApi.get(key), enabled: has("content:read") });
+  // refetchOnWindowFocus:false — cegah remount tab yang "menelan" klik pertama.
+  const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read"), refetchOnWindowFocus: false, staleTime: 30_000 });
+  const mediaQ = useQuery({ queryKey: ["media"], queryFn: mediaApi.list, enabled: has("content:read"), refetchOnWindowFocus: false });
+  const secQ = useQuery({ queryKey: ["content", key], queryFn: () => contentApi.get(key), enabled: has("content:read"), refetchOnWindowFocus: false });
 
   useEffect(() => {
     const src = (secQ.data?.draft ?? secQ.data?.published) as Record<string, unknown> | null;
-    setHeading((src?.heading as string) ?? "");
+    setHero({
+      title: (src?.title as string) ?? (src?.heading as string) ?? "",
+      subtitle: (src?.subtitle as string) ?? "",
+      bandHeading: (src?.bandHeading as string) ?? "",
+      bandSubtitle: (src?.bandSubtitle as string) ?? "",
+      ctaPrimary: (src?.ctaPrimary as string) ?? "",
+      ctaSecondary: (src?.ctaSecondary as string) ?? "",
+    });
     setFaq(((src?.items as FaqItem[]) ?? []).map((i) => ({ q: i.q, a: i.a, active: i.active ?? true })));
     setTesti(((src?.items as TestiItem[]) ?? []).map((i) => ({ rating: i.rating ?? 5, quote: i.quote, name: i.name, meta: i.meta, active: i.active ?? true })));
     setGroups(((src?.groups as { title: string; items?: string[]; active?: boolean }[]) ?? []).map((g) => ({ title: g.title, raw: (g.items ?? []).join("\n"), active: g.active ?? true })));
     setTrips(((src?.trips as { title: string; steps?: { time: string; activity: string }[]; active?: boolean }[]) ?? []).map((t) => ({ title: t.title, raw: (t.steps ?? []).map((s) => `${s.time} ${s.activity}`).join("\n"), active: t.active ?? true })));
     setPoints(((src?.points as KontakPoint[]) ?? []).map((p) => ({ icon: p.icon ?? "pin", title: p.title, body: p.body, active: p.active ?? true })));
     setGal(((src?.items as GalItem[]) ?? []).map((g) => ({ type: g.type ?? "img", size: g.size ?? "", full: g.full, thumb: g.thumb, alt: g.alt ?? "", cap: g.cap ?? "", videoLabel: g.videoLabel, width: g.width ?? 800, height: g.height ?? 600, active: g.active ?? true })));
-    setCards(((src?.cards as PaketCard[]) ?? []).map((c) => ({ ...c, tag: c.tag ?? null, features: (c.features ?? []).map((f) => ({ included: f.included, html: f.html })) })));
+    setCards(((src?.cards as PaketCard[]) ?? []).map((c) => ({ ...c, tag: c.tag ?? null, features: (c.features ?? []).map((f) => ({ included: f.included, bold: (f as Feature).bold ?? false, text: (f as Feature).text ?? "" })) })));
+    setAdv(((src?.points as AdvPoint[]) ?? []).map((p) => ({ title: p.title, body: p.body })));
+    setDest(((src?.cards as DestCard[]) ?? []).map((c) => ({ spot: c.spot, name: c.name, tag: c.tag, img: c.img, alt: c.alt, width: c.width ?? 480, height: c.height ?? 640 })));
+    setKes(((src?.cards as (KesCard & { items?: string[] })[]) ?? []).map((c) => ({ iconSvg: c.iconSvg, title: c.title, body: c.body, raw: (c.items ?? []).join("\n") })));
+    setKesPolicy((src?.policy as KesPolicy) ?? { heading: "", body: "" });
   }, [secQ.data]);
 
   if (!has("content:read")) return <NoAccess />;
@@ -77,12 +97,19 @@ export function ContentPage() {
     if (key === "kontak") return { points };
     if (key === "galeri") return { items: gal };
     if (key === "paket") return { cards }; // hanya teks; harga TIDAK disimpan di konten
-    return { heading };
+    if (key === "hero") return hero;
+    if (key === "adventure") return { points: adv };
+    if (key === "destinasi") return { cards: dest };
+    if (key === "keselamatan") return {
+      cards: kes.map((c) => ({ iconSvg: c.iconSvg, title: c.title, body: c.body, items: c.raw.split("\n").map((l) => l.trim()).filter(Boolean) })),
+      policy: kesPolicy,
+    };
+    return { heading: hero.title };
   }
   function validate(): string | null {
     if (key === "galeri") {
-      const bad = gal.some((g) => g.active !== false && !g.alt.trim());
-      if (bad) return "Setiap gambar galeri aktif wajib punya teks alt.";
+      const idx = gal.findIndex((g) => g.active !== false && !g.alt.trim());
+      if (idx >= 0) return `Gambar galeri #${idx + 1}: teks alt wajib diisi.`;
     }
     return null;
   }
@@ -100,7 +127,7 @@ export function ContentPage() {
       {listQ.isLoading ? <Loading /> : listQ.isError ? <ErrorState message="Tidak bisa memuat section." onRetry={() => listQ.refetch()} /> : (
         <div className="mt-4 flex flex-wrap gap-2">
           {listQ.data?.map((s) => (
-            <button key={s.key} onClick={() => setKey(s.key)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${key === s.key ? "bg-laut text-white" : "bg-slate-100 text-slate-600"}`}>
+            <button key={s.key} type="button" onClick={() => setKey(s.key)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${key === s.key ? "bg-laut text-white" : "bg-slate-100 text-slate-600"}`}>
               {s.title}{s.hasDraft ? " •" : ""}
             </button>
           ))}
@@ -114,10 +141,21 @@ export function ContentPage() {
 
       <div className="mt-3 max-w-2xl rounded-xl border border-slate-200 bg-white p-5">
         {secQ.isLoading ? <Loading /> : key === "hero" ? (
-          <>
-            <label className="mb-1 block text-sm font-semibold text-slate-600" htmlFor="heading">Judul hero</label>
-            <input id="heading" data-testid="hero-heading" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={heading} onChange={(e) => setHeading(e.target.value)} disabled={!canWrite} />
-          </>
+          <div className="space-y-2">
+            {([
+              ["title", "Judul hero", "hero-heading"],
+              ["subtitle", "Subjudul hero", "hero-subtitle"],
+              ["bandHeading", "Judul ajakan (band)", "hero-bandheading"],
+              ["bandSubtitle", "Subjudul ajakan (band)", "hero-bandsubtitle"],
+              ["ctaPrimary", "Label tombol utama", "hero-cta1"],
+              ["ctaSecondary", "Label tombol WhatsApp", "hero-cta2"],
+            ] as const).map(([field, label, tid]) => (
+              <label key={field} className="block text-sm">
+                <span className="mb-1 block font-semibold text-slate-600">{label}</span>
+                <input data-testid={tid} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={hero[field] ?? ""} onChange={(e) => setHero({ ...hero, [field]: e.target.value })} disabled={!canWrite} />
+              </label>
+            ))}
+          </div>
         ) : key === "faq" ? (
           <div className="space-y-2">
             {faq.map((it, i) => (
@@ -197,12 +235,14 @@ export function ContentPage() {
                   <select className="rounded border border-slate-300 px-2 py-1 text-sm" value={g.size} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, size: e.target.value } : x))} disabled={!canWrite}>
                     {SIZE_OPTS.map((s) => <option key={s} value={s}>{s === "" ? "ukuran biasa" : s}</option>)}
                   </select>
-                  {canWrite && (mediaQ.data?.length ?? 0) > 0 && (
+                  {canWrite && ((mediaQ.data?.length ?? 0) > 0 ? (
                     <select className="rounded border border-slate-300 px-2 py-1 text-sm" value="" onChange={(e) => { const m = mediaQ.data!.find((x) => x.url === e.target.value); if (m) setGal(gal.map((x, j) => j === i ? { ...x, full: m.url, thumb: m.url, alt: x.alt || m.alt, width: m.width ?? x.width } : x)); }}>
                       <option value="">pilih dari media library…</option>
                       {mediaQ.data!.map((m) => <option key={m.id} value={m.url}>{m.alt}</option>)}
                     </select>
-                  )}
+                  ) : (
+                    <a href="/panel/media" className="rounded border border-dashed border-slate-300 px-2 py-1 text-xs text-laut">Media library kosong — unggah di Media library →</a>
+                  ))}
                 </div>
                 <input data-testid={`gal-alt-${i}`} className={`mb-1 w-full rounded border px-2 py-1 text-sm ${g.active !== false && !g.alt.trim() ? "border-red-400" : "border-slate-300"}`} placeholder="Teks alt (wajib)" value={g.alt} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, alt: e.target.value } : x))} disabled={!canWrite} />
                 <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Caption" value={g.cap} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, cap: e.target.value } : x))} disabled={!canWrite} />
@@ -227,15 +267,58 @@ export function ContentPage() {
                 <div className="mt-1 space-y-1">
                   {c.features.map((f, k) => (
                     <div key={k} className="flex items-center gap-1 text-sm">
-                      <input type="checkbox" checked={f.included} onChange={(e) => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.map((y, z) => z === k ? { ...y, included: e.target.checked } : y) } : x))} disabled={!canWrite} title="termasuk?" />
-                      <input className="w-full rounded border border-slate-300 px-2 py-0.5 text-xs" value={f.html} onChange={(e) => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.map((y, z) => z === k ? { ...y, html: e.target.value } : y) } : x))} disabled={!canWrite} />
+                      <label title="termasuk?"><input type="checkbox" checked={f.included} onChange={(e) => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.map((y, z) => z === k ? { ...y, included: e.target.checked } : y) } : x))} disabled={!canWrite} /> ✓</label>
+                      <input className="w-full rounded border border-slate-300 px-2 py-0.5 text-xs" placeholder="Teks fasilitas (tanpa HTML)" value={f.text} onChange={(e) => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.map((y, z) => z === k ? { ...y, text: e.target.value } : y) } : x))} disabled={!canWrite} />
+                      <label title="tebal"><input type="checkbox" checked={f.bold} onChange={(e) => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.map((y, z) => z === k ? { ...y, bold: e.target.checked } : y) } : x))} disabled={!canWrite} /> <b>B</b></label>
                       {canWrite && <button className="text-xs text-red-600" onClick={() => setCards(cards.map((x, j) => j === i ? { ...x, features: x.features.filter((_, z) => z !== k) } : x))}>×</button>}
                     </div>
                   ))}
-                  {canWrite && <button className="rounded border border-slate-300 px-2 py-0.5 text-xs" onClick={() => setCards(cards.map((x, j) => j === i ? { ...x, features: [...x.features, { included: true, html: "" }] } : x))}>+ fasilitas</button>}
+                  {canWrite && <button className="rounded border border-slate-300 px-2 py-0.5 text-xs" onClick={() => setCards(cards.map((x, j) => j === i ? { ...x, features: [...x.features, { included: true, bold: false, text: "" }] } : x))}>+ fasilitas</button>}
                 </div>
               </div>
             ))}
+          </div>
+        ) : key === "adventure" ? (
+          <div className="space-y-2">
+            {adv.map((p, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <input data-testid={`adv-title-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul" value={p.title} onChange={(e) => setAdv(adv.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={2} placeholder="Isi" value={p.body} onChange={(e) => setAdv(adv.map((x, j) => j === i ? { ...x, body: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && <div className="mt-1 flex gap-2 text-xs"><button onClick={() => setAdv((z) => move(z, i, -1))}>↑</button><button onClick={() => setAdv((z) => move(z, i, 1))}>↓</button><button className="text-red-600" onClick={() => setAdv(adv.filter((_, j) => j !== i))}>hapus</button></div>}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setAdv([...adv, { title: "", body: "" }])}>+ Tambah poin</button>}
+          </div>
+        ) : key === "destinasi" ? (
+          <div className="space-y-2">
+            {dest.map((c, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <div className="mb-1 flex gap-2">
+                  <input className="w-1/2 rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Nama titik" value={c.name} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} disabled={!canWrite} />
+                  <input className="w-1/2 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Label (mis. Snorkeling)" value={c.tag} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, tag: e.target.value } : x))} disabled={!canWrite} />
+                </div>
+                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-xs" placeholder="URL gambar" value={c.img} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, img: e.target.value } : x))} disabled={!canWrite} />
+                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Alt gambar" value={c.alt} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, alt: e.target.value } : x))} disabled={!canWrite} />
+                <div className="text-xs text-slate-400">spot: {c.spot}</div>
+                {canWrite && <div className="mt-1 flex gap-2 text-xs"><button onClick={() => setDest((z) => move(z, i, -1))}>↑</button><button onClick={() => setDest((z) => move(z, i, 1))}>↓</button><button className="text-red-600" onClick={() => setDest(dest.filter((_, j) => j !== i))}>hapus</button></div>}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setDest([...dest, { spot: "", name: "", tag: "", img: "", alt: "", width: 480, height: 640 }])}>+ Tambah destinasi</button>}
+          </div>
+        ) : key === "keselamatan" ? (
+          <div className="space-y-2">
+            <p className="text-xs text-slate-400">Angka santunan asuransi otomatis dari konstanta — pakai token {"{{santunan_meninggal}}"} / {"{{santunan_pengobatan}}"} di poin.</p>
+            {kes.map((c, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul kartu" value={c.title} onChange={(e) => setKes(kes.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={2} placeholder="Deskripsi" value={c.body} onChange={(e) => setKes(kes.map((x, j) => j === i ? { ...x, body: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={4} placeholder="Satu poin per baris" value={c.raw} onChange={(e) => setKes(kes.map((x, j) => j === i ? { ...x, raw: e.target.value } : x))} disabled={!canWrite} />
+              </div>
+            ))}
+            <div className="rounded-lg border border-slate-200 p-2">
+              <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul kebijakan" value={kesPolicy.heading} onChange={(e) => setKesPolicy({ ...kesPolicy, heading: e.target.value })} disabled={!canWrite} />
+              <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={4} placeholder="Isi kebijakan" value={kesPolicy.body} onChange={(e) => setKesPolicy({ ...kesPolicy, body: e.target.value })} disabled={!canWrite} />
+            </div>
           </div>
         ) : <p className="text-sm text-slate-400">Editor typed untuk section ini menyusul (fase konten lanjutan).</p>}
 

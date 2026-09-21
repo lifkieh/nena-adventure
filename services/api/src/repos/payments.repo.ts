@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { bookings, payments, schedules } from "../db/schema.js";
 
@@ -6,6 +6,16 @@ export type PaymentRow = typeof payments.$inferSelect;
 
 export function insert(values: typeof payments.$inferInsert): PaymentRow {
   return db.insert(payments).values(values).returning().get();
+}
+
+/** Total uang masuk-bersih booking = SUM(amount) baris VERIFIED (refund negatif). */
+export function sumVerified(bookingId: string): number {
+  const r = db
+    .select({ s: sql<number>`coalesce(sum(${payments.amount}),0)` })
+    .from(payments)
+    .where(and(eq(payments.bookingId, bookingId), eq(payments.status, "verified")))
+    .get();
+  return r?.s ?? 0;
 }
 
 export function findById(id: string): PaymentRow | undefined {
