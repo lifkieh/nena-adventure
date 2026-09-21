@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { PublicScheduleDto, UserRole } from "@nena/shared";
 import { AppError } from "../../lib/errors.js";
+import { decryptPII } from "../../lib/crypto.js";
 import { txImmediate } from "../../lib/tx.js";
 import { dateAtOffset, todayJakarta } from "../../lib/date.js";
 import { getSetting } from "../../repos/settings.repo.js";
@@ -373,10 +374,15 @@ export function getPublicSummary(code: string, token: string) {
   const holdMsLeft = booking.holdExpiresAt
     ? Math.max(0, Date.parse(booking.holdExpiresAt) - now)
     : null;
+  const dpPercent = getSetting<number>("pricing.dp_percent", 50);
   return {
     code: booking.code,
     status: booking.status,
+    subtotal: booking.subtotal,
+    discount: booking.discount,
+    serviceFee: booking.serviceFee,
     total: booking.total,
+    dp: Math.round((booking.total * dpPercent) / 100),
     amountPaid: booking.amountPaid,
     paymentScheme: booking.paymentScheme,
     holdExpiresAt: booking.holdExpiresAt,
@@ -384,6 +390,8 @@ export function getPublicSummary(code: string, token: string) {
     pax: booking.pax,
     packageType: booking.packageType,
     meetingPoint: booking.meetingPoint,
+    scheduleDate: sched?.date ?? null,
+    departureTime: sched?.departureTime ?? "07:00",
   };
 }
 
@@ -431,17 +439,39 @@ export function listBookings(filter: bookingsRepo.BookingListFilter) {
   return { items: rows, page: filter.page, pageSize: filter.pageSize, total };
 }
 
-export function getBookingDetail(id: string, canReadPii: boolean) {
+/** Detail booking — TANPA PII utuh (hanya idNumberLast4). NIK/tgl lahir via openParticipantPii. */
+export function getBookingDetail(id: string) {
   const booking = bookingsRepo.findById(id);
   if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
   const participants = participantsRepo.listByBooking(id).map((p) => ({
     name: p.name,
-    birthDate: p.birthDate,
     idNumberLast4: p.idNumberLast4,
-    idNumber: canReadPii ? p.idNumber : null, // NIK utuh hanya bila berizin
+    piiPurgedAt: p.piiPurgedAt,
     isLead: p.isLead,
   }));
   return { booking, participants };
+}
+
+/** Buka PII utuh (dekripsi) — hanya dipanggil endpoint participant:read_pii.
+ *  Setiap pembukaan tercatat di audit (tanpa memuat NIK di log). */
+export function openParticipantPii(id: string, ctx: ActorContext) {
+  const booking = bookingsRepo.findById(id);
+  if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
+  const participants = participantsRepo.listByBooking(id).map((p) => ({
+    name: p.name,
+    birthDate: decryptPII(p.birthDate),
+    idNumber: p.piiPurgedAt ? null : decryptPII(p.idNumber),
+    idNumberLast4: p.idNumberLast4,
+    isLead: p.isLead,
+    piiPurgedAt: p.piiPurgedAt,
+  }));
+  record(ctx, {
+    action: "pii_access",
+    entity: "booking",
+    entityId: id,
+    data: { participantCount: participants.length }, // JANGAN log NIK
+  });
+  return { participants };
 }
 
 export function getBookingHistory(id: string) {

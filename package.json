@@ -18,6 +18,7 @@
     "seed": "npm run seed -w @nena/api",
     "seed:demo-users": "npm run seed:demo-users -w @nena/api",
     "seed:parity": "npm run seed:parity -w @nena/api",
+    "job:purge-pii": "npm run job:purge-pii -w @nena/api",
     "typecheck": "npm run typecheck -w @nena/shared && npm run typecheck -w @nena/api && npm run typecheck -w @nena/panel",
     "test": "npm run test -w @nena/api",
     "parity": "node scripts/parity.mjs",

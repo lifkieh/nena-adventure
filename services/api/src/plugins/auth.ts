@@ -18,6 +18,9 @@ declare module "fastify" {
   interface FastifyRequest {
     authUser?: AuthUser;
   }
+  interface FastifyContextConfig {
+    permission?: Permission;
+  }
 }
 
 /** Konteks aktor untuk audit dari request (works pre- & post-auth). */

@@ -76,10 +76,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "report:read",
   ],
 
-  // Read-only, TAPI tanpa participant:read_pii (jangan pakai p.endsWith(":read")).
+  // Read-only, TAPI tanpa participant:read_pii DAN tanpa payment:read
+  // (bukti bayar = data finansial sensitif). Jangan pakai p.endsWith(":read").
   viewer: [
     "booking:read",
-    "payment:read",
     "schedule:read",
     "content:read",
     "user:read",

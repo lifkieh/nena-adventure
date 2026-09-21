@@ -53,7 +53,6 @@ const EXPECTED: Record<UserRole, Permission[]> = {
   ],
   viewer: [
     "booking:read",
-    "payment:read",
     "schedule:read",
     "content:read",
     "user:read",

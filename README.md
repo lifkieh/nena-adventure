@@ -159,6 +159,30 @@ Endpoint admin (izin RBAC): `GET/POST /api/admin/bookings`, `:id` detail (NIK ut
 Fixture parity: `npm run seed:parity` mengisi jadwal agar sisa kursi = nilai lama, sehingga
 `npm run parity` tetap 0 selisih DOM meski angka kini dari DB. E2E alur situs: `npm run test:e2e`.
 
+## Pembayaran, voucher, PII (Fase 4)
+
+- **Upload bukti** (publik): `POST /api/public/bookings/:code/proof` (header `X-Booking-Token`,
+  multipart 1 file). Divalidasi via **magic bytes** (jpg/png/pdf), maks 5MB, nama di-generate
+  ulang (ULID), disimpan di `services/api/data/uploads` (di luar direktori publik). Memindahkan
+  status ke `verifikasi_bukti`. Upload ulang boleh (versi lama tetap tersimpan).
+- **Media**: `GET /api/admin/media/:id` — butuh sesi + `payment:read`. Tidak ada URL tebak-tebakan.
+- **Verifikasi**: `GET /api/admin/payments/queue`, `/:id`, `POST /:id/approve`, `/:id/reject`
+  (`payment:verify`). Approve/reject lewat state machine. Provider di balik `PaymentProvider`
+  (implementasi `manual`).
+- **E-voucher**: terbit otomatis saat `siap_jalan`; halaman publik ber-token `/voucher.html?code=&token=`
+  (versi cetak), kedaluwarsa H+7. Terbit ulang: `POST /api/admin/bookings/:id/reissue-voucher`
+  (mencabut tautan lama, tercatat audit).
+- **PII**: NIK & tanggal lahir dienkripsi AES-256-GCM (kunci `ENCRYPTION_KEY`, IV per record).
+  `idNumberLast4` plaintext. Dibuka utuh hanya di `GET /api/admin/bookings/:id/pii`
+  (`participant:read_pii`) dan tiap pembukaan tercatat audit (tanpa memuat NIK). Job harian +
+  `npm run job:purge-pii` menghapus NIK 90 hari pasca keberangkatan (idempoten).
+- **Export Zurich**: `GET /api/admin/exports/zurich?date=YYYY-MM-DD` (`participant:export`) → CSV
+  UTF-8 + BOM. Menolak bila ada peserta tak lengkap (menyebut kode booking). Tiap export teraudit.
+- **Laporan**: `GET /api/admin/reports/summary?from=&to=` (`report:read`) — omzet per paket, pax
+  terangkut, kadaluarsa vs batal, piutang DP.
+
+Catatan izin: `viewer` TIDAK punya `payment:read` (bukti bayar = data finansial).
+
 ---
 
 ## Panduan aset (foto/video/logo)

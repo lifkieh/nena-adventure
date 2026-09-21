@@ -1,3 +1,4 @@
+import { createReadStream } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
@@ -14,6 +15,11 @@ import { actorFromReq, requireAuth, requirePermission } from "../plugins/auth.js
 import * as usersUseCase from "../usecases/users.js";
 import { queryLogs } from "../usecases/audit.js";
 import * as bookingService from "../usecases/booking/service.js";
+import * as paymentService from "../usecases/payment/service.js";
+import * as voucherService from "../usecases/voucher/service.js";
+import { getMedia } from "../usecases/media.js";
+import { exportZurich } from "../usecases/export-zurich.js";
+import { summary as reportSummary } from "../usecases/reports.js";
 
 const bookingListQuerySchema = z.object({
   status: z.string().optional(),
@@ -146,8 +152,20 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     { config: { permission: "booking:read" }, preHandler: [requirePermission("booking:read")] },
     async (req) => {
       const { id } = req.params as { id: string };
-      const canPii = req.authUser!.permissions.includes("participant:read_pii");
-      return bookingService.getBookingDetail(id, canPii);
+      return bookingService.getBookingDetail(id);
+    },
+  );
+
+  // Buka PII utuh (NIK/tgl lahir) — audit tiap pembukaan.
+  app.get(
+    "/bookings/:id/pii",
+    {
+      config: { permission: "participant:read_pii" },
+      preHandler: [requirePermission("participant:read_pii")],
+    },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      return bookingService.openParticipantPii(id, actorFromReq(req));
     },
   );
 
@@ -216,6 +234,88 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         reason,
         ctx: actorFromReq(req),
       });
+    },
+  );
+
+  /* ── Terbitkan ulang voucher (booking:write) ────────────── */
+  app.post(
+    "/bookings/:id/reissue-voucher",
+    { config: { permission: "booking:write" }, preHandler: [requirePermission("booking:write")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      return voucherService.issueForBooking(id, actorFromReq(req));
+    },
+  );
+
+  /* ── Media bukti (payment:read) — file di luar direktori publik ── */
+  app.get(
+    "/media/:id",
+    { config: { permission: "payment:read" }, preHandler: [requirePermission("payment:read")] },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const m = getMedia(id);
+      reply.header("content-disposition", `inline; filename="${m.filename}"`);
+      reply.type(m.mime);
+      return reply.send(createReadStream(m.path));
+    },
+  );
+
+  /* ── Pembayaran ─────────────────────────────────────────── */
+  app.get(
+    "/payments/queue",
+    { config: { permission: "payment:read" }, preHandler: [requirePermission("payment:read")] },
+    async () => paymentService.listQueue(),
+  );
+  app.get(
+    "/payments/:id",
+    { config: { permission: "payment:read" }, preHandler: [requirePermission("payment:read")] },
+    async (req) => paymentService.getDetail((req.params as { id: string }).id),
+  );
+  app.post(
+    "/payments/:id/approve",
+    { config: { permission: "payment:verify" }, preHandler: [requirePermission("payment:verify")] },
+    async (req) =>
+      paymentService.approve((req.params as { id: string }).id, actorFromReq(req)),
+  );
+  app.post(
+    "/payments/:id/reject",
+    { config: { permission: "payment:verify" }, preHandler: [requirePermission("payment:verify")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      const { reason } = z
+        .object({ reason: z.string().min(1, "Alasan penolakan wajib diisi.") })
+        .parse(req.body);
+      return paymentService.reject(id, reason, actorFromReq(req));
+    },
+  );
+
+  /* ── Export Zurich (participant:export) ─────────────────── */
+  app.get(
+    "/exports/zurich",
+    { config: { permission: "participant:export" }, preHandler: [requirePermission("participant:export")] },
+    async (req, reply) => {
+      const { date } = z
+        .object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.") })
+        .parse(req.query);
+      const { csv } = exportZurich(date, actorFromReq(req));
+      reply.header("content-disposition", `attachment; filename="zurich-${date}.csv"`);
+      reply.type("text/csv; charset=utf-8");
+      return csv;
+    },
+  );
+
+  /* ── Laporan (report:read) ──────────────────────────────── */
+  app.get(
+    "/reports/summary",
+    { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
+    async (req) => {
+      const { from, to } = z
+        .object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        })
+        .parse(req.query);
+      return reportSummary(from, to);
     },
   );
 }

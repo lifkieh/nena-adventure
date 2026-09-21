@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E-Voucher — Nena Adventure</title>
+  <style>
+    body{font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#0f2233;background:#f4f8fc;margin:0;padding:24px}
+    .card{max-width:640px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 12px 40px -20px rgba(12,64,106,.4);overflow:hidden}
+    .head{background:#0F5E9E;color:#fff;padding:24px 28px}
+    .head h1{margin:0;font-size:20px}
+    .head p{margin:4px 0 0;opacity:.85;font-size:14px}
+    .body{padding:24px 28px}
+    dl{display:grid;grid-template-columns:160px 1fr;gap:10px 16px;margin:0}
+    dt{color:#5b7488;font-size:14px}
+    dd{margin:0;font-weight:700}
+    ul{margin:6px 0 0;padding-left:18px}
+    .muted{color:#5b7488}
+    .err{color:#b3261e;font-weight:700}
+    .actions{padding:0 28px 24px}
+    button{background:#0F5E9E;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer}
+    @media print{.actions{display:none}body{background:#fff;padding:0}.card{box-shadow:none}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="head"><h1>E-Voucher Nena Adventure</h1><p>One Day Trip Pulau Sangiang</p></div>
+    <div class="body" id="isi"><p class="muted">Memuat voucher…</p></div>
+    <div class="actions"><button onclick="window.print()">Cetak voucher</button></div>
+  </div>
+  <script>
+    (async function(){
+      var q = new URLSearchParams(location.search);
+      var code = q.get("code"), token = q.get("token");
+      var isi = document.getElementById("isi");
+      if(!code || !token){ isi.innerHTML = '<p class="err">Tautan voucher tidak lengkap.</p>'; return; }
+      try{
+        var res = await fetch("/api/public/vouchers/" + encodeURIComponent(code) + "?token=" + encodeURIComponent(token));
+        if(!res.ok){
+          var e = await res.json().catch(function(){return null;});
+          isi.innerHTML = '<p class="err">' + ((e&&e.error&&e.error.message)||"Voucher tidak dapat ditampilkan.") + '</p>';
+          return;
+        }
+        var v = await res.json();
+        var peserta = (v.participants||[]).map(function(p){return "<li>"+p.name+"</li>";}).join("");
+        isi.innerHTML =
+          '<dl>'
+          + '<dt>Nomor voucher</dt><dd>'+v.voucherCode+'</dd>'
+          + '<dt>Kode booking</dt><dd>'+v.bookingCode+'</dd>'
+          + '<dt>Tanggal</dt><dd>'+(v.date||"-")+'</dd>'
+          + '<dt>Meeting point</dt><dd>'+(v.meetingPoint||"-")+'</dd>'
+          + '<dt>Jam berangkat</dt><dd>'+(v.departureTime||"-")+' WIB</dd>'
+          + '<dt>Jumlah peserta</dt><dd>'+v.pax+'</dd>'
+          + '<dt>Peserta</dt><dd><ul>'+peserta+'</ul></dd>'
+          + '<dt>Nomor polis Zurich</dt><dd>'+(v.insurancePolicyNo||"Menyusul")+'</dd>'
+          + '<dt>Kontak darurat</dt><dd>'+(v.emergencyContact||"-")+'</dd>'
+          + '</dl>';
+      }catch(err){
+        isi.innerHTML = '<p class="err">Gagal memuat voucher. Coba lagi.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>

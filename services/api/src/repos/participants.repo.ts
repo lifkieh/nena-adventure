@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { bookingParticipants } from "../db/schema.js";
+import { encryptPII } from "../lib/crypto.js";
 
 export function listByBooking(bookingId: string) {
   return db
@@ -19,14 +20,17 @@ export interface ParticipantInput {
 
 export function addMany(bookingId: string, list: ParticipantInput[]): void {
   for (const p of list) {
-    const idNumber = p.idNumber ?? null;
+    const idNumberPlain = p.idNumber ?? null;
+    // NIK & tanggal lahir DIENKRIPSI at-rest; last4 tetap plaintext untuk tampilan.
     db.insert(bookingParticipants)
       .values({
         bookingId,
         name: p.name,
-        birthDate: p.birthDate ?? null,
-        idNumber,
-        idNumberLast4: idNumber ? idNumber.replace(/\s/g, "").slice(-4) : null,
+        birthDate: encryptPII(p.birthDate ?? null),
+        idNumber: encryptPII(idNumberPlain),
+        idNumberLast4: idNumberPlain
+          ? idNumberPlain.replace(/\s/g, "").slice(-4)
+          : null,
         isLead: p.isLead ?? false,
       })
       .run();

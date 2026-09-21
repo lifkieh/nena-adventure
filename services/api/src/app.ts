@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyCookie from "@fastify/cookie";
+import fastifyMultipart from "@fastify/multipart";
 import { env } from "./env.js";
 import { repoRoot } from "./db/paths.js";
 import { apiRoutes } from "./routes/index.js";
@@ -43,6 +44,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(fastifyCookie, { secret: env.SESSION_SECRET });
+  // Upload bukti: 1 file, maks 5MB.
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  });
 
   /* ── Urutan registrasi EKSPLISIT (bukan kebetulan) ──────────
    * 1. /api  -> route API (paling utama)

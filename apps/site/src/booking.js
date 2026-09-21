@@ -389,9 +389,47 @@ import { loadSchedules, createBooking, getSummary } from "./data/api.js";
       try { sessionStorage.removeItem("nena_booking"); } catch (e) {}
       return;
     }
+    isiPanelDariSummary(sum);
     $("kode").textContent = sum.code;
     keLangkah(4);
     mulaiTimerHingga(sum.holdExpiresAt);
+  }
+
+  /** Isi ulang panel Ringkasan + blok "Ringkasan pesanan" dari data server. */
+  function isiPanelDariSummary(sum){
+    var lunas = sum.paymentScheme === "lunas";
+    var nominal = lunas ? sum.total : sum.dp;
+    var unit = sum.packageType === "private" ? sum.subtotal : Math.round(sum.subtotal / sum.pax);
+    var namaPkg = LABEL_PKG[sum.packageType] || sum.packageType;
+    var mpLabel = LABEL_MP[sum.meetingPoint] || sum.meetingPoint;
+
+    if ($("sumPax")) $("sumPax").textContent = sum.pax + " peserta";
+    if ($("sumPkg")) $("sumPkg").textContent = namaPkg;
+    if ($("sumUnit")) $("sumUnit").textContent = rupiah(unit);
+    if ($("sumBaris")) $("sumBaris").textContent = sum.packageType === "private"
+      ? "Paket rombongan " + sum.pax + " peserta"
+      : rupiah(unit) + " × " + sum.pax + " peserta";
+    if ($("sumSub")) $("sumSub").textContent = rupiah(sum.subtotal);
+    if ($("sumTgl")) $("sumTgl").textContent = sum.scheduleDate ? labelTanggal(sum.scheduleDate) : "—";
+    if ($("sumJemput")) $("sumJemput").textContent = mpLabel;
+    if ($("rowDiskon")) $("rowDiskon").classList.toggle("hidden", (sum.discount || 0) === 0);
+    if ($("sumDiskon")) $("sumDiskon").textContent = "−" + rupiah(sum.discount || 0);
+    if ($("sumTotal")) $("sumTotal").textContent = rupiah(sum.total);
+    if ($("sumDue")) $("sumDue").textContent = rupiah(nominal);
+    if ($("sumDueNote")) $("sumDueNote").textContent = lunas
+      ? "Pembayaran lunas."
+      : "Sisa " + rupiah(sum.total - sum.dp) + " dilunasi paling lambat H-3.";
+
+    if ($("recap")) $("recap").innerHTML =
+        '<li><span>Paket</span><b>' + namaPkg + '</b></li>'
+      + '<li><span>Tanggal</span><b>' + (sum.scheduleDate ? labelTanggal(sum.scheduleDate) : "—") + '</b></li>'
+      + '<li><span>Kumpul</span><b>06.30 WIB, Pantai Pangaradan</b></li>'
+      + '<li><span>Peserta</span><b>' + sum.pax + ' orang</b></li>'
+      + '<li><span>Meeting point</span><b>' + mpLabel + '</b></li>'
+      + '<li><span>Skema bayar</span><b>' + (lunas ? "Lunas" : "DP 50%") + '</b></li>'
+      + '<li><span>Total tagihan</span><b>' + rupiah(sum.total) + '</b></li>'
+      + '<li><span>Dibayar sekarang</span><b>' + rupiah(nominal) + '</b></li>';
+    renderMetodeBox($("payBox"), nominal);
   }
 
   /* ── Event ─────────────────────────────────────────────── */

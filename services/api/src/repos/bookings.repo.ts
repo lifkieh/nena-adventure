@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, like, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { bookings, schedules, type Booking } from "../db/schema.js";
 
@@ -12,6 +12,23 @@ export function findById(id: string): Booking | undefined {
 
 export function findByCode(code: string): Booking | undefined {
   return db.select().from(bookings).where(eq(bookings.code, code)).get();
+}
+
+/** Booking untuk tanggal keberangkatan tertentu dengan status tertentu. */
+export function listByDeparture(date: string, statuses: string[]): Booking[] {
+  if (statuses.length === 0) return [];
+  return db
+    .select({ b: bookings })
+    .from(bookings)
+    .innerJoin(schedules, eq(schedules.id, bookings.scheduleId))
+    .where(
+      and(
+        eq(schedules.date, date),
+        inArray(bookings.status, statuses),
+      ),
+    )
+    .all()
+    .map((r) => r.b);
 }
 
 export function findByIdempotencyKey(key: string): Booking | undefined {

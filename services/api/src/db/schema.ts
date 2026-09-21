@@ -202,6 +202,7 @@ export const bookings = sqliteTable(
     amountPaid: money("amount_paid"),
     // Skema pembayaran TERPISAH dari status alur — jangan dilebur.
     paymentScheme: text("payment_scheme").notNull().default("lunas"), // lunas | dp
+    insurancePolicyNo: text("insurance_policy_no"), // nomor polis Zurich bila ada
     promoId: text("promo_id"),
     idempotencyKey: text("idempotency_key"), // dedup POST publik
     accessTokenHash: text("access_token_hash"), // token akses ringkasan (hash)
@@ -341,7 +342,10 @@ export const vouchers = sqliteTable(
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
     code: text("code").notNull(),
-    status: text("status").notNull().default("issued"), // issued | used | void
+    status: text("status").notNull().default("issued"), // issued | revoked | void
+    accessTokenHash: text("access_token_hash"), // token halaman voucher publik (hash)
+    expiresAt: ts("expires_at"), // tautan kedaluwarsa H+7
+    revokedAt: ts("revoked_at"),
     pdfMediaId: text("pdf_media_id"),
     issuedAt: tsNow("issued_at"),
   },
