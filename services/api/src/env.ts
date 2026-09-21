@@ -22,6 +22,13 @@ const rawSchema = z.object({
   OWNER_EMAIL: z.string().email().default("owner@nena-adventure.id"),
   OWNER_PASSWORD: z.string().min(6).default("ubah-password-ini"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // SMTP untuk kirim email notifikasi. Semua opsional; kalau kosong tombol "Kirim
+  // email" nonaktif. JANGAN commit kredensial — isi lewat .env (tidak di-repo).
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  MAIL_FROM: z.string().optional(),
 });
 
 const parsed = rawSchema.safeParse(process.env);

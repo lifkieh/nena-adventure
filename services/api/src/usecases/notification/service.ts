@@ -3,8 +3,10 @@ import { formatRupiah, normalizeWa } from "@nena/shared";
 import { getSetting, setSetting } from "../../repos/settings.repo.js";
 import * as bookingsRepo from "../../repos/bookings.repo.js";
 import * as schedulesRepo from "../../repos/schedules.repo.js";
+import * as auditRepo from "../../repos/audit.repo.js";
 import { getPublicContact } from "../settings/service.js";
 import { record, type ActorContext } from "../audit.js";
+import { isSmtpConfigured, sendMail } from "../../lib/mailer.js";
 
 /** Placeholder yang tersedia (didokumentasikan di UI). */
 export const PLACEHOLDERS = ["{{kode}}", "{{nama}}", "{{tanggal}}", "{{paket}}", "{{total}}", "{{dibayar}}", "{{sisa}}", "{{alasan}}"];
@@ -39,11 +41,13 @@ function fill(text: string, map: Record<string, string>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k] ?? "");
 }
 
-/**
- * Render notifikasi untuk booking + kembalikan kanal siap-kirim MANUAL.
- * Untuk WA: waLink (wa.me). Tidak mengirim otomatis; admin yang klik/kirim.
- */
-export function renderForBooking(bookingId: string, key: string, ctx: ActorContext) {
+/** True kalau SMTP siap dipakai (untuk mengaktifkan tombol "Kirim email"). */
+export function smtpConfigured(): boolean {
+  return isSmtpConfigured();
+}
+
+/** Bangun subjek+isi+link untuk sebuah booking (TANPA audit, TANPA kirim). */
+function buildRender(bookingId: string, key: string) {
   const d = DEFAULTS[key];
   if (!d) throw AppError.notFound("Template tidak dikenal.");
   const b = bookingsRepo.findById(bookingId);
@@ -57,10 +61,81 @@ export function renderForBooking(bookingId: string, key: string, ctx: ActorConte
   };
   const subject = fill(saved.subject, map);
   const body = fill(saved.body, map);
-  const contact = getPublicContact();
   const phone = normalizeWa(b.customerPhone || "");
-  const waLink = saved.channel === "wa" && phone ? `https://wa.me/${phone}?text=${encodeURIComponent(body)}` : null;
-  const mailto = saved.channel === "email" ? `mailto:${b.customerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` : null;
-  record(ctx, { action: "notification_sent", entity: "booking", entityId: bookingId, data: { key, channel: saved.channel } });
-  return { key, channel: saved.channel, subject, body, waLink, mailto, to: saved.channel === "wa" ? b.customerPhone : b.customerEmail, from: contact.whatsapp };
+  const waLink = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(body)}` : null;
+  return { b, saved, subject, body, waLink };
+}
+
+/**
+ * Pratinjau notifikasi (untuk dialog konfirmasi). TIDAK mengirim & TIDAK mengaudit.
+ * Menyediakan email tujuan, subjek, isi, link WA (aksi sekunder manual), status SMTP.
+ */
+export function previewForBooking(bookingId: string, key: string) {
+  const { b, saved, subject, body, waLink } = buildRender(bookingId, key);
+  return {
+    key,
+    channel: saved.channel,
+    subject,
+    body,
+    waLink, // WA = aksi manual sekunder (dibuka di browser)
+    emailTo: b.customerEmail,
+    smtpConfigured: isSmtpConfigured(),
+  };
+}
+
+/** Kirim email notifikasi via SMTP. Konfirmasi di UI dulu. Sukses/gagal diaudit. */
+export async function sendEmailForBooking(bookingId: string, key: string, ctx: ActorContext) {
+  if (!isSmtpConfigured()) {
+    throw AppError.validation("SMTP belum dikonfigurasi. Atur SMTP dulu di environment.");
+  }
+  const { b, subject, body } = buildRender(bookingId, key);
+  const to = b.customerEmail;
+  if (!to) throw AppError.validation("Booking ini tidak punya alamat email.");
+  try {
+    const { messageId } = await sendMail({ to, subject, text: body });
+    record(ctx, {
+      action: "notification_email_sent",
+      entity: "booking",
+      entityId: bookingId,
+      data: { key, to, subject, status: "success", messageId },
+    });
+    return { ok: true as const, to, subject };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    record(ctx, {
+      action: "notification_email_sent",
+      entity: "booking",
+      entityId: bookingId,
+      data: { key, to, subject, status: "failed", error: message },
+    });
+    throw new AppError("EMAIL_SEND_FAILED", `Gagal mengirim email: ${message}`, 502);
+  }
+}
+
+/** Riwayat email terkirim untuk sebuah booking (dari audit log). */
+export function listEmailHistory(bookingId: string) {
+  const { rows } = auditRepo.query({ entity: "booking", entityId: bookingId, page: 1, pageSize: 100 });
+  const items = rows
+    .filter((r) => r.action === "notification_email_sent")
+    .map((r) => {
+      // details tersimpan sebagai JSON string: { role, change: {...} }
+      let change: { key?: string; to?: string; subject?: string; status?: string; error?: string } = {};
+      try {
+        const parsed = r.details ? (JSON.parse(r.details) as { change?: typeof change }) : null;
+        change = parsed?.change ?? {};
+      } catch {
+        change = {};
+      }
+      return {
+        id: r.id,
+        key: change.key ?? null,
+        to: change.to ?? null,
+        subject: change.subject ?? null,
+        status: change.status ?? null,
+        error: change.error ?? null,
+        actorEmail: r.actorEmail,
+        createdAt: r.createdAt,
+      };
+    });
+  return { items };
 }

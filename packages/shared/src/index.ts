@@ -380,6 +380,8 @@ export type TierInput = z.infer<typeof tierInputSchema>;
 
 export const ownerSettingsSchema = z.object({
   bankAccount: z.string().optional(),
+  // URL gambar QRIS (path /media/… hasil unggah), boleh kosong.
+  qrisUrl: z.string().optional(),
   serviceFee: z.number().int().nonnegative().optional(),
   dpPercent: z.number().int().min(0).max(100).optional(),
   cutoffDays: z.number().int().min(0).optional(),

@@ -9,6 +9,7 @@ export function reportTables(todayIso: string) {
     monthlyRevenue: reportsRepo.monthlyRevenue(),
     bookingsByStatus: reportsRepo.bookingsByStatusAll(),
     seatsPerSchedule: reportsRepo.seatsSoldPerSchedule(todayIso),
+    underpaidCompleted: reportsRepo.underpaidCompleted(), // anomali: selesai tapi ledger < total
   };
 }
 

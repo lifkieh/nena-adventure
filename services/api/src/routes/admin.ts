@@ -204,6 +204,27 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // Daftar peserta lintas booking (dikelompokkan per tanggal+paket di UI).
+  app.get(
+    "/participants/roster",
+    { config: { permission: "booking:read" }, preHandler: [requirePermission("booking:read")] },
+    async (req) => {
+      const { includePast } = req.query as { includePast?: string };
+      return bookingService.listParticipantRoster({ includePast: includePast === "1" });
+    },
+  );
+
+  // Ubah nomor WhatsApp satu peserta (validasi + audit).
+  app.patch(
+    "/bookings/:id/participants/:pid",
+    { config: { permission: "booking:write" }, preHandler: [requirePermission("booking:write")] },
+    async (req) => {
+      const { id, pid } = req.params as { id: string; pid: string };
+      const body = z.object({ phone: z.string().nullable() }).parse(req.body);
+      return bookingService.updateParticipantPhone(id, pid, body.phone, actorFromReq(req));
+    },
+  );
+
   /* ── Booking (buat manual + transisi: booking:write) ────── */
   app.post(
     "/bookings",
@@ -376,6 +397,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.get("/schedules/:id", rd("schedule:read"), async (req) =>
     scheduleService.getOne((req.params as { id: string }).id),
   );
+  // Peserta satu jadwal (untuk modal "Detail peserta"): aktif vs batal/kadaluarsa.
+  app.get("/schedules/:id/roster", rd("schedule:read"), async (req) =>
+    bookingService.listScheduleRoster((req.params as { id: string }).id),
+  );
   app.post("/schedules", rd("schedule:write"), async (req, reply) => {
     reply.status(201);
     return scheduleService.create(scheduleInputSchema.parse(req.body), actorFromReq(req));
@@ -489,8 +514,22 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.put("/notification-templates/:key", rd("content:write"), async (req) =>
     notifService.updateTemplate((req.params as { key: string }).key, notifSchema.parse(req.body), actorFromReq(req)),
   );
-  app.post("/bookings/:id/notify", rd("booking:write"), async (req) => {
+  // Status SMTP (untuk mengaktifkan/menonaktifkan tombol "Kirim email").
+  app.get("/notifications/smtp-status", rd("booking:read"), async () => ({
+    configured: notifService.smtpConfigured(),
+  }));
+  // Pratinjau (untuk dialog konfirmasi) — tidak mengirim, tidak mengaudit.
+  app.post("/bookings/:id/notify/preview", rd("booking:write"), async (req) => {
     const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.renderForBooking((req.params as { id: string }).id, key, actorFromReq(req));
+    return notifService.previewForBooking((req.params as { id: string }).id, key);
   });
+  // Kirim email via SMTP (kanal utama). Sukses/gagal diaudit.
+  app.post("/bookings/:id/notify/email", rd("booking:write"), async (req) => {
+    const { key } = z.object({ key: z.string() }).parse(req.body);
+    return notifService.sendEmailForBooking((req.params as { id: string }).id, key, actorFromReq(req));
+  });
+  // Riwayat email terkirim untuk booking.
+  app.get("/bookings/:id/emails", rd("booking:read"), async (req) =>
+    notifService.listEmailHistory((req.params as { id: string }).id),
+  );
 }

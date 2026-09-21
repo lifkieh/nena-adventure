@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { PublicScheduleDto, UserRole } from "@nena/shared";
+import { normalizeWa } from "@nena/shared";
 import { AppError } from "../../lib/errors.js";
 import { decryptPII } from "../../lib/crypto.js";
 import { txImmediate } from "../../lib/tx.js";
@@ -58,6 +59,7 @@ export interface CustomerInput {
 }
 export interface ParticipantIn {
   name: string;
+  phone?: string;
   birthDate?: string;
   idNumber?: string;
 }
@@ -170,7 +172,11 @@ export function createWebBooking(input: CreateWebInput): CreateResult {
       statusChangedAt: nowIso,
     });
 
-    participantsRepo.addMany(booking.id, input.participants);
+    // Peserta pertama = lead; phone-nya diisi dari nomor pemesan (form publik tak minta per-peserta).
+    participantsRepo.addMany(
+      booking.id,
+      input.participants.map((p, i) => (i === 0 ? { ...p, phone: input.customer.phone } : p)),
+    );
     seatRepo.add({
       scheduleId: input.scheduleId,
       bookingId: booking.id,
@@ -257,7 +263,10 @@ export function createManualBooking(input: {
       createdByUserId: input.ctx.userId,
       statusChangedAt: nowIso,
     });
-    participantsRepo.addMany(booking.id, input.participants);
+    participantsRepo.addMany(
+      booking.id,
+      input.participants.map((p, i) => (i === 0 ? { ...p, phone: input.customer.phone } : p)),
+    );
     if (promoId) promoService.markUsed(promoId);
     seatRepo.add({
       scheduleId: input.scheduleId,
@@ -429,7 +438,7 @@ export function getPublicSummary(code: string, token: string) {
     serviceFee: booking.serviceFee,
     total: booking.total,
     dp: Math.round((booking.total * dpPercent) / 100),
-    amountPaid: booking.amountPaid,
+    amountPaidNet: booking.amountPaid,
     paymentScheme: booking.paymentScheme,
     holdExpiresAt: booking.holdExpiresAt,
     holdSecondsLeft: holdMsLeft == null ? null : Math.floor(holdMsLeft / 1000),
@@ -498,7 +507,9 @@ export function getBookingDetail(id: string) {
   const booking = bookingsRepo.findById(id);
   if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
   const participants = participantsRepo.listByBooking(id).map((p) => ({
+    id: p.id,
     name: p.name,
+    phone: p.phone,
     idNumberLast4: p.idNumberLast4,
     piiPurgedAt: p.piiPurgedAt,
     isLead: p.isLead,
@@ -544,12 +555,46 @@ export function getBookingDetail(id: string) {
       discount: booking.discount,
       serviceFee: booking.serviceFee,
       total: booking.total,
-      amountPaid: grossPaid, // bruto dibayar
+      amountPaidGross: grossPaid, // SUM baris positif verified (uang masuk)
+      refundTotal: -refundFromLedger, // SUM baris negatif verified (uang keluar), positif
+      amountPaidNet: booking.amountPaid, // neto = gross - refund (kolom amount_paid)
       outstanding: terminal ? 0 : booking.total - booking.amountPaid, // 0 utk batal/kadaluarsa/selesai
     },
     cancellation,
     payments,
   };
+}
+
+/** Ubah nomor WhatsApp satu peserta. Kosong = hapus nomor. Tercatat di audit
+ *  (tanpa memuat nomor lama/baru penuh). Validasi 8–15 digit, ternormalisasi 62…. */
+export function updateParticipantPhone(
+  bookingId: string,
+  participantId: string,
+  rawPhone: string | null,
+  ctx: ActorContext,
+) {
+  const booking = bookingsRepo.findById(bookingId);
+  if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
+  const p = participantsRepo.findById(participantId);
+  if (!p || p.bookingId !== bookingId) throw AppError.notFound("Peserta tidak ditemukan.");
+
+  let phone: string | null = null;
+  const trimmed = (rawPhone ?? "").trim();
+  if (trimmed !== "") {
+    const digits = trimmed.replace(/\D/g, "");
+    if (digits.length < 8 || digits.length > 15) {
+      throw AppError.validation("Nomor HP harus 8–15 digit.");
+    }
+    phone = normalizeWa(trimmed);
+  }
+  participantsRepo.updatePhone(participantId, bookingId, phone);
+  record(ctx, {
+    action: "participant_updated",
+    entity: "booking",
+    entityId: bookingId,
+    data: { participantId, field: "phone", set: phone != null }, // jangan log nomor
+  });
+  return { id: participantId, phone };
 }
 
 /** Buka PII utuh (dekripsi) — hanya dipanggil endpoint participant:read_pii.
@@ -572,6 +617,36 @@ export function openParticipantPii(id: string, ctx: ActorContext) {
     data: { participantCount: participants.length }, // JANGAN log NIK
   });
   return { participants };
+}
+
+/** Status booking yang dianggap AKTIF (bukan batal/kadaluarsa). */
+const CANCELLED_STATUSES = ["batal", "kadaluarsa"];
+const ACTIVE_STATUSES = [
+  "baru_masuk",
+  "menunggu_bayar",
+  "verifikasi_bukti",
+  "menunggu_pelunasan",
+  "siap_jalan",
+  "selesai",
+];
+
+/** Daftar peserta lintas booking untuk halaman Peserta (dikelompokkan di UI per
+ *  tanggal keberangkatan lalu paket). Default hanya tanggal >= hari ini & status aktif. */
+export function listParticipantRoster(opts: { includePast?: boolean } = {}) {
+  const rows = participantsRepo.listRoster({
+    dateFrom: opts.includePast ? undefined : todayJakarta(),
+    statuses: ACTIVE_STATUSES,
+  });
+  return { items: rows };
+}
+
+/** Peserta satu jadwal untuk modal "Detail peserta": aktif dipisah dari batal/kadaluarsa. */
+export function listScheduleRoster(scheduleId: string) {
+  const all = participantsRepo.listRoster({ scheduleId });
+  return {
+    active: all.filter((r) => !CANCELLED_STATUSES.includes(r.bookingStatus)),
+    cancelled: all.filter((r) => CANCELLED_STATUSES.includes(r.bookingStatus)),
+  };
 }
 
 export function getBookingHistory(id: string) {

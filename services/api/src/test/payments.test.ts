@@ -103,7 +103,7 @@ describe("verifikasi pembayaran (via state machine)", () => {
     const res = paymentService.submitProof({ code: b.code, token: b.token, buffer: JPG, ctx: CTX });
     const updated = paymentService.approve(res.paymentId, CTX);
     expect(updated.status).toBe("siap_jalan");
-    expect(updated.amountPaid).toBe(updated.total);
+    expect(updated.amountPaidNet).toBe(updated.total);
     const bk = bookingsRepo.findByCode(b.code)!;
     expect(vouchersRepo.activeForBooking(bk.id).length).toBe(1);
   });

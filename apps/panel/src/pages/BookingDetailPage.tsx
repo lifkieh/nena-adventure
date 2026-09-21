@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BOOKING_ACTIONS, bookingActionMeta, auditActionLabel, bookingStatusLabel,
-  legalActionsFor, formatJakarta, formatRupiah, scheduleStatusLabel, type BookingAction,
+  legalActionsFor, formatJakarta, formatRupiah, normalizeWa, scheduleStatusLabel, type BookingAction,
 } from "@nena/shared";
 import { ApiError, bookingsApi, notifApi, type HistoryItem, type NotifTemplate } from "../lib/api";
 import { useQuery as useRQ } from "@tanstack/react-query";
@@ -21,11 +21,15 @@ export function BookingDetailPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
   const [pii, setPii] = useState<Record<number, string | null> | null>(null);
+  const [phoneEdit, setPhoneEdit] = useState<{ pid: string; val: string } | null>(null);
 
   const notifQ = useRQ({ queryKey: ["notif-templates"], queryFn: notifApi.list, enabled: has("booking:write") });
+  const smtpQ = useRQ({ queryKey: ["smtp-status"], queryFn: notifApi.smtpStatus, enabled: has("booking:write") });
   const q = useQuery({ queryKey: ["booking", id], queryFn: () => bookingsApi.detail(id), enabled: has("booking:read") && !!id });
   const hist = useQuery({ queryKey: ["booking-history", id], queryFn: () => bookingsApi.history(id), enabled: has("booking:read") && !!id });
+  const emailsQ = useQuery({ queryKey: ["booking-emails", id], queryFn: () => bookingsApi.emails(id), enabled: has("booking:read") && !!id });
 
   if (!has("booking:read")) return <NoAccess />;
   if (q.isLoading) return <Loading />;
@@ -53,13 +57,47 @@ export function BookingDetailPage() {
     p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Aksi gagal."));
   }
 
-  async function sendNotif(key: string) {
+  // #8: email = kanal utama. Konfirmasi (tampilkan tujuan + preview) sebelum kirim.
+  async function sendEmail(key: string, label: string) {
     try {
-      const r = await notifApi.send(id, key);
-      const url = r.waLink || r.mailto;
-      if (url) window.open(url, "_blank", "noopener");
+      const pv = await notifApi.preview(id, key);
+      if (!pv.emailTo) { setErr("Booking ini tidak punya alamat email."); return; }
+      const r = await confirm({
+        title: `Kirim email: ${label}?`,
+        confirmLabel: "Kirim email",
+        body: (
+          <div className="space-y-1 text-sm">
+            <div><span className="text-slate-400">Ke:</span> <b>{pv.emailTo}</b></div>
+            <div><span className="text-slate-400">Subjek:</span> {pv.subject}</div>
+            <div className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-600">{pv.body}</div>
+          </div>
+        ),
+      });
+      if (!r.confirmed) return;
+      const res = await notifApi.sendEmail(id, key);
       setErr(null);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal menyiapkan notifikasi."); }
+      setMsg(`Email "${label}" terkirim ke ${res.to}.`);
+      qc.invalidateQueries({ queryKey: ["booking-emails", id] });
+      qc.invalidateQueries({ queryKey: ["booking-history", id] });
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal mengirim email."); setMsg(null); }
+  }
+
+  // WhatsApp = aksi sekunder manual (buka wa.me di tab baru).
+  async function openWa(key: string) {
+    try {
+      const pv = await notifApi.preview(id, key);
+      if (pv.waLink) window.open(pv.waLink, "_blank", "noopener");
+      else setErr("Nomor WhatsApp pemesan tidak tersedia.");
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal menyiapkan WhatsApp."); }
+  }
+
+  async function savePhone() {
+    if (!phoneEdit) return;
+    try {
+      await bookingsApi.updateParticipantPhone(id, phoneEdit.pid, phoneEdit.val.trim() || null);
+      setPhoneEdit(null); setErr(null); setMsg("Nomor peserta tersimpan.");
+      qc.invalidateQueries({ queryKey: ["booking", id] });
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal menyimpan nomor."); }
   }
 
   async function openPii() {
@@ -83,6 +121,7 @@ export function BookingDetailPage() {
         {deadline && <span className="text-sm text-slate-500">Sisa hold: <Countdown deadline={deadline} /></span>}
       </div>
       {err && <div data-testid="detail-error" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
+      {msg && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
 
       {/* Aksi state-machine */}
       {canWrite && (
@@ -104,13 +143,33 @@ export function BookingDetailPage() {
         </div>
       )}
 
-      {/* Kirim notifikasi manual (buka WhatsApp/email; tercatat di audit) */}
+      {/* Kirim notifikasi: email = kanal utama (SMTP), WhatsApp = aksi sekunder manual. */}
       {canWrite && (notifQ.data?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-          <span className="font-semibold text-slate-500">Kirim notifikasi:</span>
-          {notifQ.data!.map((t: NotifTemplate) => (
-            <button key={t.key} className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold hover:bg-slate-50" onClick={() => sendNotif(t.key)}>{t.label}</button>
-          ))}
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+          <div className="mb-2 font-semibold text-slate-500">Kirim notifikasi</div>
+          <div className="space-y-2">
+            {notifQ.data!.map((t: NotifTemplate) => {
+              const smtpReady = smtpQ.data?.configured ?? false;
+              return (
+                <div key={t.key} className="flex flex-wrap items-center gap-2">
+                  <span className="w-40 text-slate-600">{t.label}</span>
+                  <button
+                    disabled={!smtpReady}
+                    title={smtpReady ? "" : "Atur SMTP dulu di pengaturan"}
+                    className="rounded bg-laut px-3 py-1 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() => sendEmail(t.key, t.label)}
+                  >Kirim email</button>
+                  <button
+                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    onClick={() => openWa(t.key)}
+                  >WhatsApp (manual)</button>
+                </div>
+              );
+            })}
+          </div>
+          {!(smtpQ.data?.configured ?? false) && (
+            <p className="mt-2 text-xs text-slate-400">SMTP belum dikonfigurasi — tombol "Kirim email" nonaktif. Atur SMTP di environment server.</p>
+          )}
         </div>
       )}
 
@@ -137,7 +196,7 @@ export function BookingDetailPage() {
             {d.breakdown.discount > 0 && <Row k="Diskon" v={`- ${formatRupiah(d.breakdown.discount)}`} />}
             <Row k="Biaya layanan" v={formatRupiah(d.breakdown.serviceFee)} />
             <Row k="Total" v={<b>{formatRupiah(d.breakdown.total)}</b>} rawV />
-            <Row k="Sudah dibayar" v={formatRupiah(d.breakdown.amountPaid)} />
+            <Row k="Sudah dibayar" v={formatRupiah(d.breakdown.amountPaidGross)} />
             <Row k="Sisa tagihan" v={formatRupiah(d.breakdown.outstanding)} />
             {d.cancellation && (d.cancellation.refundAmount > 0 || d.cancellation.cancelReason) && (
               <>
@@ -161,15 +220,41 @@ export function BookingDetailPage() {
 
         {/* Peserta */}
         <Card title="Daftar peserta">
-          <ul className="space-y-1 text-sm">
-            {d.participants.map((p, i) => (
-              <li key={i} className="flex items-center justify-between">
-                <span>{p.name}{p.isLead ? " (pemesan)" : ""}</span>
-                <span className="font-mono text-slate-500" data-testid={`nik-${i}`}>
-                  {pii && pii[i] != null ? pii[i] : p.idNumberLast4 ? `•••• ${p.idNumberLast4}` : "—"}
-                </span>
-              </li>
-            ))}
+          <ul className="space-y-2 text-sm">
+            {d.participants.map((p, i) => {
+              const wa = p.phone ? normalizeWa(p.phone) : "";
+              return (
+                <li key={p.id} className="border-b border-slate-100 pb-2 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <span>{p.name}{p.isLead ? " (pemesan)" : ""}</span>
+                    <span className="font-mono text-slate-500" data-testid={`nik-${i}`}>
+                      {pii && pii[i] != null ? pii[i] : p.idNumberLast4 ? `•••• ${p.idNumberLast4}` : "—"}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs">
+                    <span className="text-slate-400">No. HP:</span>
+                    {p.phone ? (
+                      <a className="text-laut underline" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">{p.phone}</a>
+                    ) : <span className="text-slate-400">belum ada</span>}
+                    {canWrite && phoneEdit?.pid !== p.id && (
+                      <button className="text-slate-500 underline" onClick={() => setPhoneEdit({ pid: p.id, val: p.phone ?? "" })}>ubah</button>
+                    )}
+                  </div>
+                  {canWrite && phoneEdit?.pid === p.id && (
+                    <div className="mt-1 flex items-center gap-1">
+                      <input
+                        className="w-40 rounded border border-slate-300 px-2 py-1 text-xs"
+                        placeholder="08xx / 62xx (8–15 digit)"
+                        value={phoneEdit.val}
+                        onChange={(e) => setPhoneEdit({ pid: p.id, val: e.target.value })}
+                      />
+                      <button className="rounded bg-laut px-2 py-1 text-xs font-bold text-white" onClick={savePhone}>Simpan</button>
+                      <button className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => setPhoneEdit(null)}>Batal</button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {has("participant:read_pii") && !pii && (
             <button data-testid="buka-nik" className="mt-2 rounded border border-slate-300 px-3 py-1 text-xs font-semibold" onClick={openPii}>Buka NIK (tercatat audit)</button>
@@ -206,6 +291,28 @@ export function BookingDetailPage() {
                 </li>
               ))}
             </ol>
+          )}
+        </Card>
+
+        {/* Riwayat email terkirim */}
+        <Card title="Riwayat email">
+          {emailsQ.isLoading ? <Loading /> : (emailsQ.data?.items.length ?? 0) === 0 ? <Empty>Belum ada email terkirim.</Empty> : (
+            <ul className="space-y-2 text-sm">
+              {emailsQ.data!.items.map((e) => (
+                <li key={e.id} className="border-b border-slate-100 pb-2 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">{e.subject ?? e.key ?? "email"}</span>
+                    <span className={`text-xs font-bold ${e.status === "success" ? "text-emerald-600" : "text-red-600"}`}>
+                      {e.status === "success" ? "berhasil" : "gagal"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {e.to ?? "-"} · {formatJakarta(e.createdAt)} WIB · {e.actorEmail ?? "sistem"}
+                  </div>
+                  {e.error && <div className="text-xs text-red-600">Galat: {e.error}</div>}
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
       </div>

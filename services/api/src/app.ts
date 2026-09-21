@@ -62,10 +62,24 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(apiRoutes, { prefix: "/api" });
 
   // 3-decorate: situs publik didaftar lebih dulu supaya reply.sendFile ada.
+  //
+  // Cache-busting (#10): media (nama file ULID = konten unik) boleh di-cache lama
+  // & immutable; HTML/CSS/JS di-set `no-cache` supaya browser SELALU revalidasi
+  // (ETag → 304 kalau tak berubah, file baru langsung terpakai setelah deploy).
+  // Ini mencegah "style basi" tanpa perlu build/hash aset.
   await app.register(fastifyStatic, {
     root: SITE_DIR,
     prefix: "/",
     wildcard: true,
+    cacheControl: false,
+    setHeaders: (res, path) => {
+      const p = path.replace(/\\/g, "/");
+      if (p.includes("/media/")) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
   });
 
   // 2. Panel admin statis (hanya bila dist ada). decorateReply:false karena

@@ -1,7 +1,7 @@
 import { env } from "../env.js";
 import { hashPassword } from "../lib/password.js";
 import { db, sqliteConn } from "./client.js";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   boats,
   contentSections,
@@ -35,6 +35,13 @@ function main(): void {
         updatedAt: new Date().toISOString(),
       },
     })
+    .run();
+
+  // Akun uji lama TIDAK PERNAH dibuat di sini; kalau tersisa di DB, nonaktifkan
+  // (jangan hapus baris auth). Pembuatan ulang juga diblokir di usecases/users.ts.
+  db.update(users)
+    .set({ active: false, updatedAt: new Date().toISOString() })
+    .where(inArray(users.email, ["own-ops@t.local", "own-del@t.local"]))
     .run();
 
   // Pengaturan default.

@@ -6,6 +6,9 @@ import { hashPassword } from "../lib/password.js";
 import { AppError } from "../lib/errors.js";
 import { record, type ActorContext } from "./audit.js";
 
+/** Akun uji lama yang tidak boleh pernah dibuat ulang (dinonaktifkan, bukan dihapus). */
+export const BLOCKED_TEST_EMAILS = new Set(["own-ops@t.local", "own-del@t.local"]);
+
 export function list(): User[] {
   return usersRepo.listAll();
 }
@@ -14,6 +17,9 @@ export function create(
   input: { email: string; name: string; role: UserRole; password: string },
   ctx: ActorContext,
 ): User {
+  if (BLOCKED_TEST_EMAILS.has(input.email.toLowerCase())) {
+    throw AppError.validation("Email ini diblokir (akun uji lama) dan tidak boleh dibuat.");
+  }
   if (usersRepo.findByEmail(input.email)) {
     throw AppError.conflict("Email sudah terdaftar.");
   }

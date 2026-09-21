@@ -278,6 +278,7 @@ export const bookingParticipants = sqliteTable(
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    phone: text("phone"), // no. WhatsApp peserta, ternormalisasi 62… (nullable)
     birthDate: text("birth_date"), // YYYY-MM-DD
     idNumber: text("id_number"), // KTP/paspor/KIA (terenkripsi di lapisan aplikasi)
     idNumberLast4: text("id_number_last4"), // 4 digit terakhir, aman untuk tampilan

@@ -33,6 +33,28 @@ export function ReportsPage() {
       </div>
       {msg && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
 
+      {/* Anomali data: booking "selesai" tapi ledger < total (bukan sisa tagihan biasa). */}
+      {d.underpaidCompleted.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <h3 className="mb-2 text-sm font-bold text-amber-800">⚠ Anomali: booking "selesai" tapi pembayaran kurang</h3>
+          <p className="mb-2 text-xs text-amber-700">Ledger (SUM pembayaran verified) lebih kecil dari total. Perlu ditinjau — ini bukan sisa tagihan di detail booking.</p>
+          <table className="w-full text-sm">
+            <thead className="text-left text-amber-700"><tr><th className="py-1">Kode</th><th className="py-1">Pemesan</th><th className="py-1">Tanggal</th><th className="py-1 text-right">Ledger / Total</th><th className="py-1 text-right">Kurang</th></tr></thead>
+            <tbody>
+              {d.underpaidCompleted.map((r) => (
+                <tr key={r.code} className="border-b border-amber-200">
+                  <td className="py-1 font-mono">{r.code}</td>
+                  <td className="py-1">{r.customerName}</td>
+                  <td className="py-1">{formatJakarta(r.scheduleDate + "T00:00:00Z", { day: "numeric", month: "short", year: "numeric" })}</td>
+                  <td className="py-1 text-right">{formatRupiah(r.ledger)} / {formatRupiah(r.total)}</td>
+                  <td className="py-1 text-right font-bold text-amber-800">{formatRupiah(r.shortfall)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <h3 className="mb-2 text-sm font-bold text-slate-600">Pendapatan bersih per bulan (ledger, refund negatif)</h3>
         {d.monthlyRevenue.length === 0 ? <p className="text-sm text-slate-400">Belum ada pendapatan.</p> : (

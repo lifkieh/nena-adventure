@@ -75,7 +75,7 @@ export function ManualBookingModal({ onClose, onCreated }: { onClose: () => void
                 {mpOpts.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
               </select>
             </label>
-            <label className="w-20">Pax
+            <label className="w-24">Jumlah orang
               <input type="number" min={1} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" value={f.pax} onChange={(e) => setPax(+e.target.value)} />
             </label>
           </div>

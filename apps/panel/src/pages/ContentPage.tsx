@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatJakarta } from "@nena/shared";
-import { ApiError, contentApi, mediaApi } from "../lib/api";
+import { ApiError, contentApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { Loading, ErrorState, NoAccess } from "../components/States";
+import { ImageField } from "../components/ImageField";
 
 interface FaqItem { q: string; a: string; active: boolean }
 interface TestiItem { rating: number; quote: string; name: string; meta: string; active: boolean }
@@ -56,7 +57,6 @@ export function ContentPage() {
 
   // refetchOnWindowFocus:false — cegah remount tab yang "menelan" klik pertama.
   const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read"), refetchOnWindowFocus: false, staleTime: 30_000 });
-  const mediaQ = useQuery({ queryKey: ["media"], queryFn: mediaApi.list, enabled: has("content:read"), refetchOnWindowFocus: false });
   const secQ = useQuery({ queryKey: ["content", key], queryFn: () => contentApi.get(key), enabled: has("content:read"), refetchOnWindowFocus: false });
 
   useEffect(() => {
@@ -238,7 +238,7 @@ export function ContentPage() {
           </div>
         ) : key === "galeri" ? (
           <div className="space-y-2">
-            <p className="text-xs text-slate-400">Tiap gambar aktif WAJIB punya teks alt. Pakai media library untuk mengisi URL, atau tempel URL manual.</p>
+            <p className="text-xs text-slate-400">Tiap gambar aktif WAJIB punya teks alt. Pilih/unggah gambar lewat tombol "Ubah gambar".</p>
             {gal.map((g, i) => (
               <div key={i} className="rounded-lg border border-slate-200 p-2">
                 <div className="mb-1 flex flex-wrap gap-2">
@@ -248,21 +248,20 @@ export function ContentPage() {
                   <select className="rounded border border-slate-300 px-2 py-1 text-sm" value={g.size} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, size: e.target.value } : x))} disabled={!canWrite}>
                     {SIZE_OPTS.map((s) => <option key={s} value={s}>{s === "" ? "ukuran biasa" : s}</option>)}
                   </select>
-                  {canWrite && ((mediaQ.data?.length ?? 0) > 0 ? (
-                    <select className="rounded border border-slate-300 px-2 py-1 text-sm" value="" onChange={(e) => { const m = mediaQ.data!.find((x) => x.url === e.target.value); if (m) setGal(gal.map((x, j) => j === i ? { ...x, full: m.url, thumb: m.url, alt: x.alt || m.alt, width: m.width ?? x.width } : x)); }}>
-                      <option value="">pilih dari media library…</option>
-                      {mediaQ.data!.map((m) => <option key={m.id} value={m.url}>{m.alt}</option>)}
-                    </select>
-                  ) : (
-                    <a href="/panel/media" className="rounded border border-dashed border-slate-300 px-2 py-1 text-xs text-laut">Media library kosong — unggah di Media library →</a>
-                  ))}
                 </div>
                 <input data-testid={`gal-alt-${i}`} className={`mb-1 w-full rounded border px-2 py-1 text-sm ${g.active !== false && !g.alt.trim() ? "border-red-400" : "border-slate-300"}`} placeholder="Teks alt (wajib)" value={g.alt} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, alt: e.target.value } : x))} disabled={!canWrite} />
                 <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Caption" value={g.cap} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, cap: e.target.value } : x))} disabled={!canWrite} />
-                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-xs" placeholder="URL thumbnail" value={g.thumb} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, thumb: e.target.value } : x))} disabled={!canWrite} />
-                {g.type === "img"
-                  ? <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-xs" placeholder="URL full" value={g.full ?? ""} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, full: e.target.value } : x))} disabled={!canWrite} />
-                  : <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Label video (mis. Video · 4:02)" value={g.videoLabel ?? ""} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, videoLabel: e.target.value } : x))} disabled={!canWrite} />}
+                {canWrite && (
+                  <div className="mb-1 space-y-2">
+                    <ImageField label="Thumbnail galeri — muncul di grid Galeri Beranda" value={g.thumb} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, thumb: url } : x))} />
+                    {g.type === "img" && (
+                      <ImageField label="Gambar penuh — muncul saat foto diperbesar (lightbox)" value={g.full ?? ""} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, full: url } : x))} optional />
+                    )}
+                  </div>
+                )}
+                {g.type !== "img" && (
+                  <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Label video (mis. Video · 4:02)" value={g.videoLabel ?? ""} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, videoLabel: e.target.value } : x))} disabled={!canWrite} />
+                )}
                 {canWrite && itemControls(g.active, () => setGal(gal.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setGal((z) => move(z, i, -1)), () => setGal((z) => move(z, i, 1)), () => setGal(gal.filter((_, j) => j !== i)))}
               </div>
             ))}
@@ -310,7 +309,11 @@ export function ContentPage() {
                   <input className="w-1/2 rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Nama titik" value={c.name} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} disabled={!canWrite} />
                   <input className="w-1/2 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Label (mis. Snorkeling)" value={c.tag} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, tag: e.target.value } : x))} disabled={!canWrite} />
                 </div>
-                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-xs" placeholder="URL gambar" value={c.img} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, img: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && (
+                  <div className="mb-1">
+                    <ImageField label="Gambar destinasi — muncul di kartu Destinasi Beranda" value={c.img} onChange={(url) => setDest(dest.map((x, j) => j === i ? { ...x, img: url } : x))} />
+                  </div>
+                )}
                 <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Alt gambar" value={c.alt} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, alt: e.target.value } : x))} disabled={!canWrite} />
                 <div className="text-xs text-slate-400">spot: {c.spot}</div>
                 {canWrite && <div className="mt-1 flex gap-2 text-xs"><button onClick={() => setDest((z) => move(z, i, -1))}>↑</button><button onClick={() => setDest((z) => move(z, i, 1))}>↓</button><button className="text-red-600" onClick={() => setDest(dest.filter((_, j) => j !== i))}>hapus</button></div>}
@@ -360,12 +363,15 @@ export function ContentPage() {
           </div>
         ) : key === "meta" ? (
           <div className="space-y-2">
-            {([["title", "Title"], ["description", "Meta description"], ["ogTitle", "OG title"], ["ogDescription", "OG description"], ["ogImage", "OG image (path)"]] as const).map(([f, label]) => (
+            {([["title", "Title"], ["description", "Meta description"], ["ogTitle", "OG title"], ["ogDescription", "OG description"]] as const).map(([f, label]) => (
               <label key={f} className="block text-sm">
                 <span className="mb-1 block font-semibold text-slate-600">{label}</span>
                 <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={metaFields[f] ?? ""} onChange={(e) => setMetaFields({ ...metaFields, [f]: e.target.value })} disabled={!canWrite} />
               </label>
             ))}
+            {canWrite && (
+              <ImageField label="OG image — gambar pratinjau saat link dibagikan (medsos/chat)" value={metaFields.ogImage ?? ""} onChange={(url) => setMetaFields({ ...metaFields, ogImage: url })} optional />
+            )}
           </div>
         ) : <p className="text-sm text-slate-400">Editor typed untuk section ini menyusul (fase konten lanjutan).</p>}
 

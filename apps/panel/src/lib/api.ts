@@ -117,6 +117,8 @@ export const schedulesApi = {
   setStatus: (id: string, status: string) => req<ScheduleDto>(`/admin/schedules/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }),
   genPreview: (b: unknown) => req<{ items: { date: string; exists: boolean }[] }>("/admin/schedules/generate/preview", { method: "POST", body: JSON.stringify(b) }),
   genCommit: (b: unknown) => req<{ created: number; skipped: number }>("/admin/schedules/generate/commit", { method: "POST", body: JSON.stringify(b) }),
+  bulkStatus: (ids: string[], status: string) => req<{ updated: number }>("/admin/schedules/bulk-status", { method: "POST", body: JSON.stringify({ ids, status }) }),
+  roster: (id: string) => req<{ active: RosterRow[]; cancelled: RosterRow[] }>(`/admin/schedules/${id}/roster`),
 };
 
 export interface PackageDto { id: string; key: string; name: string; prices: Record<string, number>; active: boolean; tiers: { id: string; minPax: number; maxPax: number; price: number }[] }
@@ -127,9 +129,22 @@ export const packagesApi = {
 };
 
 export const settingsApi = {
-  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number; whatsapp: string; whatsappSecondary: string; mapUrl: string }>("/admin/settings/owner"),
+  get: () => req<{ bankAccount: string; qrisUrl: string; serviceFee: number; dpPercent: number; cutoffDays: number; whatsapp: string; whatsappSecondary: string; mapUrl: string }>("/admin/settings/owner"),
   set: (b: unknown) => req<unknown>("/admin/settings/owner", { method: "PUT", body: JSON.stringify(b) }),
 };
+
+export interface RosterRow {
+  participantId: string;
+  name: string;
+  phone: string | null;
+  isLead: boolean;
+  packageKey: string;
+  packageName: string | null;
+  bookingCode: string;
+  bookingStatus: string;
+  scheduleId: string;
+  scheduleDate: string;
+}
 
 export interface PaymentRowDto {
   id: string; amount: number; method: string; kind: string; status: string;
@@ -138,10 +153,10 @@ export interface PaymentRowDto {
 }
 export interface BookingDetailDto {
   booking: Record<string, unknown>;
-  participants: { name: string; idNumberLast4: string | null; piiPurgedAt: string | null; isLead: boolean }[];
+  participants: { id: string; name: string; phone: string | null; idNumberLast4: string | null; piiPurgedAt: string | null; isLead: boolean }[];
   schedule: { id: string; date: string; meetingPoint: string | null; departureTime: string | null; status: string } | null;
   package: { key: string; name: string } | null;
-  breakdown: { subtotal: number; discount: number; serviceFee: number; total: number; amountPaid: number; outstanding: number };
+  breakdown: { subtotal: number; discount: number; serviceFee: number; total: number; amountPaidGross: number; refundTotal: number; amountPaidNet: number; outstanding: number };
   cancellation: { refundAmount: number; cancelReason: string | null; cancelledByEmail: string | null } | null;
   payments: PaymentRowDto[];
 }
@@ -157,6 +172,10 @@ export const bookingsApi = {
   sendInvoice: (id: string) => req<unknown>(`/admin/bookings/${id}/send-invoice`, { method: "POST", body: "{}" }),
   reissueVoucher: (id: string) => req<{ code: string; url: string }>(`/admin/bookings/${id}/reissue-voucher`, { method: "POST", body: "{}" }),
   pii: (id: string) => req<{ participants: { name: string; idNumber: string | null; birthDate: string | null }[] }>(`/admin/bookings/${id}/pii`),
+  updateParticipantPhone: (id: string, pid: string, phone: string | null) =>
+    req<{ id: string; phone: string | null }>(`/admin/bookings/${id}/participants/${pid}`, { method: "PATCH", body: JSON.stringify({ phone }) }),
+  roster: (includePast: boolean) => req<{ items: RosterRow[] }>(`/admin/participants/roster${includePast ? "?includePast=1" : ""}`),
+  emails: (id: string) => req<{ items: EmailHistoryItem[] }>(`/admin/bookings/${id}/emails`),
 };
 
 export const paymentsApi = {
@@ -185,9 +204,19 @@ export const promosApi = {
   update: (id: string, b: unknown) => req<PromoDto>(`/admin/promos/${id}`, { method: "PUT", body: JSON.stringify(b) }),
 };
 
+export interface MediaItem { id: string; url: string; alt: string; width: number | null }
 export const mediaApi = {
-  list: () => req<{ id: string; url: string; alt: string; width: number | null }[]>("/admin/media-library"),
+  list: () => req<MediaItem[]>("/admin/media-library"),
   remove: (id: string) => req<{ ok: true }>(`/admin/media-library/${id}`, { method: "DELETE" }),
+  upload: async (file: File, alt: string): Promise<MediaItem> => {
+    const fd = new FormData();
+    fd.append("alt", alt);
+    fd.append("file", file);
+    const res = await fetch("/api/admin/media-library", { method: "POST", credentials: "include", body: fd });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.error?.message || "Gagal mengunggah gambar.");
+    return body as MediaItem;
+  },
 };
 
 export interface DashboardDto {
@@ -204,13 +233,17 @@ export interface ReportTables {
   monthlyRevenue: { month: string; amount: number }[];
   bookingsByStatus: { status: string; count: number }[];
   seatsPerSchedule: { date: string; capacity: number; sold: number }[];
+  underpaidCompleted: { code: string; customerName: string; total: number; ledger: number; shortfall: number; scheduleDate: string }[];
 }
 export interface NotifTemplate { key: string; label: string; channel: string; subject: string; body: string }
-export interface NotifRendered { key: string; channel: string; subject: string; body: string; waLink: string | null; mailto: string | null; to: string; from: string }
+export interface NotifPreview { key: string; channel: string; subject: string; body: string; waLink: string | null; emailTo: string | null; smtpConfigured: boolean }
+export interface EmailHistoryItem { id: string; key: string | null; to: string | null; subject: string | null; status: string | null; error: string | null; actorEmail: string | null; createdAt: string }
 export const notifApi = {
   list: () => req<NotifTemplate[]>("/admin/notification-templates"),
   update: (key: string, b: unknown) => req<NotifTemplate>(`/admin/notification-templates/${key}`, { method: "PUT", body: JSON.stringify(b) }),
-  send: (bookingId: string, key: string) => req<NotifRendered>(`/admin/bookings/${bookingId}/notify`, { method: "POST", body: JSON.stringify({ key }) }),
+  smtpStatus: () => req<{ configured: boolean }>("/admin/notifications/smtp-status"),
+  preview: (bookingId: string, key: string) => req<NotifPreview>(`/admin/bookings/${bookingId}/notify/preview`, { method: "POST", body: JSON.stringify({ key }) }),
+  sendEmail: (bookingId: string, key: string) => req<{ ok: true; to: string; subject: string }>(`/admin/bookings/${bookingId}/notify/email`, { method: "POST", body: JSON.stringify({ key }) }),
 };
 
 export const reportsApi = {

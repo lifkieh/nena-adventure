@@ -146,6 +146,32 @@ export function seatsSoldPerSchedule(fromDate: string): { date: string; capacity
     .all(fromDate) as { date: string; capacity: number; sold: number }[];
 }
 
+/** Anomali: booking "selesai" tapi ledger (SUM verified) < total. Kecuali data uji. */
+export function underpaidCompleted(): {
+  code: string;
+  customerName: string;
+  total: number;
+  ledger: number;
+  shortfall: number;
+  scheduleDate: string;
+}[] {
+  return sqliteConn
+    .prepare(
+      `SELECT b.code AS code, b.customer_name AS customerName, b.total AS total,
+              COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.booking_id=b.id AND p.status='verified'),0) AS ledger,
+              s.date AS scheduleDate
+       FROM bookings b JOIN schedules s ON s.id = b.schedule_id
+       WHERE b.status = 'selesai' AND b.is_test = 0
+         AND COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.booking_id=b.id AND p.status='verified'),0) < b.total
+       ORDER BY s.date DESC`,
+    )
+    .all()
+    .map((r) => {
+      const row = r as { code: string; customerName: string; total: number; ledger: number; scheduleDate: string };
+      return { ...row, shortfall: row.total - row.ledger };
+    });
+}
+
 export function outstandingDp() {
   return sqliteConn
     .prepare(

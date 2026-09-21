@@ -49,7 +49,7 @@ export function PromosPage() {
           <label>Kode<input className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} /></label>
           <label>Tipe<select className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}><option value="percent">Persen (%)</option><option value="amount">Nominal (Rp)</option></select></label>
           <label>Nilai<input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.value} onChange={(e) => setForm({ ...form, value: +e.target.value })} /></label>
-          <label>Min pax<input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.minPax} onChange={(e) => setForm({ ...form, minPax: +e.target.value })} /></label>
+          <label>Min. orang<input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.minPax} onChange={(e) => setForm({ ...form, minPax: +e.target.value })} /></label>
           <label>Berlaku dari<input type="date" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.validFrom?.slice(0, 10)} onChange={(e) => setForm({ ...form, validFrom: e.target.value })} /></label>
           <label>Sampai<input type="date" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.validUntil?.slice(0, 10)} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></label>
           <label>Kuota (kosong = tak terbatas)<input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1" value={form.maxUses} onChange={(e) => setForm({ ...form, maxUses: e.target.value })} /></label>
@@ -67,7 +67,7 @@ export function PromosPage() {
         : (
         <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b border-slate-200 text-left text-slate-500"><tr><th className="px-3 py-2">Kode</th><th className="px-3 py-2">Diskon</th><th className="px-3 py-2">Min pax</th><th className="px-3 py-2">Dipakai</th><th className="px-3 py-2">Aktif</th><th className="px-3 py-2">Paket</th><th className="px-3 py-2"></th></tr></thead>
+            <thead className="border-b border-slate-200 text-left text-slate-500"><tr><th className="px-3 py-2">Kode</th><th className="px-3 py-2">Diskon</th><th className="px-3 py-2">Min. orang</th><th className="px-3 py-2">Dipakai</th><th className="px-3 py-2">Aktif</th><th className="px-3 py-2">Paket</th><th className="px-3 py-2"></th></tr></thead>
             <tbody>
               {q.data!.map((p) => (
                 <tr key={p.id} className="border-b border-slate-100">

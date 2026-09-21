@@ -2,7 +2,7 @@ import { WA_PRIMARY as WA } from "./data/wa.js";
 import { REKENING_BCA } from "./data/rekening.js";
 import { HARGA, TIER_PRIVATE } from "./data/harga.js";
 import { LABEL_MP, LABEL_PKG } from "./data/meetingpoint.js";
-import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/api.js";
+import { loadSchedules, createBooking, getSummary, uploadProof, loadContact } from "./data/api.js";
 (function(){
   "use strict";
   var KUOTA = 24, LAYANAN = 5000;
@@ -72,19 +72,39 @@ import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/ap
   function skema(){ var b = document.querySelector('#view-booking input[name="bayar"]:checked'); return b ? b.value : "lunas"; }
   function metode(){ var m = document.querySelector('#view-booking input[name="metode"]:checked'); return m ? m.value : "Transfer Bank"; }
 
+  // Info pembayaran dari API (QRIS + rekening). Diisi async saat halaman dibuka.
+  var PAY = { qrisUrl: "", bankAccount: "" };
+  var QR_STYLE = "width:170px;height:170px;object-fit:contain;background:#fff;border:8px solid #fff;outline:1.5px solid var(--line);border-radius:4px;display:block;margin:0 auto 12px";
+
   function renderMetodeBox(el, nominal){
     if (!el) return;
     if (metode() === "QRIS"){
-      el.innerHTML = '<small>Pindai kode QRIS resmi Nena Adventure</small>'
-        + '<div class="qr" role="img" aria-label="Kode QRIS Nena Adventure"></div>'
-        + '<b class="num">' + rupiah(nominal) + '</b>'
-        + '<small>QRIS a.n. Nena Adventure Nusantara</small>';
+      if (PAY.qrisUrl){
+        el.innerHTML = '<small>Pindai kode QRIS resmi Nena Adventure</small>'
+          + '<img class="qr" style="' + QR_STYLE + '" src="' + PAY.qrisUrl + '" alt="Kode QRIS resmi Nena Adventure">'
+          + '<b class="num">' + rupiah(nominal) + '</b>'
+          + '<small>QRIS a.n. Nena Adventure Nusantara</small>';
+      } else {
+        // Belum ada QRIS: tampilkan instruksi transfer manual (bukan kotak kosong).
+        el.innerHTML = '<small>QRIS belum tersedia — silakan transfer manual ke rekening resmi</small>'
+          + '<b class="num">' + (PAY.bankAccount || REKENING_BCA) + '</b>'
+          + '<small>BCA — a.n. Nena Adventure Nusantara — nominal <strong>' + rupiah(nominal) + '</strong></small>';
+      }
     } else {
       el.innerHTML = '<small>Transfer ke rekening resmi</small>'
         + '<b class="num">' + REKENING_BCA + '</b>'
         + '<small>BCA — a.n. Nena Adventure Nusantara — nominal <strong>' + rupiah(nominal) + '</strong></small>';
     }
   }
+
+  // Muat info pembayaran; kalau user sudah di metode QRIS, render ulang kotaknya.
+  loadContact().then(function(k){
+    if (k){ PAY.qrisUrl = k.qrisUrl || ""; PAY.bankAccount = k.bankAccount || ""; }
+    if (metode() === "QRIS"){
+      var box = $("metodeBox");
+      if (box){ var h = hitung(); renderMetodeBox(box, skema() === "lunas" ? h.total : h.dp); }
+    }
+  }).catch(function(){});
 
   function tierPrivate(n){
     for (var i = 0; i < TIER_PRIVATE.length; i++){
