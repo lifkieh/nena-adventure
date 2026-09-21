@@ -51,11 +51,12 @@ export async function createBooking(payload, idempotencyKey) {
   return body;
 }
 
-/** Ambil ringkasan pesanan (untuk restore setelah refresh). null bila gagal. */
+/** Ambil ringkasan pesanan (untuk restore setelah refresh). null bila gagal.
+ *  Token dikirim via header X-Booking-Token (bukan query string). */
 export async function getSummary(code, token) {
-  var res = await fetch(
-    BASE + "/bookings/" + encodeURIComponent(code) + "?token=" + encodeURIComponent(token),
-  );
+  var res = await fetch(BASE + "/bookings/" + encodeURIComponent(code), {
+    headers: { "x-booking-token": token },
+  });
   if (!res.ok) return null;
   return res.json();
 }

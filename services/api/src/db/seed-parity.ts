@@ -21,7 +21,10 @@ function iso(d: Date): string {
 }
 
 function main(): void {
-  // Bersihkan state booking + jadwal agar deterministik (anak dulu -> FK aman).
+  // RESET FIXTURE PENUH (bukan backdoor pemulihan kursi): buang SEMUA state
+  // booking + jadwal lalu bangun ulang. Pemulihan kursi di alur normal tetap
+  // lewat transisi batal/expire (delta negatif), bukan penghapusan seat_ledger.
+  // Anak dulu -> FK aman.
   sqliteConn.prepare("DELETE FROM payments").run();
   sqliteConn.prepare("DELETE FROM booking_participants").run();
   sqliteConn.prepare("DELETE FROM seat_ledger").run();

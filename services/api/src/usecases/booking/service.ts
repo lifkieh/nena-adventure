@@ -361,6 +361,14 @@ export function getPublicSummary(code: string, token: string) {
   if (booking.accessTokenHash !== hashAccessToken(token)) {
     throw AppError.forbidden("Token akses tidak valid.");
   }
+  // Token berlaku sampai 24 jam setelah tanggal keberangkatan.
+  const sched = schedulesRepo.findById(booking.scheduleId);
+  if (sched) {
+    const expiry = Date.parse(dateAtOffset(sched.date, 1)); // H+1 00:00 UTC
+    if (Date.now() > expiry) {
+      throw AppError.forbidden("Token akses sudah kedaluwarsa.");
+    }
+  }
   const now = Date.now();
   const holdMsLeft = booking.holdExpiresAt
     ? Math.max(0, Date.parse(booking.holdExpiresAt) - now)

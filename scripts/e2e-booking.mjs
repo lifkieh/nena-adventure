@@ -105,6 +105,21 @@ try {
   if (!/\d{2}:\d{2}|kedaluwarsa/.test(timer)) fail("timer kosong setelah refresh: " + timer);
 
   console.log("kode:", kode, "| timer:", timer);
+
+  // Skenario schedules 500 -> halaman jadwal keadaan netral + WhatsApp, bukan "penuh".
+  const ctx2 = await browser.newContext();
+  const page2 = await ctx2.newPage();
+  await page2.route("**/api/public/schedules", (route) =>
+    route.fulfill({ status: 500, contentType: "application/json", body: '{"error":{"code":"INTERNAL","message":"x"}}' }),
+  );
+  await page2.goto(base + "/#/jadwal", { waitUntil: "load" });
+  await page2.waitForTimeout(1000);
+  const monthsText = await page2.$eval("#months", (el) => el.textContent || "").catch(() => "");
+  if (!/whatsapp/i.test(monthsText)) fail("jadwal 500: tidak ada tautan WhatsApp netral");
+  if (/penuh/i.test(monthsText)) fail("jadwal 500: menampilkan 'penuh' (dilarang)");
+  const waLink = await page2.$("#months a[href*='wa.me']");
+  if (!waLink) fail("jadwal 500: tautan wa.me tidak ada");
+
   console.log(ok ? "\nE2E OK" : "\nE2E FAIL");
   await browser.close();
 } catch (e) {

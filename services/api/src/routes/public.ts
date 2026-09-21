@@ -34,7 +34,9 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
   app.get("/bookings/:code", async (req) => {
     service.expireOverdueHolds();
     const { code } = req.params as { code: string };
-    const { token } = req.query as { token?: string };
+    // Token via header X-Booking-Token (bukan query string, agar tak bocor di log/URL).
+    const raw = req.headers["x-booking-token"];
+    const token = Array.isArray(raw) ? raw[0] : raw;
     if (!token) throw AppError.validation("Token akses wajib.");
     return service.getPublicSummary(code, token);
   });

@@ -23,6 +23,7 @@ import { loadSchedules, createBooking, getSummary } from "./data/api.js";
   /* ── Isi pilihan tanggal (dari server) ──────────────────── */
   var sel = $("tanggal"), stok = {}, idByIso = {};
   function isiTanggal(){
+    sel.innerHTML = '<option value="">— memuat jadwal… —</option>';
     return loadSchedules().then(function(data){
       var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + 1);
       var opsi = '<option value="">— pilih tanggal —</option>', n = 0, guard = 0;
@@ -41,8 +42,13 @@ import { loadSchedules, createBooking, getSummary } from "./data/api.js";
         }
         d.setDate(d.getDate() + 1); guard++;
       }
-      sel.innerHTML = opsi;
-    }).catch(function(){ /* jaringan gagal: dropdown tetap kosong */ });
+      // Dropdown kosong menjelaskan sebabnya (bukan diam, bukan "penuh").
+      sel.innerHTML = n === 0
+        ? '<option value="">— belum ada tanggal tersedia —</option>'
+        : opsi;
+    }).catch(function(){
+      sel.innerHTML = '<option value="">— jadwal gagal dimuat, hubungi kami via WhatsApp —</option>';
+    });
   }
 
   /* ── Baca parameter URL dari homepage ───────────────────── */

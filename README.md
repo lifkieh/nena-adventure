@@ -49,6 +49,22 @@ Baseline di-checkout otomatis lewat `git worktree`, disajikan bersama working tr
 dirender headless dengan Math.random/Date/timer/scroll dibekukan + jaringan eksternal diblok
 supaya kedua build identik. Gagal → exit 1 + artefak di `.parity-out/`.
 
+Sejak Fase 3 sisi refactor **disajikan oleh API** (DB parity ter-seed `seed:parity`), sedangkan
+baseline disajikan statis dari worktree. Pemulihan kursi antar-viewport dilakukan lewat **reset
+fixture penuh** (`seed:parity` membangun ulang seluruh jadwal) — BUKAN dengan menghapus baris
+`seat_ledger` secara diam-diam.
+
+**Elemen yang di-mask di harness** (nilainya bergantung jam/kode server, jadi berbeda antar-run):
+
+| Elemen | Alasan | Perlakuan |
+|---|---|---|
+| `#timer` | dihitung dari jam server (tak beku) | `display:none` (piksel) + isi dinormalkan jadi `TIMER` (DOM) |
+| `#kode` | kode `NA-xxxxxx` acak server | `display:none` (piksel) + dinormalkan jadi `NA-XXXXXX` (DOM) |
+
+`display:none` (bukan `visibility:hidden`) dipakai agar lebar elemen tidak menggeser teks di
+sekitarnya. **Angka sisa kursi TIDAK di-mask** — dibandingkan apa adanya (fixture `seed:parity`
+membuatnya identik dengan nilai lama), sehingga selisih kursi tetap tertangkap.
+
 Harness ini permanen: **Fase 5** akan memakainya untuk membuktikan situs yang membaca konten
 dari API tampil identik dengan situs yang membaca dari file data — cukup arahkan `--baseline`
 ke commit situs-baca-file.

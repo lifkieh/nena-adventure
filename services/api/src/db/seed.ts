@@ -10,6 +10,7 @@ import {
   settings,
   users,
 } from "./schema.js";
+import { seedOperationalSchedules } from "./seed-schedules.js";
 
 /** Isi data awal minimal (idempoten). Fase 1B: owner, settings, kapal, seksi konten. */
 function main(): void {
@@ -126,7 +127,12 @@ function main(): void {
     }
   }
 
-  console.log(`Seed selesai. Owner: ${env.OWNER_EMAIL}`);
+  // Jadwal operasional: seluruh Sabtu & Minggu untuk 3 bulan ke depan (idempoten).
+  const added = seedOperationalSchedules(3);
+
+  console.log(
+    `Seed selesai. Owner: ${env.OWNER_EMAIL}. Jadwal akhir pekan baru: ${added}.`,
+  );
   sqliteConn.close();
 }
 

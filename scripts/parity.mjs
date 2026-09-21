@@ -23,7 +23,7 @@ import pixelmatch from "pixelmatch";
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const OUT = resolve(ROOT, ".parity-out");
 const WORKTREE = resolve(ROOT, ".parity-baseline");
-const PIXEL_THRESHOLD = 0.001; // 0.1 %
+const PIXEL_THRESHOLD = Number(process.env.PARITY_PIXEL ?? 0.001); // 0.1 %
 
 const VIEWPORTS = [
   { name: "1440", width: 1440, height: 900 },
@@ -102,9 +102,11 @@ const INIT = `
 const NORM_CSS = `*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}
 html{scroll-behavior:auto!important}
 :focus{outline:none!important}
-/* Timer & kode booking berbeda antar-run (jam server / kode acak server);
-   sembunyikan agar piksel stabil. Nilainya sudah dinormalkan di DOM. */
-#timer,#kode{visibility:hidden!important}`;
+/* Timer & kode booking berbeda antar-run (jam server / kode acak server).
+   display:none (bukan visibility:hidden) supaya lebar elemen tidak menggeser
+   teks di sekitarnya — timer server ("483:20") lebih lebar dari "60:00".
+   Nilainya tetap diverifikasi di DOM (dinormalkan di normalizeHtml). */
+#timer,#kode{display:none!important}`;
 
 function normalizeHtml(html) {
   return html
