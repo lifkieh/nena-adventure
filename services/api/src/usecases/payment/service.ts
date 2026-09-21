@@ -22,6 +22,9 @@ import { providerFor } from "./provider.js";
 // Direktori upload DI LUAR apps/site (tidak tersaji statis, tidak bisa di-listing).
 const UPLOAD_DIR = resolve(repoRoot, "services/api/data/uploads");
 
+// Booking non-aktif: tidak boleh terima/tolak/unggah bukti.
+const INACTIVE_STATUSES = ["batal", "kadaluarsa", "selesai"];
+
 function kindAmount(booking: {
   total: number;
   amountPaid: number;
@@ -56,6 +59,9 @@ export function submitProof(input: SubmitProofInput): {
   }
   if (booking.accessTokenHash !== hashAccessToken(input.token)) {
     throw AppError.forbidden("Token akses tidak valid.");
+  }
+  if (INACTIVE_STATUSES.includes(booking.status)) {
+    throw AppError.conflict(`Booking sudah ${booking.status.replace(/_/g, " ")} — tidak menerima bukti pembayaran.`);
   }
   if (input.buffer.length > 5 * 1024 * 1024) {
     throw AppError.validation("Ukuran file melebihi 5MB.");
@@ -141,6 +147,9 @@ export function approve(paymentId: string, ctx: ActorContext) {
   }
   const booking = bookingsRepo.findById(payment.bookingId);
   if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
+  if (INACTIVE_STATUSES.includes(booking.status)) {
+    throw AppError.conflict(`Booking sudah ${booking.status.replace(/_/g, " ")} — bukti tidak bisa diverifikasi.`);
+  }
 
   providerFor(payment.provider).verify(payment); // manual: selalu ok
 
@@ -172,6 +181,10 @@ export function reject(paymentId: string, reason: string, ctx: ActorContext) {
   if (!payment) throw AppError.notFound("Pembayaran tidak ditemukan.");
   if (payment.status !== "pending") {
     throw AppError.conflict("Pembayaran sudah diproses.");
+  }
+  const rbooking = bookingsRepo.findById(payment.bookingId);
+  if (rbooking && INACTIVE_STATUSES.includes(rbooking.status)) {
+    throw AppError.conflict(`Booking sudah ${rbooking.status.replace(/_/g, " ")} — bukti tidak bisa diproses.`);
   }
   paymentsRepo.update(payment.id, {
     status: "rejected",

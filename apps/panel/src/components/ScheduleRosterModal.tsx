@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { bookingStatusLabel, formatJakarta, normalizeWa } from "@nena/shared";
-import { schedulesApi, type RosterRow, type ScheduleDto } from "../lib/api";
+import { downloadFile, schedulesApi, type RosterRow, type ScheduleDto } from "../lib/api";
+import { usePermissions } from "../lib/useAuth";
 import { Loading } from "./States";
 
 function dayDate(iso: string): string {
@@ -29,7 +30,7 @@ function Table({ rows }: { rows: RosterRow[] }) {
         {rows.map((r) => (
           <tr key={r.participantId} className="border-b border-slate-100">
             <td className="px-3 py-1.5">{r.name}{r.isLead ? " (pemesan)" : ""}</td>
-            <td className="px-3 py-1.5">{r.phone ? <a className="text-laut underline" href={`https://wa.me/${normalizeWa(r.phone)}`} target="_blank" rel="noreferrer">{r.phone}</a> : <span className="text-slate-400">—</span>}</td>
+            <td className="px-3 py-1.5">{r.phone ? <a className="text-laut underline" href={`https://wa.me/${normalizeWa(r.phone)}`} target="_blank" rel="noreferrer">{normalizeWa(r.phone)}</a> : <span className="text-slate-400">—</span>}</td>
             <td className="px-3 py-1.5">{r.packageName ?? r.packageKey}</td>
             <td className="px-3 py-1.5 font-mono">{r.bookingCode}</td>
           </tr>
@@ -42,10 +43,22 @@ function Table({ rows }: { rows: RosterRow[] }) {
 /** Modal "Detail peserta" untuk satu jadwal: aktif dikelompokkan per paket,
  *  batal/kadaluarsa dipisah di bawah. */
 export function ScheduleRosterModal({ schedule, onClose }: { schedule: ScheduleDto; onClose: () => void }) {
+  const { has } = usePermissions();
   const q = useQuery({ queryKey: ["schedule-roster", schedule.id], queryFn: () => schedulesApi.roster(schedule.id) });
   const activeGroups = useMemo(() => groupByPackage(q.data?.active ?? []), [q.data]);
   const cancelled = q.data?.cancelled ?? [];
   const activeCount = q.data?.active.length ?? 0;
+  const [exp, setExp] = useState<{ msg?: string; err?: string }>({});
+
+  async function exportZurich() {
+    setExp({});
+    try {
+      const { lines } = await downloadFile(`/admin/exports/zurich?date=${schedule.date}`, `zurich-${schedule.date}.csv`);
+      setExp({ msg: `Export berhasil — ${lines - 1} baris peserta.` });
+    } catch (e) {
+      setExp({ err: e instanceof Error ? e.message : "Export gagal." });
+    }
+  }
 
   return (
     <div
@@ -56,10 +69,15 @@ export function ScheduleRosterModal({ schedule, onClose }: { schedule: ScheduleD
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold text-slate-800">Detail peserta · {dayDate(schedule.date)}</h3>
-          <button onClick={onClose} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label="Tutup">✕</button>
+          <div className="flex items-center gap-2">
+            {has("participant:export") && <button onClick={exportZurich} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Export Zurich (CSV)</button>}
+            <button onClick={onClose} className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100" aria-label="Tutup">✕</button>
+          </div>
         </div>
+        {exp.err && <div className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{exp.err}</div>}
+        {exp.msg && <div className="mb-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{exp.msg}</div>}
 
         {q.isLoading ? <Loading /> : (
           <div className="space-y-4">

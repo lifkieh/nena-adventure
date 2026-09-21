@@ -30,6 +30,7 @@
     "content:verify": "npm run content:verify -w @nena/api",
     "packages:verify": "npm run packages:verify -w @nena/api",
     "reconcile:ledger": "npm run reconcile:ledger -w @nena/api",
+    "reconcile:ledger:dry": "npm run reconcile:ledger -w @nena/api -- --dry-run",
     "backup": "node scripts/backup-db.mjs",
     "restore": "node scripts/restore-db.mjs",
     "extract:prices": "node scripts/extract-prices.mjs",

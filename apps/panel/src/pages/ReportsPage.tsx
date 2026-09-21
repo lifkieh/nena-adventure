@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatJakarta, formatRupiah, bookingStatusLabel } from "@nena/shared";
-import { reportsApi } from "../lib/api";
+import { reportsApi, downloadFile } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
 import { Loading, ErrorState, NoAccess } from "../components/States";
@@ -10,6 +10,7 @@ export function ReportsPage() {
   const { has } = usePermissions();
   const confirm = useConfirm();
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["report-tables"], queryFn: reportsApi.tables, enabled: has("report:read") });
 
   if (!has("report:read")) return <NoAccess />;
@@ -18,11 +19,15 @@ export function ReportsPage() {
   const d = q.data;
 
   async function exportCsv() {
-    const r = await confirm({ title: "Export CSV?", confirmLabel: "Export", body: <>Unduh laporan sebagai CSV. Aktivitas ini tercatat di audit log.</> });
+    setErr(null); setMsg(null);
+    const r = await confirm({ title: "Export CSV?", confirmLabel: "Export", body: <>Unduh laporan sebagai CSV. Aktivitas tercatat di audit log setelah berhasil.</> });
     if (!r.confirmed) return;
-    // Navigasi langsung memicu unduhan (endpoint set content-disposition + catat audit).
-    window.location.href = "/api/admin/reports/export.csv";
-    setMsg("Export dimulai — cek unduhan browser. Tercatat di audit log.");
+    try {
+      const { lines } = await downloadFile("/admin/reports/export.csv", `laporan-${d.monthlyRevenue[0]?.month ?? "export"}.csv`);
+      setMsg(`Export berhasil — ${lines} baris terunduh. Tercatat di audit log.`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Export gagal.");
+    }
   }
 
   return (
@@ -31,6 +36,7 @@ export function ReportsPage() {
         <h2 className="text-xl font-extrabold text-slate-800">Laporan</h2>
         <button data-testid="export-csv" className="rounded-lg bg-laut px-3 py-1.5 text-sm font-bold text-white" onClick={exportCsv}>Export CSV</button>
       </div>
+      {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
       {msg && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
 
       {/* Anomali data: booking "selesai" tapi ledger < total (bukan sisa tagihan biasa). */}

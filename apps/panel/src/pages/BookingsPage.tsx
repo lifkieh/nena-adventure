@@ -5,7 +5,7 @@ import { BOOKING_STATUSES, bookingStatusMeta, formatRupiah } from "@nena/shared"
 import { bookingsApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { BookingStatus } from "../components/StatusPill";
-import { Countdown, holdDeadline } from "../components/Countdown";
+import { Countdown, holdDeadline, deadlineLabel } from "../components/Countdown";
 import { ManualBookingModal } from "../components/ManualBookingModal";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
@@ -49,7 +49,7 @@ export function BookingsPage() {
         <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="border-b border-slate-200 text-left text-slate-500">
-              <tr><th className="px-4 py-2">Kode</th><th className="px-4 py-2">Pemesan</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Total</th><th className="px-4 py-2">Sisa hold</th><th className="px-4 py-2"></th></tr>
+              <tr><th className="px-4 py-2">Kode</th><th className="px-4 py-2">Pemesan</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Total</th><th className="px-4 py-2">Tenggat</th><th className="px-4 py-2"></th></tr>
             </thead>
             <tbody>
               {q.data!.items.map((b) => (
@@ -58,7 +58,7 @@ export function BookingsPage() {
                   <td className="px-4 py-2">{String(b.customerName)}</td>
                   <td className="px-4 py-2"><BookingStatus status={String(b.status)} /></td>
                   <td className="px-4 py-2">{formatRupiah(Number(b.total))}</td>
-                  <td className="px-4 py-2"><Countdown deadline={holdDeadline(b)} /></td>
+                  <td className="px-4 py-2">{holdDeadline(b) ? <span className="whitespace-nowrap"><span className="mr-1 text-xs text-slate-400">{deadlineLabel(String(b.status))}</span><Countdown deadline={holdDeadline(b)} /></span> : <span className="text-slate-400">-</span>}</td>
                   <td className="px-4 py-2"><button data-testid={`open-${String(b.code)}`} className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => navigate(`/bookings/${String(b.id)}`)}>Detail</button></td>
                 </tr>
               ))}

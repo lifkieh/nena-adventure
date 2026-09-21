@@ -63,6 +63,28 @@ export interface ParticipantIn {
   birthDate?: string;
   idNumber?: string;
 }
+
+/** Tandai lead HANYA jika nama peserta cocok dgn nama pemesan (bukan tebak urutan).
+ *  Nomor lead diisi dari nomor pemesan bila kosong; semua nomor dinormalisasi 62…. */
+function withLeadAndPhones(
+  participants: ParticipantIn[],
+  customerName: string,
+  customerPhone: string,
+): participantsRepo.ParticipantInput[] {
+  const target = customerName.trim().toLowerCase();
+  const leadIdx = participants.findIndex((p) => p.name.trim().toLowerCase() === target);
+  return participants.map((p, i) => {
+    const isLead = i === leadIdx;
+    const raw = p.phone && p.phone.trim() ? p.phone : isLead ? customerPhone : "";
+    return {
+      name: p.name,
+      birthDate: p.birthDate ?? null,
+      idNumber: p.idNumber ?? null,
+      isLead,
+      phone: raw ? normalizeWa(raw) : null,
+    };
+  });
+}
 export interface CreateWebInput {
   scheduleId: string;
   packageKey: string;
@@ -172,11 +194,9 @@ export function createWebBooking(input: CreateWebInput): CreateResult {
       statusChangedAt: nowIso,
     });
 
-    // Peserta pertama = lead; phone-nya diisi dari nomor pemesan (form publik tak minta per-peserta).
-    participantsRepo.addMany(
-      booking.id,
-      input.participants.map((p, i) => (i === 0 ? { ...p, phone: input.customer.phone } : p)),
-    );
+    // Lead = peserta yang NAMANYA cocok dgn pemesan (bukan tebak urutan). Kalau tak
+    // ada yang cocok, tak ada yang ditandai lead (pemesan tampil sbg baris terpisah).
+    participantsRepo.addMany(booking.id, withLeadAndPhones(input.participants, input.customer.name, input.customer.phone));
     seatRepo.add({
       scheduleId: input.scheduleId,
       bookingId: booking.id,
@@ -263,10 +283,7 @@ export function createManualBooking(input: {
       createdByUserId: input.ctx.userId,
       statusChangedAt: nowIso,
     });
-    participantsRepo.addMany(
-      booking.id,
-      input.participants.map((p, i) => (i === 0 ? { ...p, phone: input.customer.phone } : p)),
-    );
+    participantsRepo.addMany(booking.id, withLeadAndPhones(input.participants, input.customer.name, input.customer.phone));
     if (promoId) promoService.markUsed(promoId);
     seatRepo.add({
       scheduleId: input.scheduleId,

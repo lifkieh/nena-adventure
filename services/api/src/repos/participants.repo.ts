@@ -28,10 +28,10 @@ export interface ParticipantInput {
 }
 
 export function addMany(bookingId: string, list: ParticipantInput[]): void {
-  list.forEach((p, i) => {
+  for (const p of list) {
     const idNumberPlain = p.idNumber ?? null;
     // NIK & tanggal lahir DIENKRIPSI at-rest; last4 tetap plaintext untuk tampilan.
-    // Peserta pertama default jadi lead (kecuali flag isLead diberikan eksplisit).
+    // isLead TIDAK ditebak di sini — pemanggil menentukan berdasarkan kecocokan nama.
     db.insert(bookingParticipants)
       .values({
         bookingId,
@@ -42,10 +42,10 @@ export function addMany(bookingId: string, list: ParticipantInput[]): void {
         idNumberLast4: idNumberPlain
           ? idNumberPlain.replace(/\s/g, "").slice(-4)
           : null,
-        isLead: p.isLead ?? i === 0,
+        isLead: p.isLead ?? false,
       })
       .run();
-  });
+  }
 }
 
 /** Ubah nomor peserta (dipakai admin panel). phone sudah ternormalisasi 62… oleh pemanggil. */

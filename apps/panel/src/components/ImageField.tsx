@@ -9,13 +9,42 @@ interface Props {
   onChange: (url: string) => void;
   /** Bila true, tampilkan tombol "Hapus gambar". */
   optional?: boolean;
+  /** Teks alt (dipakai sebagai nama manusiawi bila ada). */
+  alt?: string;
+  /** Guard async sebelum hapus (mis. konfirmasi). Return true = lanjut hapus. */
+  onBeforeRemove?: () => Promise<boolean>;
 }
 
-/** Field gambar CMS: preview + nama file + tombol Ubah/Hapus. Tanpa URL mentah. */
-export function ImageField({ label, value, onChange, optional }: Props) {
+/** Nama manusiawi dari sebuah URL gambar — TIDAK PERNAH menampilkan potongan URL.
+ *  Prioritas: teks alt → nama file (media unggahan) → "Foto dari <sumber>". */
+function humanName(value: string, alt?: string): string {
+  if (alt && alt.trim()) return alt.trim();
+  if (!value) return "";
+  if (value.startsWith("/media/") || (!value.startsWith("http") && !value.includes("://"))) {
+    // Media unggahan / path lokal: pakai nama berkas (tanpa query).
+    const base = (value.split("?")[0] ?? value).split("/").pop() || "";
+    return base || "Gambar unggahan";
+  }
+  // URL eksternal: sebut sumbernya, jangan pernah tampilkan URL-nya.
+  try {
+    const host = new URL(value).hostname.replace(/^www\./, "");
+    if (host.includes("unsplash")) return "Foto dari Unsplash";
+    return `Foto dari ${host}`;
+  } catch {
+    return "Foto eksternal";
+  }
+}
+
+/** Field gambar CMS: preview + nama manusiawi + tombol Ubah/Hapus. Tanpa URL mentah. */
+export function ImageField({ label, value, onChange, optional, alt, onBeforeRemove }: Props) {
   const [picking, setPicking] = useState(false);
   const [broken, setBroken] = useState(false);
-  const fileName = value ? value.split("/").pop() || value : "";
+  const fileName = humanName(value, alt);
+
+  async function remove() {
+    if (onBeforeRemove) { const ok = await onBeforeRemove(); if (!ok) return; }
+    onChange(""); setBroken(false);
+  }
 
   return (
     <div className="rounded-xl border border-slate-200 p-3">
@@ -48,7 +77,7 @@ export function ImageField({ label, value, onChange, optional }: Props) {
             {optional && value && (
               <button
                 type="button"
-                onClick={() => { onChange(""); setBroken(false); }}
+                onClick={remove}
                 className="rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50"
               >Hapus gambar</button>
             )}

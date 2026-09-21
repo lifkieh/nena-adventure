@@ -10,7 +10,7 @@ import { useQuery as useRQ } from "@tanstack/react-query";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
 import { BookingStatus } from "../components/StatusPill";
-import { Countdown, holdDeadline } from "../components/Countdown";
+import { Countdown, holdDeadline, deadlineLabel } from "../components/Countdown";
 import { Loading, ErrorState, NoAccess } from "../components/States";
 
 const timelineLabel = auditActionLabel;
@@ -118,7 +118,7 @@ export function BookingDetailPage() {
         <Link to="/bookings" className="text-sm text-slate-500 hover:underline">‹ Booking</Link>
         <h2 className="text-xl font-extrabold text-slate-800">{String(b.code)}</h2>
         <BookingStatus status={status} />
-        {deadline && <span className="text-sm text-slate-500">Sisa hold: <Countdown deadline={deadline} /></span>}
+        {deadline && <span className="text-sm text-slate-500">{deadlineLabel(status)}: <Countdown deadline={deadline} /></span>}
       </div>
       {err && <div data-testid="detail-error" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
       {msg && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
@@ -220,6 +220,11 @@ export function BookingDetailPage() {
 
         {/* Peserta */}
         <Card title="Daftar peserta">
+          {/* Pemesan dari data booking (bukan tebakan isLead). */}
+          <div className="mb-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+            <span className="text-slate-400">Pemesan:</span> <b>{String(b.customerName)}</b>
+            {b.customerPhone ? <> · <a className="text-laut underline" href={`https://wa.me/${normalizeWa(String(b.customerPhone))}`} target="_blank" rel="noreferrer">{String(b.customerPhone)}</a></> : null}
+          </div>
           <ul className="space-y-2 text-sm">
             {d.participants.map((p, i) => {
               const wa = p.phone ? normalizeWa(p.phone) : "";
@@ -234,7 +239,7 @@ export function BookingDetailPage() {
                   <div className="mt-0.5 flex items-center gap-2 text-xs">
                     <span className="text-slate-400">No. HP:</span>
                     {p.phone ? (
-                      <a className="text-laut underline" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">{p.phone}</a>
+                      <a className="text-laut underline" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">{wa}</a>
                     ) : <span className="text-slate-400">belum ada</span>}
                     {canWrite && phoneEdit?.pid !== p.id && (
                       <button className="text-slate-500 underline" onClick={() => setPhoneEdit({ pid: p.id, val: p.phone ?? "" })}>ubah</button>

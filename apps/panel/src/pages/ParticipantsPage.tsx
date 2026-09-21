@@ -9,9 +9,6 @@ import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States"
 function dateLabel(iso: string): string {
   return formatJakarta(iso + "T00:00:00Z", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
-function dateShort(iso: string): string {
-  return formatJakarta(iso + "T00:00:00Z", { day: "numeric", month: "short", year: "numeric" });
-}
 
 interface Group { date: string; packageName: string; rows: RosterRow[] }
 
@@ -102,8 +99,7 @@ export function ParticipantsPage() {
           {groups.map((g) => (
             <div key={g.date + g.packageName} className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
-                {dateShort(g.date)} · {g.packageName} · {g.rows.length} orang
-                <span className="ml-2 font-normal text-slate-400">({dateLabel(g.date)})</span>
+                {dateLabel(g.date)} · {g.packageName} · {g.rows.length} orang
               </div>
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="border-b border-slate-200 text-left text-slate-500">
@@ -114,7 +110,7 @@ export function ParticipantsPage() {
                     <tr key={r.participantId} className="border-b border-slate-100">
                       <td className="px-4 py-2">{r.name}{r.isLead ? " (pemesan)" : ""}</td>
                       <td className="px-4 py-2">
-                        {r.phone ? <a className="text-laut underline" href={`https://wa.me/${normalizeWa(r.phone)}`} target="_blank" rel="noreferrer">{r.phone}</a> : <span className="text-slate-400">—</span>}
+                        {r.phone ? <a className="text-laut underline" href={`https://wa.me/${normalizeWa(r.phone)}`} target="_blank" rel="noreferrer">{normalizeWa(r.phone)}</a> : <span className="text-slate-400">—</span>}
                       </td>
                       <td className="px-4 py-2">{r.packageName ?? r.packageKey}</td>
                       <td className="px-4 py-2 font-mono"><Link className="text-laut hover:underline" to={`/bookings`}>{r.bookingCode}</Link></td>

@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { normalizeWa } from "@nena/shared";
 
 /** Lempar bila kehilangan baris melebihi yang diniatkan (pengaman migrasi destruktif). */
 export function assertLossWithinIntent(
@@ -54,4 +55,26 @@ export function guardedDedupeTiers(sqlite: Database.Database): {
   );
   assertLossWithinIntent("dedupe package_tiers", before, after, intendedLoss);
   return { skipped: false, before, after, intendedLoss };
+}
+
+/**
+ * Normalisasi nomor HP peserta ke format 62… (idempoten — normalizeWa("62..")="62..").
+ * Dipanggil SESUDAH migrasi. Aman dipanggil berulang. Skip bila kolom belum ada.
+ */
+export function normalizeParticipantPhones(sqlite: Database.Database): number {
+  const col = sqlite
+    .prepare("SELECT 1 FROM pragma_table_info('booking_participants') WHERE name='phone'")
+    .get();
+  if (!col) return 0;
+  const rows = sqlite
+    .prepare("SELECT id, phone FROM booking_participants WHERE phone IS NOT NULL AND phone <> ''")
+    .all() as { id: string; phone: string }[];
+  const upd = sqlite.prepare("UPDATE booking_participants SET phone = ? WHERE id = ?");
+  let changed = 0;
+  for (const r of rows) {
+    const norm = normalizeWa(r.phone);
+    if (norm !== r.phone) { upd.run(norm, r.id); changed++; }
+  }
+  if (changed > 0) console.log(`[migrasi] normalisasi nomor HP peserta: ${changed} baris`);
+  return changed;
 }

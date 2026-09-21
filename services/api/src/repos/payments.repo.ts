@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { bookings, payments, schedules } from "../db/schema.js";
 
@@ -55,7 +55,8 @@ export function verificationQueue(): {
     .from(payments)
     .innerJoin(bookings, eq(bookings.id, payments.bookingId))
     .innerJoin(schedules, eq(schedules.id, bookings.scheduleId))
-    .where(eq(payments.status, "pending"))
+    // Hanya booking AKTIF: batal/kadaluarsa/selesai tidak boleh muncul di antrean.
+    .where(and(eq(payments.status, "pending"), notInArray(bookings.status, ["batal", "kadaluarsa", "selesai"])))
     .orderBy(desc(payments.createdAt))
     .all();
   return rows;

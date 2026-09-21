@@ -250,3 +250,31 @@ export const reportsApi = {
   dashboard: () => req<DashboardDto>("/admin/reports/dashboard"),
   tables: () => req<ReportTables>("/admin/reports/tables"),
 };
+
+/**
+ * Unduh berkas dari endkoin API (mis. CSV). Memakai fetch (bukan navigasi) supaya
+ * status & isi bisa diperiksa: hanya memicu unduhan bila HTTP 200 DAN body berisi.
+ * Melempar Error dgn pesan jelas kalau gagal (dipakai untuk banner merah).
+ * Mengembalikan jumlah baris (perkiraan) untuk pesan sukses.
+ */
+export async function downloadFile(path: string, filename: string): Promise<{ bytes: number; lines: number }> {
+  const res = await fetch("/api" + path, { credentials: "include" });
+  if (!res.ok) {
+    let msg = `Export gagal (HTTP ${res.status}).`;
+    try { const j = await res.json(); if (j?.error?.message) msg = j.error.message; } catch { /* body bukan JSON */ }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  if (blob.size === 0) throw new Error("Export gagal: berkas kosong.");
+  const text = await blob.text();
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "").length;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return { bytes: blob.size, lines };
+}

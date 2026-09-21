@@ -70,6 +70,8 @@ const manualBookingSchema = z.object({
         name: z.string().min(2),
         birthDate: z.string().optional(),
         idNumber: z.string().optional(),
+        // No. HP peserta opsional; kalau diisi 8–15 digit (dinormalisasi 62… di service).
+        phone: z.string().regex(/^[\d+\-\s]{8,20}$/, "Nomor HP peserta 8–15 digit.").optional(),
       }),
     )
     .min(1),
@@ -380,7 +382,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
     async (req, reply) => {
       const csv = reportCsv(todayJakarta());
-      auditRecord(actorFromReq(req), { action: "report_exported", entity: "report", data: { format: "csv" } });
+      // Audit HANYA setelah CSV benar-benar terbentuk & berisi (bukan sebelum).
+      if (csv && csv.trim().length > 0) {
+        auditRecord(actorFromReq(req), { action: "report_exported", entity: "report", data: { format: "csv", bytes: csv.length } });
+      }
       reply.header("content-disposition", `attachment; filename="laporan-${todayJakarta()}.csv"`);
       reply.type("text/csv; charset=utf-8");
       return csv;

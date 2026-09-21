@@ -55,9 +55,8 @@ export function ContentPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // refetchOnWindowFocus:false — cegah remount tab yang "menelan" klik pertama.
-  const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read"), refetchOnWindowFocus: false, staleTime: 30_000 });
-  const secQ = useQuery({ queryKey: ["content", key], queryFn: () => contentApi.get(key), enabled: has("content:read"), refetchOnWindowFocus: false });
+  const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read") });
+  const secQ = useQuery({ queryKey: ["content", key], queryFn: () => contentApi.get(key), enabled: has("content:read") });
 
   useEffect(() => {
     const src = (secQ.data?.draft ?? secQ.data?.published) as Record<string, unknown> | null;
@@ -253,9 +252,9 @@ export function ContentPage() {
                 <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Caption" value={g.cap} onChange={(e) => setGal(gal.map((x, j) => j === i ? { ...x, cap: e.target.value } : x))} disabled={!canWrite} />
                 {canWrite && (
                   <div className="mb-1 space-y-2">
-                    <ImageField label="Thumbnail galeri — muncul di grid Galeri Beranda" value={g.thumb} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, thumb: url } : x))} />
+                    <ImageField label="Thumbnail galeri — muncul di grid Galeri Beranda" alt={g.alt} value={g.thumb} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, thumb: url } : x))} />
                     {g.type === "img" && (
-                      <ImageField label="Gambar penuh — muncul saat foto diperbesar (lightbox)" value={g.full ?? ""} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, full: url } : x))} optional />
+                      <ImageField label="Gambar penuh — muncul saat foto diperbesar (lightbox)" alt={g.alt} value={g.full ?? ""} onChange={(url) => setGal(gal.map((x, j) => j === i ? { ...x, full: url } : x))} optional />
                     )}
                   </div>
                 )}
@@ -311,7 +310,7 @@ export function ContentPage() {
                 </div>
                 {canWrite && (
                   <div className="mb-1">
-                    <ImageField label="Gambar destinasi — muncul di kartu Destinasi Beranda" value={c.img} onChange={(url) => setDest(dest.map((x, j) => j === i ? { ...x, img: url } : x))} />
+                    <ImageField label="Gambar destinasi — muncul di kartu Destinasi Beranda" alt={c.alt} value={c.img} onChange={(url) => setDest(dest.map((x, j) => j === i ? { ...x, img: url } : x))} />
                   </div>
                 )}
                 <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Alt gambar" value={c.alt} onChange={(e) => setDest(dest.map((x, j) => j === i ? { ...x, alt: e.target.value } : x))} disabled={!canWrite} />

@@ -4,10 +4,12 @@ import { ApiError, settingsApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { Loading, ErrorState, NoAccess } from "../components/States";
 import { ImageField } from "../components/ImageField";
+import { useConfirm } from "../components/Confirm";
 
 export function OwnerSettingsPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [form, setForm] = useState({ bankAccount: "", qrisUrl: "", serviceFee: 0, dpPercent: 0, cutoffDays: 0, whatsapp: "", whatsappSecondary: "", mapUrl: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["owner-settings"], queryFn: settingsApi.get, enabled: has("settings:read") });
@@ -43,6 +45,10 @@ export function OwnerSettingsPage() {
               value={form.qrisUrl}
               onChange={(url) => setForm({ ...form, qrisUrl: url })}
               optional
+              onBeforeRemove={async () => {
+                const r = await confirm({ title: "Hapus gambar QRIS?", danger: true, confirmLabel: "Hapus", body: <>Halaman booking akan menampilkan instruksi transfer manual sampai QRIS baru diunggah. Simpan perubahan untuk menerapkannya.</> });
+                return r.confirmed;
+              }}
             />
           )}
           <label className="block">Biaya layanan (Rp)

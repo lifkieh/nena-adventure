@@ -18,6 +18,13 @@ export function holdDeadline(b: { status?: unknown; holdExpiresAt?: unknown; bal
   return null;
 }
 
+/** Label tenggat sesuai status — jangan satu label untuk dua arti berbeda. */
+export function deadlineLabel(status: string): string {
+  if (status === "menunggu_bayar") return "Sisa hold";
+  if (status === "menunggu_pelunasan") return "Tenggat pelunasan";
+  return "Tenggat";
+}
+
 function fmt(ms: number): string {
   if (ms <= 0) return "kedaluwarsa";
   const s = Math.floor(ms / 1000);

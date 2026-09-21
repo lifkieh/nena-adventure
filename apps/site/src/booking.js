@@ -91,19 +91,19 @@ import { loadSchedules, createBooking, getSummary, uploadProof, loadContact } fr
           + '<small>BCA — a.n. Nena Adventure Nusantara — nominal <strong>' + rupiah(nominal) + '</strong></small>';
       }
     } else {
+      // Rekening dibaca dari API (PAY.bankAccount); fallback ke konstanta (parity-safe:
+      // seed menanam nilai identik). Owner ganti rekening -> situs ikut berubah.
       el.innerHTML = '<small>Transfer ke rekening resmi</small>'
-        + '<b class="num">' + REKENING_BCA + '</b>'
+        + '<b class="num">' + (PAY.bankAccount || REKENING_BCA) + '</b>'
         + '<small>BCA — a.n. Nena Adventure Nusantara — nominal <strong>' + rupiah(nominal) + '</strong></small>';
     }
   }
 
-  // Muat info pembayaran; kalau user sudah di metode QRIS, render ulang kotaknya.
+  // Muat info pembayaran, lalu render ulang kotak metode yang sedang tampil.
   loadContact().then(function(k){
     if (k){ PAY.qrisUrl = k.qrisUrl || ""; PAY.bankAccount = k.bankAccount || ""; }
-    if (metode() === "QRIS"){
-      var box = $("metodeBox");
-      if (box){ var h = hitung(); renderMetodeBox(box, skema() === "lunas" ? h.total : h.dp); }
-    }
+    var box = $("metodeBox");
+    if (box){ var h = hitung(); renderMetodeBox(box, skema() === "lunas" ? h.total : h.dp); }
   }).catch(function(){});
 
   function tierPrivate(n){

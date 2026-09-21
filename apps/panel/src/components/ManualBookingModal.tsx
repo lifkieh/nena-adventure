@@ -21,7 +21,7 @@ export function ManualBookingModal({ onClose, onCreated }: { onClose: () => void
     paymentScheme: "lunas", notes: "", promoCode: "",
     customer: { name: "", phone: "", email: "" },
   });
-  const [parts, setParts] = useState<{ name: string; idNumber: string }[]>([{ name: "", idNumber: "" }]);
+  const [parts, setParts] = useState<{ name: string; idNumber: string; phone: string }[]>([{ name: "", idNumber: "", phone: "" }]);
 
   const scheds = useMemo(() => (schedQ.data ?? []).filter((s) => s.status === "terbit" && s.remaining > 0), [schedQ.data]);
   const mpOpts = MP[f.packageKey] ?? MP.reguler!;
@@ -31,7 +31,7 @@ export function ManualBookingModal({ onClose, onCreated }: { onClose: () => void
     setF({ ...f, pax });
     setParts((p) => {
       const next = p.slice(0, pax);
-      while (next.length < pax) next.push({ name: "", idNumber: "" });
+      while (next.length < pax) next.push({ name: "", idNumber: "", phone: "" });
       return next;
     });
   }
@@ -41,11 +41,13 @@ export function ManualBookingModal({ onClose, onCreated }: { onClose: () => void
     if (!f.scheduleId) { setErr("Pilih jadwal dulu."); return; }
     if (!f.customer.name || !f.customer.phone || !f.customer.email) { setErr("Nama, HP, dan email pemesan wajib."); return; }
     if (parts.some((p) => !p.name.trim())) { setErr("Nama tiap peserta wajib diisi."); return; }
+    const badPhone = parts.find((p) => p.phone.trim() && (p.phone.replace(/\D/g, "").length < 8 || p.phone.replace(/\D/g, "").length > 15));
+    if (badPhone) { setErr("Nomor HP peserta harus 8–15 digit."); return; }
     try {
       const res = await bookingsApi.createManual({
         scheduleId: f.scheduleId, packageKey: f.packageKey, meetingPoint: mpOpts.some((m) => m.key === f.meetingPoint) ? f.meetingPoint : mpOpts[0]!.key,
         pax: f.pax, paymentScheme: f.paymentScheme, notes: f.notes || undefined, promoCode: f.promoCode || undefined,
-        customer: f.customer, participants: parts.map((p) => ({ name: p.name, idNumber: p.idNumber || undefined })),
+        customer: f.customer, participants: parts.map((p) => ({ name: p.name, idNumber: p.idNumber || undefined, phone: p.phone.trim() || undefined })),
       });
       onCreated(res.code);
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal membuat booking."); }
@@ -95,9 +97,10 @@ export function ManualBookingModal({ onClose, onCreated }: { onClose: () => void
           <div className="rounded-lg border border-slate-200 p-2">
             <div className="mb-1 text-xs font-bold text-slate-500">Peserta ({parts.length})</div>
             {parts.map((p, i) => (
-              <div key={i} className="mb-1 flex gap-2">
-                <input className="w-1/2 rounded border border-slate-300 px-2 py-1" placeholder={`Nama peserta ${i + 1}`} value={p.name} onChange={(e) => setParts(parts.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} />
-                <input className="w-1/2 rounded border border-slate-300 px-2 py-1" placeholder="NIK (opsional)" value={p.idNumber} onChange={(e) => setParts(parts.map((x, j) => j === i ? { ...x, idNumber: e.target.value } : x))} />
+              <div key={i} className="mb-1 flex flex-wrap gap-2">
+                <input className="min-w-[45%] flex-1 rounded border border-slate-300 px-2 py-1" placeholder={`Nama peserta ${i + 1}`} value={p.name} onChange={(e) => setParts(parts.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} />
+                <input className="min-w-[25%] flex-1 rounded border border-slate-300 px-2 py-1" placeholder="NIK (opsional)" value={p.idNumber} onChange={(e) => setParts(parts.map((x, j) => j === i ? { ...x, idNumber: e.target.value } : x))} />
+                <input className="min-w-[25%] flex-1 rounded border border-slate-300 px-2 py-1" placeholder="No. HP (opsional)" value={p.phone} onChange={(e) => setParts(parts.map((x, j) => j === i ? { ...x, phone: e.target.value } : x))} />
               </div>
             ))}
           </div>
