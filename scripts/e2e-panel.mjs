@@ -92,6 +92,27 @@ try {
   await site2.waitForFunction((t) => (document.querySelector("#view-home .hero2-copy h1")?.textContent || "") === t, HERO_ORIG, { timeout: 8000 })
     .catch(() => fail("revert tidak mengembalikan konten situs"));
 
+  // ── FAQ slice: ubah 1 pertanyaan -> tampil di situs -> kembalikan ──
+  const FAQ_ORIG = "Bagaimana cara membayar?";
+  const FAQ_NEW = "UJI FAQ BERUBAH?";
+  await owner.click('button:has-text("FAQ")');
+  await owner.waitForSelector('[data-testid="faq-q-0"]', { timeout: 8000 });
+  await owner.fill('[data-testid="faq-q-0"]', FAQ_NEW);
+  await owner.click('[data-testid="publish"]');
+  await owner.waitForTimeout(700);
+  const faqSite = await (await browser.newContext()).newPage();
+  await faqSite.goto(base + "/#/faq", { waitUntil: "load" });
+  await faqSite.waitForFunction((t) => /UJI FAQ BERUBAH/.test(document.querySelector("#faq .faq summary")?.textContent || ""), FAQ_NEW, { timeout: 8000 })
+    .catch(() => fail("FAQ baru tidak tampil di situs setelah publish"));
+  // kembalikan
+  await owner.fill('[data-testid="faq-q-0"]', FAQ_ORIG);
+  await owner.click('[data-testid="publish"]');
+  await owner.waitForTimeout(700);
+  const faqSite2 = await (await browser.newContext()).newPage();
+  await faqSite2.goto(base + "/#/faq", { waitUntil: "load" });
+  await faqSite2.waitForFunction((t) => (document.querySelector("#faq .faq summary")?.textContent || "") === t, FAQ_ORIG, { timeout: 8000 })
+    .catch(() => fail("FAQ tidak kembali ke pertanyaan asli"));
+
   // ── #4 Hapus jadwal ber-booking aktif -> ditolak lewat modal ──
   await owner.click('button:has-text("Operasional")');
   await owner.goto(base + "/panel/schedules", { waitUntil: "load" });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatJakarta } from "@nena/shared";
 import { ApiError, schedulesApi, type ScheduleDto } from "../lib/api";
@@ -8,6 +8,21 @@ import { ScheduleStatus } from "../components/StatusPill";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
 const PKGS = ["reguler", "premium", "private"];
+
+/** "YYYY-MM-DD" -> "26 September 2026" (tampilan Indonesia). */
+function idDate(iso: string): string {
+  return formatJakarta(iso + "T00:00:00Z", { day: "numeric", month: "long", year: "numeric" });
+}
+/** Selisih bulan antar kunci "YYYY-MM". */
+function monthDiff(from: string, to: string): number {
+  const [ay, am] = from.split("-").map(Number) as [number, number];
+  const [by, bm] = to.split("-").map(Number) as [number, number];
+  return (by - ay) * 12 + (bm - am);
+}
+function currentMonthKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 function monthRange(offset: number) {
   const d = new Date();
@@ -30,8 +45,22 @@ export function SchedulesPage() {
   const [preview, setPreview] = useState<{ date: string; exists: boolean }[] | null>(null);
   const [form, setForm] = useState({ date: "", capacity: 24, threshold: 6, status: "terbit" });
 
+  const [navigated, setNavigated] = useState(false);
   const range = monthRange(offset);
   const q = useQuery({ queryKey: ["schedules", range.from], queryFn: () => schedulesApi.list({ monthFrom: range.from, monthTo: range.to }), enabled: has("schedule:read") });
+  // Semua jadwal (sekali) untuk memilih bulan default: bulan berjalan kalau ada
+  // jadwalnya, kalau tidak lompat ke bulan pertama yang punya jadwal.
+  const allQ = useQuery({ queryKey: ["schedules", "all"], queryFn: () => schedulesApi.list(), enabled: has("schedule:read") });
+  useEffect(() => {
+    if (navigated || !allQ.data || allQ.data.length === 0) return;
+    const cur = currentMonthKey();
+    const months = allQ.data.map((s) => s.date.slice(0, 7));
+    if (months.includes(cur)) return; // bulan berjalan sudah ada jadwal
+    const future = months.filter((m) => m >= cur).sort();
+    const target = future[0] ?? months.slice().sort()[0];
+    if (target) setOffset(monthDiff(cur, target));
+  }, [allQ.data, navigated]);
+  const goMonth = (delta: number) => { setNavigated(true); setOffset(offset + delta); };
   const refresh = () => qc.invalidateQueries({ queryKey: ["schedules"] });
   const run = <T,>(p: Promise<T>) => p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Terjadi kesalahan."));
 
@@ -42,7 +71,7 @@ export function SchedulesPage() {
 
   async function del(s: ScheduleDto) {
     const r = await confirm({ title: "Hapus jadwal?", danger: true, confirmLabel: "Hapus",
-      body: <>Tanggal <b>{s.date}</b> ({s.used}/{s.capacity} kursi) akan dihapus permanen.</> });
+      body: <>Tanggal <b>{idDate(s.date)}</b> ({s.used}/{s.capacity} kursi) akan dihapus permanen.</> });
     if (r.confirmed) run(schedulesApi.remove(s.id));
   }
   async function save() {
@@ -70,9 +99,9 @@ export function SchedulesPage() {
       {err && <div data-testid="sched-error" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
 
       <div className="mt-3 flex items-center gap-3">
-        <button className="rounded border border-slate-300 px-2 py-1 text-sm" onClick={() => setOffset(offset - 1)}>‹</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-sm" onClick={() => goMonth(-1)}>‹</button>
         <b>{range.label}</b>
-        <button className="rounded border border-slate-300 px-2 py-1 text-sm" onClick={() => setOffset(offset + 1)}>›</button>
+        <button className="rounded border border-slate-300 px-2 py-1 text-sm" onClick={() => goMonth(1)}>›</button>
         {canWrite && sel.size > 0 && (
           <div className="ml-auto flex gap-2">
             <button className="rounded bg-emerald-600 px-3 py-1 text-xs font-bold text-white" onClick={() => { run(schedulesApi.list().then(() => Promise.all([...sel].map((id) => schedulesApi.setStatus(id, "terbit"))))); setSel(new Set()); }}>Buka {sel.size}</button>
@@ -112,7 +141,7 @@ export function SchedulesPage() {
               {q.data!.map((s) => (
                 <tr key={s.id} className="border-b border-slate-100">
                   <td className="px-3 py-2">{canWrite && <input type="checkbox" checked={sel.has(s.id)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(s.id) : n.delete(s.id); setSel(n); }} />}</td>
-                  <td className="px-3 py-2">{s.date}</td>
+                  <td className="px-3 py-2">{idDate(s.date)}</td>
                   <td className="px-3 py-2">{s.used}/{s.capacity} {s.belowThreshold && <span className="ml-1 rounded bg-amber-100 px-1.5 text-xs font-bold text-amber-700">≤threshold</span>}</td>
                   <td className="px-3 py-2"><ScheduleStatus status={s.status} /></td>
                   <td className="px-3 py-2">{canWrite && <div className="flex gap-1"><button data-testid={`edit-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => setEdit(s)}>Ubah</button><button data-testid={`del-${s.date}`} className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600" onClick={() => del(s)}>Hapus</button></div>}</td>
@@ -151,7 +180,7 @@ export function SchedulesPage() {
       {edit && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-2xl bg-white p-6">
-            <h3 className="text-lg font-bold">Ubah jadwal {edit.date}</h3>
+            <h3 className="text-lg font-bold">Ubah jadwal {idDate(edit.date)}</h3>
             <div className="mt-3 grid gap-2 text-sm">
               <label>Kapasitas <input type="number" data-testid="edit-capacity" className="ml-2 w-24 rounded border border-slate-300 px-2 py-1" value={edit.capacity} onChange={(e) => setEdit({ ...edit, capacity: +e.target.value })} /></label>
               <label>Threshold <input type="number" className="ml-2 w-24 rounded border border-slate-300 px-2 py-1" value={edit.threshold} onChange={(e) => setEdit({ ...edit, threshold: +e.target.value })} /></label>

@@ -40,13 +40,15 @@ export function PackagesPage() {
                   {canWrite && <button data-testid={`edit-pkg-${p.key}`} className="rounded border border-slate-300 px-2 py-0.5 text-slate-600" onClick={() => setEdit({ ...p, prices: { ...p.prices } })}>Ubah harga</button>}
                 </div>
               </div>
-              {Object.keys(p.prices).length > 0 ? (
-                <ul className="mt-2 text-sm text-slate-600">{Object.entries(p.prices).map(([mp, price]) => <li key={mp}>{mp}: <b>{formatRupiah(price)}</b></li>)}</ul>
-              ) : (
+              {/* Paket ber-tier (Private Trip) SELALU tampilkan daftar tier —
+                  jangan pernah menampilkan Rp0 dari harga per-meeting-point kosong. */}
+              {p.tiers.length > 0 ? (
                 <ul className="mt-2 text-sm text-slate-600">
                   <li className="text-slate-400">Harga per rombongan (tier):</li>
                   {p.tiers.map((t) => <li key={t.id}>{t.minPax}–{t.maxPax} peserta: <b>{formatRupiah(t.price)}</b></li>)}
                 </ul>
+              ) : (
+                <ul className="mt-2 text-sm text-slate-600">{Object.entries(p.prices).map(([mp, price]) => <li key={mp}>{mp}: <b>{formatRupiah(price)}</b></li>)}</ul>
               )}
             </div>
           ))}

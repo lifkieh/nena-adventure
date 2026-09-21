@@ -81,7 +81,7 @@ export function ContentPage() {
           <div className="space-y-2">
             {items.map((it, i) => (
               <div key={i} className="rounded-lg border border-slate-200 p-2">
-                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Pertanyaan" value={it.q} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, q: e.target.value } : x))} disabled={!canWrite} />
+                <input data-testid={`faq-q-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Pertanyaan" value={it.q} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, q: e.target.value } : x))} disabled={!canWrite} />
                 <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Jawaban" rows={2} value={it.a} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, a: e.target.value } : x))} disabled={!canWrite} />
                 {canWrite && (
                   <div className="mt-1 flex gap-2 text-xs">

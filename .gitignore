@@ -33,3 +33,5 @@ services/api/data/
 # Parity harness
 .parity-baseline/
 .parity-out/
+
+apps/panel/.vite/

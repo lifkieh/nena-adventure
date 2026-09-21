@@ -13,12 +13,13 @@
  */
 import { execSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { readFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { extname, join, resolve, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
+import { SUBPAGES, BOOKING_LABELS } from "./parity-routes.mjs";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const OUT = resolve(ROOT, ".parity-out");
@@ -30,18 +31,7 @@ const VIEWPORTS = [
   { name: "390", width: 390, height: 844 },
 ];
 
-const SUBPAGES = [
-  ["beranda", "#/"],
-  ["paket", "#/paket"],
-  ["itinerary", "#/itinerary"],
-  ["destinasi", "#/destinasi"],
-  ["keselamatan", "#/keselamatan"],
-  ["jadwal", "#/jadwal"],
-  ["lokasi", "#/lokasi"],
-  ["registrasi", "#/registrasi"],
-  ["syarat", "#/syarat"],
-  ["faq", "#/faq"],
-];
+/* SUBPAGES & BOOKING_LABELS diimpor dari parity-routes.mjs (sumber tunggal). */
 
 /* ── util ────────────────────────────────────────────────── */
 const MIME = {
@@ -241,15 +231,87 @@ function pixelDiff(aBuf, bBuf, key) {
   return { ratio, note: "" };
 }
 
-/* ── main ────────────────────────────────────────────────── */
-function parseBaseline(argv) {
-  // Prioritas: --baseline <ref> / --baseline=<ref>  >  env  >  default tag pre-1a
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--baseline") return argv[i + 1];
-    if (a.startsWith("--baseline=")) return a.slice("--baseline=".length);
+/* ── Integritas baseline ─────────────────────────────────── */
+const LOCK_PATH = resolve(ROOT, "scripts/parity-baseline.lock.json");
+const HISTORY_PATH = resolve(ROOT, "scripts/parity-baseline.history.log");
+
+function readLock() {
+  if (!existsSync(LOCK_PATH)) {
+    throw new Error(
+      "parity-baseline.lock.json tidak ada. Baseline harus dipin eksplisit. " +
+        'Jalankan: node scripts/parity.mjs --regen-baseline --reason "<alasan>"',
+    );
   }
-  return process.env.PARITY_BASELINE || "pre-1a";
+  return JSON.parse(readFileSync(LOCK_PATH, "utf8"));
+}
+
+function gitCommitOf(ref) {
+  // Kutip "^{commit}" — di cmd.exe Windows, ^ adalah karakter escape.
+  return execSync(`git rev-parse "${ref}^{commit}"`, { cwd: ROOT, encoding: "utf8" }).trim();
+}
+
+function getArg(argv, name) {
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === name) return argv[i + 1] ?? "";
+    if (argv[i].startsWith(name + "=")) return argv[i].slice(name.length + 1);
+  }
+  return undefined;
+}
+
+/**
+ * Regenerasi baseline HANYA lewat jalur eksplisit ini.
+ * Wajib --reason. Mencatat commit lama->baru + alasan ke history.log.
+ * Jalur default TIDAK PERNAH memanggil ini -> baseline mustahil tertimpa diam2.
+ */
+function regenBaseline(argv) {
+  const reason = getArg(argv, "--reason");
+  if (!reason || !reason.trim()) {
+    console.error(
+      'GAGAL: --regen-baseline wajib menyertakan --reason "<alasan jujur>". ' +
+        "Baseline tidak diubah.",
+    );
+    process.exit(2);
+  }
+  const ref = getArg(argv, "--baseline") || "pre-1a";
+  const commit = gitCommitOf(ref);
+  const prev = existsSync(LOCK_PATH) ? JSON.parse(readFileSync(LOCK_PATH, "utf8")) : null;
+  const pinnedAt = new Date().toISOString().slice(0, 10);
+  const next = { ref, commit, reason: reason.trim(), pinnedAt };
+  writeFileSync(LOCK_PATH, JSON.stringify(next, null, 2) + "\n");
+  appendFileSync(
+    HISTORY_PATH,
+    `${new Date().toISOString()}\t${prev ? prev.commit : "(none)"} -> ${commit}\tref=${ref}\treason=${reason.trim()}\n`,
+  );
+  console.log(`Baseline dipin ulang: ${ref} @ ${commit}`);
+  console.log(`Alasan: ${reason.trim()}`);
+  console.log("Lock diperbarui. Jalankan parity lagi tanpa flag untuk membandingkan.");
+}
+
+/**
+ * Jalur default: baca lock, TOLAK override diam-diam, verifikasi tag belum geser.
+ * Mengembalikan commit SHA immutable (bukan nama ref) untuk worktree.
+ */
+function resolveLockedBaseline(argv) {
+  // Override eksplisit hanya boleh lewat --regen-baseline (ditangani di main).
+  if (getArg(argv, "--baseline") !== undefined || process.env.PARITY_BASELINE) {
+    console.error(
+      "GAGAL: baseline tidak boleh di-override lewat --baseline / PARITY_BASELINE. " +
+        'Untuk mengubah baseline gunakan: --regen-baseline --reason "<alasan>".',
+    );
+    process.exit(2);
+  }
+  const lock = readLock();
+  const live = gitCommitOf(lock.ref);
+  if (live !== lock.commit) {
+    console.error(
+      `GAGAL (integritas): tag "${lock.ref}" sekarang menunjuk ${live}, ` +
+        `tapi lock dipin ke ${lock.commit}. Baseline TIDAK ditimpa. ` +
+        `Kalau pergeseran ini disengaja, jalankan --regen-baseline --reason "<alasan>".`,
+    );
+    process.exit(2);
+  }
+  console.log(`Baseline terkunci: ${lock.ref} @ ${lock.commit} (pin ${lock.pinnedAt})`);
+  return lock.commit;
 }
 
 const API_PORT = 3211;
@@ -332,7 +394,17 @@ async function startRefactoredApi() {
 }
 
 async function main() {
-  const BASELINE = parseBaseline(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+
+  // Jalur regenerasi baseline: eksplisit, wajib alasan, lalu berhenti.
+  if (argv.includes("--regen-baseline")) {
+    regenBaseline(argv);
+    return;
+  }
+
+  // Jalur default: baseline terkunci ke commit di lock (immutable), tak bisa
+  // di-override diam-diam, dan menolak jalan bila tag sudah bergeser.
+  const BASELINE = resolveLockedBaseline(argv);
 
   // Siapkan worktree baseline (situs monolith Math.sin, disajikan statis).
   rmSync(WORKTREE, { recursive: true, force: true });
