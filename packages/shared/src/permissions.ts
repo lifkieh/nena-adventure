@@ -27,6 +27,8 @@ export const PERMISSIONS = [
   "content:read",
   "content:write",
   "content:publish",
+  "package:read",
+  "package:write",
   // Data pribadi peserta (NIK/tanggal lahir utuh) — sangat sensitif.
   "participant:read_pii",
   "participant:export",
@@ -63,6 +65,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "schedule:read",
     "schedule:write",
     "content:read",
+    "package:read", // hanya baca harga
     "payment:read",
     "report:read",
   ],
@@ -73,6 +76,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "payment:read",
     "payment:verify",
     "payment:refund",
+    "package:read",
     "report:read",
   ],
 
@@ -82,6 +86,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "booking:read",
     "schedule:read",
     "content:read",
+    "package:read",
     "user:read",
     "settings:read",
     "report:read",

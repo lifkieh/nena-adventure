@@ -152,6 +152,24 @@ try {
   if (!/whatsapp/i.test(monthsText)) fail("jadwal 500: tidak ada WhatsApp");
   if (/penuh/i.test(monthsText)) fail("jadwal 500: menampilkan 'penuh'");
 
+  // ── #2 Kalender menyusut saat API balikan daftar lebih pendek ──
+  const page3 = await (await browser.newContext()).newPage();
+  const SLOTS = "#months li a.slot, #months li span.slot--full";
+  await page3.goto(base + "/#/jadwal", { waitUntil: "load" });
+  await page3.waitForSelector("#months .month", { timeout: 8000 });
+  await page3.waitForTimeout(500);
+  const fullCount = await page3.$$eval(SLOTS, (els) => els.length);
+  await page3.route("**/api/public/schedules", async (route) => {
+    const resp = await route.fetch();
+    const arr = await resp.json();
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(arr.slice(0, 3)) });
+  });
+  await page3.reload({ waitUntil: "load" });
+  await page3.waitForTimeout(900);
+  const shrunkCount = await page3.$$eval(SLOTS, (els) => els.length);
+  if (!(shrunkCount < fullCount)) fail(`kalender tidak menyusut (full=${fullCount}, shrunk=${shrunkCount})`);
+  console.log(`kalender slots: full=${fullCount} -> shrunk=${shrunkCount}`);
+
   console.log("kode:", kode, "| queue:", qBefore, "->", qAfter, "| timer refresh:", JSON.stringify(timerTxt));
   console.log(ok ? "\nE2E OK" : "\nE2E FAIL");
   await browser.close();

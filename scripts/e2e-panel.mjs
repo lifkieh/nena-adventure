@@ -61,6 +61,7 @@ try {
   await api.post("/api/admin/users", { data: { email: "vw@t.local", name: "Vw", role: "viewer", password: PW } });
   const sch = await (await api.get("/api/admin/schedules?status=terbit")).json();
   const schedId = sch[0]?.id;
+  const schedDate = sch[0]?.date;
   if (!schedId) fail("tidak ada jadwal terbit untuk booking manual");
   await api.post("/api/admin/bookings", { data: { scheduleId: schedId, packageKey: "reguler", meetingPoint: "anyer", pax: 1, paymentScheme: "lunas", customer: { name: "Peserta Uji", phone: "081200000000", email: "p@u.co" }, participants: [{ name: "Peserta Uji", idNumber: "3200000000009999" }] } });
   await api.dispose();
@@ -73,11 +74,10 @@ try {
   await owner.click('button:has-text("Konten")');
   await owner.click('a:has-text("Konten situs")');
   await owner.waitForSelector('[data-testid="hero-heading"]');
+  // #3 terbitkan jujur: ketik lalu LANGSUNG Terbitkan (tanpa Save) -> tersimpan+terbit.
   await owner.fill('[data-testid="hero-heading"]', HERO_NEW);
-  await owner.click('[data-testid="save-draft"]');
-  await owner.waitForTimeout(400);
   await owner.click('[data-testid="publish"]');
-  await owner.waitForTimeout(600);
+  await owner.waitForTimeout(700);
 
   const site = await (await browser.newContext()).newPage();
   await site.goto(base + "/#/", { waitUntil: "load" });
@@ -91,6 +91,25 @@ try {
   await site2.goto(base + "/#/", { waitUntil: "load" });
   await site2.waitForFunction((t) => (document.querySelector("#view-home .hero2-copy h1")?.textContent || "") === t, HERO_ORIG, { timeout: 8000 })
     .catch(() => fail("revert tidak mengembalikan konten situs"));
+
+  // ── #4 Hapus jadwal ber-booking aktif -> ditolak lewat modal ──
+  await owner.click('button:has-text("Operasional")');
+  await owner.goto(base + "/panel/schedules", { waitUntil: "load" });
+  await owner.waitForTimeout(600);
+  let foundDel = false;
+  for (let i = 0; i < 4; i++) {
+    if (await owner.$(`[data-testid="del-${schedDate}"]`)) { foundDel = true; break; }
+    await owner.click('button:has-text("›")'); await owner.waitForTimeout(400);
+  }
+  if (!foundDel) fail("jadwal ber-booking tak ketemu di kalender bulan mana pun");
+  else {
+    await owner.click(`[data-testid="del-${schedDate}"]`);
+    await owner.waitForSelector('[data-testid="confirm-modal"]', { timeout: 5000 });
+    await owner.click('[data-testid="confirm-ok"]');
+    await owner.waitForTimeout(600);
+    const schedErr = await owner.$eval('[data-testid="sched-error"]', (e) => e.textContent || "").catch(() => "");
+    if (!/booking aktif/i.test(schedErr)) fail("hapus jadwal ber-booking tidak ditolak: " + schedErr);
+  }
 
   // ── B. Operasional tidak bisa tulis konten ──
   const ops = await (await browser.newContext()).newPage();

@@ -3,15 +3,30 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatRupiah } from "@nena/shared";
 import { ApiError, paymentsApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
+import { useConfirm } from "../components/Confirm";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
 export function VerificationPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [err, setErr] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["verif-queue"], queryFn: paymentsApi.queue, enabled: has("payment:read") });
   const refresh = () => qc.invalidateQueries({ queryKey: ["verif-queue"] });
   const run = <T,>(p: Promise<T>) => p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Gagal."));
+
+  async function approve(p: Record<string, unknown>) {
+    const r = await confirm({
+      title: "Terima pembayaran?",
+      confirmLabel: "Terima",
+      body: <>Terima pembayaran <b>{new Intl.NumberFormat("id-ID").format(Number(p.amount))} rupiah</b> untuk booking <b>{String(p.bookingCode)}</b>?</>,
+    });
+    if (r.confirmed) run(paymentsApi.approve(String(p.id)));
+  }
+  async function reject(p: Record<string, unknown>) {
+    const r = await confirm({ title: `Tolak bukti ${String(p.bookingCode)}?`, danger: true, withReason: true, confirmLabel: "Tolak" });
+    if (r.confirmed && r.reason) run(paymentsApi.reject(String(p.id), r.reason));
+  }
 
   if (!has("payment:read")) return <NoAccess />;
   const canVerify = has("payment:verify");
@@ -38,8 +53,8 @@ export function VerificationPage() {
                   <td className="px-4 py-2">
                     {canVerify && (
                       <div className="flex gap-1">
-                        <button className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white" onClick={() => run(paymentsApi.approve(String(p.id)))}>Terima</button>
-                        <button className="rounded border border-red-300 px-2 py-1 text-xs font-semibold text-red-600" onClick={() => { const r = prompt("Alasan tolak:"); if (r) run(paymentsApi.reject(String(p.id), r)); }}>Tolak</button>
+                        <button data-testid="verif-approve" className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white" onClick={() => approve(p)}>Terima</button>
+                        <button data-testid="verif-reject" className="rounded border border-red-300 px-2 py-1 text-xs font-semibold text-red-600" onClick={() => reject(p)}>Tolak</button>
                       </div>
                     )}
                   </td>

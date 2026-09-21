@@ -34,11 +34,15 @@ export function getSectionSafe(key: string) {
 export function getSection(key: string) {
   const s = repo.findByKey(key);
   if (!s) throw AppError.notFound("Section tidak ditemukan.");
+  const pubVer = s.publishedVersionId ? repo.versionById(s.publishedVersionId) : undefined;
   return {
     key: s.key,
     title: s.title,
     draft: parse(s.draftVersionId),
     published: parse(s.publishedVersionId),
+    publishedAt: pubVer?.createdAt ?? null,
+    hasUnpublishedDraft:
+      !!s.draftVersionId && s.draftVersionId !== s.publishedVersionId,
   };
 }
 

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { RequireAuth } from "./components/RequireAuth";
 import { RouteError } from "./components/RouteError";
+import { ConfirmProvider } from "./components/Confirm";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -16,6 +17,7 @@ import { VerificationPage } from "./pages/VerificationPage";
 import { ParticipantsPage } from "./pages/ParticipantsPage";
 import { PackagesPage } from "./pages/PackagesPage";
 import { MediaPage } from "./pages/MediaPage";
+import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,7 @@ const router = createBrowserRouter(
         { path: "schedules", element: <SchedulesPage /> },
         { path: "participants", element: <ParticipantsPage /> },
         { path: "packages", element: <PackagesPage /> },
+        { path: "settings", element: <OwnerSettingsPage /> },
         { path: "content", element: <ContentPage /> },
         { path: "media", element: <MediaPage /> },
         { path: "users", element: <UsersPage /> },
@@ -51,7 +54,9 @@ if (!root) throw new Error("Elemen #root tidak ditemukan");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ConfirmProvider>
+        <RouterProvider router={router} />
+      </ConfirmProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

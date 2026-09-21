@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BOOKING_STATUSES, formatRupiah } from "@nena/shared";
+import { BOOKING_STATUSES, bookingStatusMeta, formatRupiah } from "@nena/shared";
 import { ApiError, bookingsApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
+import { useConfirm } from "../components/Confirm";
+import { BookingStatus } from "../components/StatusPill";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
 export function BookingsPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState<string | null>(null);
@@ -32,7 +35,7 @@ export function BookingsPage() {
       <div className="mt-3 flex flex-wrap items-center gap-1">
         <button onClick={() => setStatus("")} className={`rounded px-2 py-1 text-xs font-semibold ${status === "" ? "bg-laut text-white" : "bg-slate-100"}`}>Semua</button>
         {BOOKING_STATUSES.map((s) => (
-          <button key={s} onClick={() => setStatus(s)} className={`rounded px-2 py-1 text-xs font-semibold ${status === s ? "bg-laut text-white" : "bg-slate-100"}`}>{s}</button>
+          <button key={s} onClick={() => setStatus(s)} className={`rounded px-2 py-1 text-xs font-semibold ${status === s ? "bg-laut text-white" : "bg-slate-100"}`}>{bookingStatusMeta[s].label}</button>
         ))}
         <input className="ml-auto rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Cari kode/nama/HP" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -52,7 +55,7 @@ export function BookingsPage() {
                   <tr key={String(b.id)} className="border-b border-slate-100">
                     <td className="px-4 py-2 font-mono">{String(b.code)}</td>
                     <td className="px-4 py-2">{String(b.customerName)}</td>
-                    <td className="px-4 py-2">{String(b.status)} <span className="text-xs text-slate-400">{String(b.source)}</span></td>
+                    <td className="px-4 py-2"><BookingStatus status={String(b.status)} /> <span className="text-xs text-slate-400">{String(b.source)}</span></td>
                     <td className="px-4 py-2">{formatRupiah(Number(b.total))}</td>
                     <td className="px-4 py-2">{hold != null && hold > 0 && hold < 15 * 60_000 ? <span className="rounded bg-amber-100 px-1.5 text-xs font-bold text-amber-700">hampir kedaluwarsa</span> : "-"}</td>
                     <td className="px-4 py-2"><button className="rounded border border-slate-300 px-2 py-1 text-xs" onClick={() => setSel(String(b.id))}>Detail</button></td>
@@ -77,8 +80,10 @@ export function BookingsPage() {
             </div>
           )}
           {has("booking:cancel") && (
-            <button className="mt-2 rounded border border-red-300 px-2 py-1 text-xs font-semibold text-red-600" onClick={() => { const r = prompt("Alasan batal:"); if (r) run(bookingsApi.cancel(sel, r)); }}>Batalkan</button>
+            <button className="mt-2 rounded border border-red-300 px-2 py-1 text-xs font-semibold text-red-600"
+              onClick={async () => { const r = await confirm({ title: `Batalkan ${String(detail.data!.booking.code)}?`, danger: true, withReason: true, confirmLabel: "Batalkan" }); if (r.confirmed && r.reason) run(bookingsApi.cancel(sel, r.reason)); }}>Batalkan</button>
           )}
+          <p className="mt-2 text-xs text-slate-400">Status saat ini juga tampil di detail sebagai label berwarna.</p>
         </div>
       )}
     </section>

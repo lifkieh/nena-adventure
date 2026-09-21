@@ -1,14 +1,24 @@
 import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { scheduleStatusSchema } from "@nena/shared";
 import { db } from "../db/client.js";
 import { bookings, schedules, seatLedger } from "../db/schema.js";
 
 export type ScheduleRow = typeof schedules.$inferSelect;
+
+/** Guard lapisan repo: tolak status di luar enum kanonik. */
+function assertStatus(status: string | undefined | null): void {
+  if (status == null) return;
+  if (!scheduleStatusSchema.safeParse(status).success) {
+    throw new Error(`Status jadwal tidak valid: "${status}"`);
+  }
+}
 
 export function findById(id: string): ScheduleRow | undefined {
   return db.select().from(schedules).where(eq(schedules.id, id)).get();
 }
 
 export function insert(values: typeof schedules.$inferInsert): ScheduleRow {
+  assertStatus(values.status);
   return db.insert(schedules).values(values).returning().get();
 }
 
@@ -16,6 +26,7 @@ export function update(
   id: string,
   patch: Partial<typeof schedules.$inferInsert>,
 ): ScheduleRow {
+  assertStatus(patch.status);
   return db
     .update(schedules)
     .set({ ...patch, updatedAt: new Date().toISOString() })

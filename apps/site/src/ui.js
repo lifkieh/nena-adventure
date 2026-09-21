@@ -1,13 +1,19 @@
 import { SPOT } from "./data/spot.js";
 import { loadContent } from "./data/api.js";
+import { faqHtml } from "./render.js";
 (function(){
   "use strict";
 
   /* ── Konten dari CMS (fallback ke konten bawaan HTML) ───── */
   loadContent().then(function(c){
-    if (c && c.hero && typeof c.hero.heading === "string"){
+    if (!c) return;
+    if (c.hero && typeof c.hero.heading === "string"){
       var h = document.querySelector('#view-home .hero2-copy h1');
       if (h) h.textContent = c.hero.heading;
+    }
+    if (c.faq && Array.isArray(c.faq.items)){
+      var f = document.querySelector('#faq .faq');
+      if (f) f.innerHTML = faqHtml(c.faq.items);
     }
   }).catch(function(){ /* biarkan konten bawaan HTML */ });
 

@@ -96,7 +96,8 @@ function main(): void {
       name: "Open Trip Premium",
       prices: { anyer: 525000, serang: 650000, tangerang: 800000, jakarta: 850000 },
     },
-    { key: "private", name: "Private Trip Premium", prices: { anyer: 0 } },
+    // Private: harga per rombongan lewat tier (bukan per meeting point) -> prices {}.
+    { key: "private", name: "Private Trip Premium", prices: {} },
   ];
   for (const p of pkgs) {
     db.insert(packages)
@@ -104,6 +105,10 @@ function main(): void {
       .onConflictDoNothing({ target: packages.key })
       .run();
   }
+  // Perbaiki data lama: private {anyer:0} -> {} (bukan Rp0 palsu).
+  sqliteConn
+    .prepare("UPDATE packages SET prices='{}' WHERE key='private' AND prices='{\"anyer\":0}'")
+    .run();
 
   // Tier Private Trip (per rombongan).
   const privatePkg = db

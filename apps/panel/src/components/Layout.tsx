@@ -12,7 +12,8 @@ const OPERASIONAL: NavItem[] = [
   { to: "/verification", label: "Verifikasi bukti", perm: "payment:verify" },
   { to: "/schedules", label: "Jadwal", perm: "schedule:read" },
   { to: "/participants", label: "Peserta", perm: "booking:read" },
-  { to: "/packages", label: "Paket & harga", perm: "settings:read" },
+  { to: "/packages", label: "Paket & harga", perm: "package:read" },
+  { to: "/settings", label: "Pengaturan owner", perm: "settings:write" },
   { to: "/users", label: "Pengguna & peran", perm: "user:manage" },
   { to: "/audit", label: "Audit log", perm: "user:read" },
 ];

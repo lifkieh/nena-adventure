@@ -43,6 +43,13 @@
       "when": 1789982542431,
       "tag": "0005_thick_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789992960747,
+      "tag": "0006_status_map",
+      "breakpoints": true
     }
   ]
 }

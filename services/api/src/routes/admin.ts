@@ -374,26 +374,26 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     scheduleService.generateCommit(scheduleGeneratorSchema.parse(req.body), actorFromReq(req)),
   );
 
-  /* ── Paket & harga (settings:read / settings:write) ─────── */
-  app.get("/packages", rd("settings:read"), async () => packageService.list());
-  app.post("/packages", rd("settings:write"), async (req, reply) => {
+  /* ── Paket & harga (package:read / package:write) ───────── */
+  app.get("/packages", rd("package:read"), async () => packageService.list());
+  app.post("/packages", rd("package:write"), async (req, reply) => {
     reply.status(201);
     return packageService.create(packageInputSchema.parse(req.body), actorFromReq(req));
   });
-  app.put("/packages/:id", rd("settings:write"), async (req) =>
+  app.put("/packages/:id", rd("package:write"), async (req) =>
     packageService.update((req.params as { id: string }).id, packageInputSchema.parse(req.body), actorFromReq(req)),
   );
-  app.delete("/packages/:id", rd("settings:write"), async (req) => {
+  app.delete("/packages/:id", rd("package:write"), async (req) => {
     packageService.remove((req.params as { id: string }).id, actorFromReq(req));
     return { ok: true };
   });
-  app.post("/packages/:id/tiers", rd("settings:write"), async (req) =>
+  app.post("/packages/:id/tiers", rd("package:write"), async (req) =>
     packageService.addTier((req.params as { id: string }).id, tierInputSchema.parse(req.body), actorFromReq(req)),
   );
-  app.put("/tiers/:id", rd("settings:write"), async (req) =>
+  app.put("/tiers/:id", rd("package:write"), async (req) =>
     packageService.updateTier((req.params as { id: string }).id, tierInputSchema.parse(req.body), actorFromReq(req)),
   );
-  app.delete("/tiers/:id", rd("settings:write"), async (req) => {
+  app.delete("/tiers/:id", rd("package:write"), async (req) => {
     packageService.removeTier((req.params as { id: string }).id, actorFromReq(req));
     return { ok: true };
   });

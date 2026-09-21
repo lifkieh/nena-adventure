@@ -1,27 +1,23 @@
 // Klien API publik untuk situs. Data kursi & booking dari server (bukan mock).
 const BASE = "/api/public";
 
-let _cache = null;
-
-/** Muat jadwal dari server sekali (cache promise). */
+/** Muat jadwal dari server — SELALU fresh (revalidasi tiap halaman dibuka).
+ *  Tidak ada cache angka kursi lama; kegagalan dilempar agar UI tampilkan pesan netral. */
 export function loadSchedules() {
-  if (!_cache) {
-    _cache = fetch(BASE + "/schedules")
-      .then(function (r) {
-        if (!r.ok) throw new Error("Gagal memuat jadwal.");
-        return r.json();
-      })
-      .then(function (list) {
-        var remainingByIso = {};
-        var idByIso = {};
-        for (var i = 0; i < list.length; i++) {
-          remainingByIso[list[i].date] = list[i].remaining;
-          idByIso[list[i].date] = list[i].id;
-        }
-        return { list: list, remainingByIso: remainingByIso, idByIso: idByIso };
-      });
-  }
-  return _cache;
+  return fetch(BASE + "/schedules")
+    .then(function (r) {
+      if (!r.ok) throw new Error("Gagal memuat jadwal.");
+      return r.json();
+    })
+    .then(function (list) {
+      var remainingByIso = {};
+      var idByIso = {};
+      for (var i = 0; i < list.length; i++) {
+        remainingByIso[list[i].date] = list[i].remaining;
+        idByIso[list[i].date] = list[i].id;
+      }
+      return { list: list, remainingByIso: remainingByIso, idByIso: idByIso };
+    });
 }
 
 /** POST booking. Lempar Error dengan .code / .status bila gagal. */

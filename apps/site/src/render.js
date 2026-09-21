@@ -42,6 +42,16 @@ export function boardHtml(remainingByIso, now) {
   return html;
 }
 
+/** HTML FAQ (verbatim-compatible dgn markup situs). Hanya item aktif. */
+export function faqHtml(items) {
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  var active = (items || []).filter(function (it) { return it.active !== false; });
+  var parts = active.map(function (it, i) {
+    return "<details" + (i === 0 ? " open" : "") + "><summary>" + esc(it.q) + "</summary><p>" + esc(it.a) + "</p></details>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */
 export function calendarHtml(remainingByIso, now) {
   var base = new Date(now); base.setHours(0, 0, 0, 0);

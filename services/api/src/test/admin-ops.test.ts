@@ -81,6 +81,20 @@ describe("state machine dari HTTP panel", () => {
   });
 });
 
+describe("hapus jadwal via HTTP", () => {
+  it("jadwal ber-booking aktif -> 409 + pesan 'booking aktif'", async () => {
+    const s = makeSchedule({ date: futureDate(44), capacity: 10 });
+    book(s.id, 1);
+    makeUser({ email: "own-del@t.local", password: "Password123", role: "owner" });
+    const cookie = await loginCookie(app, "own-del@t.local", "Password123", "10.8.0.3");
+    const res = await app.inject({
+      method: "DELETE", url: `/api/admin/schedules/${s.id}`, headers: { cookie: cookie! },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.message).toMatch(/booking aktif/i);
+  });
+});
+
 describe("RBAC operasional", () => {
   it("operasional tidak bisa tulis konten (403) & tidak bisa verifikasi (403)", async () => {
     makeUser({ email: "ops@t.local", password: "Password123", role: "operasional" });

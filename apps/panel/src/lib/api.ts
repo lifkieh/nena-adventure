@@ -22,10 +22,14 @@ export class ApiError extends Error {
 export const UNAUTHORIZED_EVENT = "nena:unauthorized";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  // Hanya set content-type JSON kalau ada body — request tanpa body (DELETE)
+  // dengan header JSON + body kosong ditolak Fastify (FST_ERR_CTP_EMPTY_JSON_BODY).
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
+  if (init?.body != null && !("content-type" in headers)) headers["content-type"] = "application/json";
   const res = await fetch("/api" + path, {
     credentials: "include", // sesi via cookie httpOnly, tidak ada token di JS
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
     ...init,
+    headers,
   });
   if (res.status === 401) {
     window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
@@ -100,7 +104,8 @@ export const auditApi = {
 /* ── Operasional ─────────────────────────────────────────── */
 export interface ScheduleDto {
   id: string; date: string; capacity: number; threshold: number;
-  status: string; publicNote: string | null; used: number; remaining: number;
+  status: string; publicNote: string | null; closedReason: string | null;
+  availablePackages: string[] | null; used: number; remaining: number;
   belowThreshold: boolean;
 }
 export const schedulesApi = {
@@ -114,9 +119,16 @@ export const schedulesApi = {
   genCommit: (b: unknown) => req<{ created: number; skipped: number }>("/admin/schedules/generate/commit", { method: "POST", body: JSON.stringify(b) }),
 };
 
+export interface PackageDto { id: string; key: string; name: string; prices: Record<string, number>; active: boolean; tiers: { id: string; minPax: number; maxPax: number; price: number }[] }
 export const packagesApi = {
-  list: () => req<{ id: string; key: string; name: string; prices: Record<string, number>; active: boolean; tiers: unknown[] }[]>("/admin/packages"),
+  list: () => req<PackageDto[]>("/admin/packages"),
   update: (id: string, b: unknown) => req<unknown>(`/admin/packages/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+  updateTier: (id: string, b: unknown) => req<unknown>(`/admin/tiers/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+};
+
+export const settingsApi = {
+  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number }>("/admin/settings/owner"),
+  set: (b: unknown) => req<unknown>("/admin/settings/owner", { method: "PUT", body: JSON.stringify(b) }),
 };
 
 export const bookingsApi = {

@@ -339,3 +339,6 @@ export interface ContentSectionDto {
   hasPublished: boolean;
   updatedAt: string;
 }
+
+// Label + warna status (di akhir agar tidak circular saat labels impor enum).
+export * from "./labels.js";

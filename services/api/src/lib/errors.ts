@@ -70,6 +70,14 @@ export function errorHandler(
     return;
   }
 
+  // Error Fastify bawaan (mis. body JSON kosong) sudah punya statusCode 4xx —
+  // hormati itu supaya tidak salah lapor 500.
+  const fe = err as { statusCode?: number; code?: string; message?: string };
+  if (typeof fe.statusCode === "number" && fe.statusCode >= 400 && fe.statusCode < 500) {
+    reply.status(fe.statusCode).send(envelope(fe.code ?? ErrorCode.VALIDATION, "Permintaan tidak valid."));
+    return;
+  }
+
   // Error tak terduga: jangan bocorkan detail internal ke user.
   req.log.error({ err }, "Unhandled error");
   reply

@@ -1,0 +1,47 @@
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, settingsApi } from "../lib/api";
+import { usePermissions } from "../lib/useAuth";
+import { Loading, ErrorState, NoAccess } from "../components/States";
+
+export function OwnerSettingsPage() {
+  const { has } = usePermissions();
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ bankAccount: "", serviceFee: 0, dpPercent: 0, cutoffDays: 0 });
+  const [msg, setMsg] = useState<string | null>(null);
+  const q = useQuery({ queryKey: ["owner-settings"], queryFn: settingsApi.get, enabled: has("settings:read") });
+  useEffect(() => { if (q.data) setForm(q.data); }, [q.data]);
+
+  if (!has("settings:read")) return <NoAccess />;
+  const canWrite = has("settings:write");
+
+  async function save() {
+    try { await settingsApi.set(form); setMsg("Pengaturan tersimpan."); qc.invalidateQueries({ queryKey: ["owner-settings"] }); }
+    catch (e) { setMsg(e instanceof ApiError ? e.message : "Gagal simpan."); }
+  }
+
+  return (
+    <section>
+      <h2 className="text-xl font-extrabold text-slate-800">Pengaturan owner</h2>
+      <p className="mt-1 text-sm text-slate-500">Rekening, biaya layanan, persentase DP, dan cutoff. Owner-only.</p>
+      {msg && <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
+      {q.isLoading ? <Loading /> : q.isError ? <ErrorState message="Tidak bisa memuat pengaturan." onRetry={() => q.refetch()} /> : (
+        <div className="mt-4 max-w-md space-y-3 rounded-xl border border-slate-200 bg-white p-5 text-sm">
+          <label className="block">Rekening BCA
+            <input className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} disabled={!canWrite} />
+          </label>
+          <label className="block">Biaya layanan (Rp)
+            <input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" value={form.serviceFee} onChange={(e) => setForm({ ...form, serviceFee: +e.target.value })} disabled={!canWrite} />
+          </label>
+          <label className="block">Persentase DP (%)
+            <input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" value={form.dpPercent} onChange={(e) => setForm({ ...form, dpPercent: +e.target.value })} disabled={!canWrite} />
+          </label>
+          <label className="block">Cutoff pelunasan (hari)
+            <input type="number" className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5" value={form.cutoffDays} onChange={(e) => setForm({ ...form, cutoffDays: +e.target.value })} disabled={!canWrite} />
+          </label>
+          {canWrite && <button data-testid="save-settings" className="rounded-lg bg-laut px-4 py-2 font-bold text-white" onClick={save}>Simpan</button>}
+        </div>
+      )}
+    </section>
+  );
+}
