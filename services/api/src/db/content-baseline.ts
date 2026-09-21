@@ -14,10 +14,12 @@ export interface FaqItem {
   active: boolean;
 }
 
+function readJson<T>(file: string): T {
+  return JSON.parse(readFileSync(new URL("./" + file, import.meta.url), "utf8")) as T;
+}
+
 export function faqBaseline(): FaqItem[] {
-  return JSON.parse(
-    readFileSync(new URL("./faq.pre-1a.json", import.meta.url), "utf8"),
-  ) as FaqItem[];
+  return readJson<FaqItem[]>("faq.pre-1a.json");
 }
 
 /** Peta section -> body kanonik yang HARUS terbit. */
@@ -25,6 +27,8 @@ export function contentBaseline(): Record<string, unknown> {
   return {
     hero: { heading: HERO_HEADING },
     faq: { items: faqBaseline() },
+    syarat: { groups: readJson<unknown[]>("syarat.pre-1a.json") },
+    testimoni: { items: readJson<unknown[]>("testimoni.pre-1a.json") },
   };
 }
 
@@ -44,9 +48,13 @@ export function stableStringify(v: unknown): string {
 
 /** Ukuran "kekayaan" section untuk deteksi baseline yang lebih miskin. */
 function richness(key: string, body: unknown): number {
-  if (key === "faq") {
+  if (key === "faq" || key === "testimoni") {
     const items = (body as { items?: unknown[] } | null)?.items;
     return Array.isArray(items) ? items.length : 0;
+  }
+  if (key === "syarat") {
+    const groups = (body as { groups?: unknown[] } | null)?.groups;
+    return Array.isArray(groups) ? groups.length : 0;
   }
   const h = (body as { heading?: string } | null)?.heading;
   return typeof h === "string" && h.trim() ? 1 : 0;

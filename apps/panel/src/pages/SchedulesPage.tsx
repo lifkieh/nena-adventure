@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatJakarta, monthRangeFor, pickScheduleMonthOffset } from "@nena/shared";
+import { formatJakarta, monthGrid, monthRangeFor, pickScheduleMonthOffset } from "@nena/shared";
 import { ApiError, schedulesApi, type ScheduleDto } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
 import { useConfirm } from "../components/Confirm";
@@ -73,13 +73,12 @@ export function SchedulesPage() {
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal simpan."); }
   }
 
-  // Kalender bulanan (grid mulai Minggu).
-  const first = new Date(range.from + "T00:00:00Z");
-  const startDow = first.getUTCDay();
-  const daysInMonth = new Date(first.getUTCFullYear(), first.getUTCMonth() + 1, 0).getUTCDate();
-  const cells: (string | null)[] = [];
-  for (let i = 0; i < startDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(range.from.slice(0, 8) + String(d).padStart(2, "0"));
+  // Kalender bulanan (grid mulai Minggu) via monthGrid (TZ-safe, hari terakhir ikut).
+  const grid = monthGrid(new Date(), offset);
+  const cells: (string | null)[] = [
+    ...Array.from({ length: grid.startDow }, () => null),
+    ...grid.datedCells,
+  ];
 
   return (
     <section>

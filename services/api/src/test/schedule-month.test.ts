@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickScheduleMonthOffset, monthKeyDiff, monthRangeFor } from "@nena/shared";
+import { pickScheduleMonthOffset, monthKeyDiff, monthRangeFor, monthGrid } from "@nena/shared";
 
 describe("pickScheduleMonthOffset (default bulan kalender jadwal)", () => {
   it("bulan berjalan punya jadwal -> offset 0", () => {
@@ -50,5 +50,43 @@ describe("monthRangeFor (kalender buka bulan yang benar, bukan geser UTC)", () =
     const r = monthRangeFor(new Date(2026, 11, 15), 1);
     expect(r.from).toBe("2027-01-01");
     expect(r.to).toBe("2027-01-31");
+  });
+});
+
+describe("monthGrid (hari terakhir bulan wajib ikut)", () => {
+  const last = (base: Date, off: number) => monthGrid(base, off).datedCells.slice(-1)[0];
+
+  it("31 Oktober 2026 ada di grid", () => {
+    const g = monthGrid(new Date(2026, 9, 10), 0);
+    expect(g.datedCells).toContain("2026-10-31");
+    expect(g.daysInMonth).toBe(31);
+  });
+  it("30 September 2026 ada di grid", () => {
+    expect(last(new Date(2026, 8, 10), 0)).toBe("2026-09-30");
+  });
+  it("31 Desember 2026 ada di grid", () => {
+    expect(last(new Date(2026, 11, 10), 0)).toBe("2026-12-31");
+  });
+  it("29 Februari 2028 (kabisat) ada di grid", () => {
+    const g = monthGrid(new Date(2028, 1, 10), 0);
+    expect(g.datedCells).toContain("2028-02-29");
+    expect(g.daysInMonth).toBe(29);
+  });
+  it("28 Februari 2027 (bukan kabisat) — tak ada 29", () => {
+    const g = monthGrid(new Date(2027, 1, 10), 0);
+    expect(g.datedCells).toContain("2027-02-28");
+    expect(g.datedCells).not.toContain("2027-02-29");
+  });
+
+  it("jumlah sel bertanggal == jumlah hari kalender, 12 bulan berturut-turut", () => {
+    const base = new Date(2026, 0, 15);
+    for (let off = 0; off < 12; off++) {
+      const g = monthGrid(base, off);
+      const y = Number(g.from.slice(0, 4));
+      const m = Number(g.from.slice(5, 7)); // 1-based
+      const expected = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      expect(g.datedCells.length, `${g.from}`).toBe(expected);
+      expect(g.datedCells.slice(-1)[0]).toBe(`${g.from.slice(0, 8)}${String(expected).padStart(2, "0")}`);
+    }
   });
 });

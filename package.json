@@ -24,12 +24,14 @@
     "parity": "node scripts/parity.mjs",
     "parity:audit": "node scripts/parity-audit.mjs",
     "extract:faq": "node scripts/extract-faq.mjs",
+    "extract:cms": "node scripts/extract-cms.mjs",
     "test:e2e": "node scripts/e2e-booking.mjs",
     "seed:content": "npm run seed:content -w @nena/api",
     "content:verify": "npm run content:verify -w @nena/api",
     "packages:verify": "npm run packages:verify -w @nena/api",
     "extract:prices": "node scripts/extract-prices.mjs",
-    "test:e2e-panel": "node scripts/e2e-panel.mjs"
+    "test:e2e-panel": "node scripts/e2e-panel.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error — modul .mjs polos tanpa deklarasi tipe.
 import { routerRoutes, capturesForRoute, baseCaptureKeys } from "../../../../scripts/parity-routes.mjs";
 // @ts-expect-error — render situs polos tanpa deklarasi tipe.
-import { faqHtml } from "../../../../apps/site/src/render.js";
+import { faqHtml, syaratHtml, testimoniHtml } from "../../../../apps/site/src/render.js";
 
 const ROOT = resolve(__dirname, "../../../..");
 
@@ -42,6 +42,13 @@ function pre1aFaqInner(): string {
   return sec.match(/<div class="faq">([\s\S]*?)<\/div>/)?.[1] ?? "";
 }
 
+function pre1aInner(section: string, boxRe: RegExp): string {
+  const html = execSync("git show pre-1a:apps/site/index.html", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  const sec = html.match(new RegExp(`<section[^>]*id="${section}"[\\s\\S]*?<\\/section>`))?.[0] ?? "";
+  return sec.match(boxRe)?.[1] ?? "";
+}
+const readJson = (f: string) => JSON.parse(readFileSync(resolve(ROOT, "services/api/src/db/" + f), "utf8"));
+
 const seededFaq = JSON.parse(
   readFileSync(resolve(ROOT, "services/api/src/db/faq.pre-1a.json"), "utf8"),
 ) as { q: string; a: string; active: boolean }[];
@@ -63,5 +70,29 @@ describe("FAQ verbatim pre-1a + sensitivitas harness", () => {
   it("NEGATIF: ubah satu pertanyaan -> render BEDA dari pre-1a", () => {
     const edited = seededFaq.map((it, i) => (i === 0 ? { ...it, q: it.q + " (diubah)" } : it));
     expect(faqHtml(edited)).not.toBe(pre1aFaqInner());
+  });
+});
+
+describe("CMS batch-1 verbatim pre-1a (syarat + testimoni)", () => {
+  const syaratInner = () => pre1aInner("syarat", /<div class="accord">([\s\S]*?)<\/div>\s*<\/div>/);
+  const revsInner = () => pre1aInner("ulasan", /<div class="revs">([\s\S]*?)<\/div>\s*<\/div>\s*<\/section>/);
+  const syarat = readJson("syarat.pre-1a.json");
+  const testi = readJson("testimoni.pre-1a.json");
+
+  it("syarat 3 grup, testimoni 6 item", () => {
+    expect(syarat.length).toBe(3);
+    expect(testi.length).toBe(6);
+  });
+  it("syaratHtml(seed) IDENTIK blok pre-1a", () => {
+    expect(syaratHtml(syarat)).toBe(syaratInner());
+  });
+  it("testimoniHtml(seed) IDENTIK blok pre-1a", () => {
+    expect(testimoniHtml(testi)).toBe(revsInner());
+  });
+  it("NEGATIF: hapus 1 grup syarat -> beda", () => {
+    expect(syaratHtml(syarat.slice(0, 2))).not.toBe(syaratInner());
+  });
+  it("NEGATIF: ubah 1 testimoni -> beda", () => {
+    expect(testimoniHtml(testi.map((t: Record<string, unknown>, i: number) => (i === 0 ? { ...t, quote: "x" } : t)))).not.toBe(revsInner());
   });
 });

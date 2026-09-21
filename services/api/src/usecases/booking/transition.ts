@@ -1,4 +1,8 @@
-import { BOOKING_STATUSES, type BookingStatusValue } from "@nena/shared";
+import {
+  BOOKING_TRANSITIONS,
+  type BookingAction,
+  type BookingStatusValue,
+} from "@nena/shared";
 import { AppError } from "../../lib/errors.js";
 
 /* ────────────────────────────────────────────────────────────
@@ -7,16 +11,9 @@ import { AppError } from "../../lib/errors.js";
  * ──────────────────────────────────────────────────────────── */
 
 export type BookingStatus = BookingStatusValue;
-
-export type TransitionAction =
-  | "send_invoice" // baru_masuk -> menunggu_bayar (tenggat admin)
-  | "submit_proof" // menunggu_bayar|menunggu_pelunasan -> verifikasi_bukti
-  | "approve_dp" // verifikasi_bukti -> menunggu_pelunasan
-  | "approve_full" // verifikasi_bukti -> siap_jalan
-  | "reject" // verifikasi_bukti -> menunggu_bayar (hold baru)
-  | "expire" // menunggu_bayar -> kadaluarsa (lepas kursi)
-  | "complete" // siap_jalan -> selesai (H+1)
-  | "cancel"; // apa pun kecuali selesai/batal -> batal (lepas kursi, refund)
+// Tabel transisi tunggal ada di @nena/shared (dipakai panel + test juga).
+export type TransitionAction = BookingAction;
+export const TRANSITIONS = BOOKING_TRANSITIONS;
 
 /** Status yang MASIH menahan kursi (untuk cegah double-release). */
 export const HOLDS_SEATS: ReadonlySet<BookingStatus> = new Set<BookingStatus>([
@@ -27,39 +24,17 @@ export const HOLDS_SEATS: ReadonlySet<BookingStatus> = new Set<BookingStatus>([
   "siap_jalan",
 ]);
 
-const CANCELLABLE_FROM = BOOKING_STATUSES.filter(
-  (s) => s !== "selesai" && s !== "batal",
-) as BookingStatus[];
-
-interface TransitionDef {
-  from: readonly BookingStatus[];
-  to: BookingStatus;
-}
-
-export const TRANSITIONS: Record<TransitionAction, TransitionDef> = {
-  send_invoice: { from: ["baru_masuk"], to: "menunggu_bayar" },
-  submit_proof: {
-    from: ["menunggu_bayar", "menunggu_pelunasan"],
-    to: "verifikasi_bukti",
-  },
-  approve_dp: { from: ["verifikasi_bukti"], to: "menunggu_pelunasan" },
-  approve_full: { from: ["verifikasi_bukti"], to: "siap_jalan" },
-  reject: { from: ["verifikasi_bukti"], to: "menunggu_bayar" },
-  expire: { from: ["menunggu_bayar"], to: "kadaluarsa" },
-  complete: { from: ["siap_jalan"], to: "selesai" },
-  cancel: { from: CANCELLABLE_FROM, to: "batal" },
-};
-
-/** Validasi transisi; kembalikan status tujuan atau lempar error. */
+/** Validasi transisi; kembalikan status tujuan atau lempar error.
+ *  Pesan galat TIDAK memuat nama enum/aksi internal (aman ditampilkan ke admin). */
 export function assertTransition(
   from: BookingStatus,
   action: TransitionAction,
 ): BookingStatus {
   const def = TRANSITIONS[action];
-  if (!def) throw AppError.validation(`Aksi transisi tidak dikenal: ${action}`);
+  if (!def) throw AppError.validation("Aksi tidak dikenal.");
   if (!def.from.includes(from)) {
     throw AppError.conflict(
-      `Transisi tidak valid: "${action}" dari status "${from}".`,
+      "Aksi ini tidak bisa dilakukan pada status pesanan saat ini.",
     );
   }
   return def.to;

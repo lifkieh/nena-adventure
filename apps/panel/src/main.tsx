@@ -9,6 +9,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { BookingsPage } from "./pages/BookingsPage";
+import { BookingDetailPage } from "./pages/BookingDetailPage";
 import { SchedulesPage } from "./pages/SchedulesPage";
 import { ContentPage } from "./pages/ContentPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -32,6 +33,7 @@ const router = createBrowserRouter(
       children: [
         { index: true, element: <DashboardPage /> },
         { path: "bookings", element: <BookingsPage /> },
+        { path: "bookings/:id", element: <BookingDetailPage /> },
         { path: "verification", element: <VerificationPage /> },
         { path: "schedules", element: <SchedulesPage /> },
         { path: "participants", element: <ParticipantsPage /> },

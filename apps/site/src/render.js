@@ -52,6 +52,38 @@ export function faqHtml(items) {
   return "\n      " + parts.join("\n      ") + "\n    ";
 }
 
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+/** HTML accordion Syarat & Ketentuan (verbatim-compatible). Hanya grup aktif. */
+export function syaratHtml(groups) {
+  var active = (groups || []).filter(function (g) { return g.active !== false; });
+  var parts = active.map(function (g, i) {
+    var lis = (g.items || []).map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("\n          ");
+    return "<details" + (i === 0 ? " open" : "") + ">\n"
+      + "        <summary>" + esc(g.title) + "</summary>\n"
+      + "        <ul>\n          " + lis + "\n        </ul>\n"
+      + "      </details>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
+var STAR_WORD = { 1: "Satu", 2: "Dua", 3: "Tiga", 4: "Empat", 5: "Lima" };
+/** HTML testimoni/ulasan (verbatim-compatible). Hanya item aktif. */
+export function testimoniHtml(items) {
+  var active = (items || []).filter(function (it) { return it.active !== false; });
+  var parts = active.map(function (it) {
+    var r = Math.max(0, Math.min(5, it.rating || 5));
+    var stars = "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r); // r bintang penuh + (5-r) kosong
+    var initial = esc(String(it.name || "").charAt(0));
+    return '<article class="rev">\n'
+      + '        <div class="stars" role="img" aria-label="' + STAR_WORD[r] + ' dari lima bintang">' + stars + "</div>\n"
+      + "        <blockquote>" + esc(it.quote) + "</blockquote>\n"
+      + '        <div class="rev-who"><span class="ava" aria-hidden="true">' + initial + "</span><span><b>" + esc(it.name) + "</b><small>" + esc(it.meta) + "</small></span></div>\n"
+      + "      </article>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */
 export function calendarHtml(remainingByIso, now) {
   var base = new Date(now); base.setHours(0, 0, 0, 0);

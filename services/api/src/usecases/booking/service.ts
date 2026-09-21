@@ -9,6 +9,8 @@ import * as bookingsRepo from "../../repos/bookings.repo.js";
 import * as schedulesRepo from "../../repos/schedules.repo.js";
 import * as seatRepo from "../../repos/seat-ledger.repo.js";
 import * as participantsRepo from "../../repos/participants.repo.js";
+import * as paymentsRepo from "../../repos/payments.repo.js";
+import * as packagesRepo from "../../repos/packages.repo.js";
 import * as auditRepo from "../../repos/audit.repo.js";
 import type { Booking } from "../../db/schema.js";
 import { record, type ActorContext } from "../audit.js";
@@ -454,7 +456,37 @@ export function getBookingDetail(id: string) {
     piiPurgedAt: p.piiPurgedAt,
     isLead: p.isLead,
   }));
-  return { booking: toBookingDto(booking), participants };
+  const sched = schedulesRepo.findById(booking.scheduleId);
+  const pkg = packagesRepo.getByKey(booking.packageType);
+  const payments = paymentsRepo.listByBooking(id).map((p) => ({
+    id: p.id,
+    amount: p.amount,
+    method: p.method,
+    kind: p.kind,
+    status: p.status,
+    paidAt: p.paidAt,
+    verifiedAt: p.verifiedAt,
+    rejectedReason: p.rejectedReason,
+    proofUrl: p.proofMediaId ? `/api/admin/media/${p.proofMediaId}` : null,
+    createdAt: p.createdAt,
+  }));
+  return {
+    booking: toBookingDto(booking),
+    participants,
+    schedule: sched
+      ? { id: sched.id, date: sched.date, meetingPoint: sched.meetingPoint, departureTime: sched.departureTime, status: sched.status }
+      : null,
+    package: pkg ? { key: pkg.key, name: pkg.name } : null,
+    breakdown: {
+      subtotal: booking.subtotal,
+      discount: booking.discount,
+      serviceFee: booking.serviceFee,
+      total: booking.total,
+      amountPaid: booking.amountPaid,
+      outstanding: booking.total - booking.amountPaid,
+    },
+    payments,
+  };
 }
 
 /** Buka PII utuh (dekripsi) — hanya dipanggil endpoint participant:read_pii.

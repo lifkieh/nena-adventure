@@ -140,6 +140,22 @@ export function monthRangeFor(
   return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(days)}`, year: y, monthIndex0: m };
 }
 
+/**
+ * Grid kalender satu bulan (TZ-safe). datedCells berisi SEMUA tanggal bulan itu
+ * "YYYY-MM-DD" dari 1 s/d hari terakhir (inklusif) — hari terakhir wajib ikut.
+ */
+export function monthGrid(
+  base: Date,
+  offset: number,
+): { from: string; to: string; daysInMonth: number; startDow: number; datedCells: string[] } {
+  const r = monthRangeFor(base, offset);
+  const daysInMonth = Number(r.to.slice(8, 10));
+  const startDow = new Date(r.from + "T00:00:00Z").getUTCDay();
+  const prefix = r.from.slice(0, 8);
+  const datedCells = Array.from({ length: daysInMonth }, (_, i) => prefix + String(i + 1).padStart(2, "0"));
+  return { from: r.from, to: r.to, daysInMonth, startDow, datedCells };
+}
+
 /** Selisih bulan antar kunci "YYYY-MM" (bisa negatif). */
 export function monthKeyDiff(from: string, to: string): number {
   const [ay, am] = from.split("-").map(Number) as [number, number];

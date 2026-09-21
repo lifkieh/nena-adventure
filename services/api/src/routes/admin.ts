@@ -29,7 +29,7 @@ import * as paymentService from "../usecases/payment/service.js";
 import * as voucherService from "../usecases/voucher/service.js";
 import { getMedia } from "../usecases/media.js";
 import { exportZurich } from "../usecases/export-zurich.js";
-import { summary as reportSummary } from "../usecases/reports.js";
+import { summary as reportSummary, dashboard as reportDashboard } from "../usecases/reports.js";
 import * as scheduleService from "../usecases/schedule/service.js";
 import * as packageService from "../usecases/package/service.js";
 import * as settingsService from "../usecases/settings/service.js";
@@ -72,10 +72,12 @@ const manualBookingSchema = z.object({
 
 const transitionSchema = z.object({
   action: z.enum([
+    "send_invoice",
     "submit_proof",
     "approve_dp",
     "approve_full",
     "reject",
+    "expire",
     "complete",
   ]),
   reason: z.string().optional(),
@@ -332,6 +334,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         .parse(req.query);
       return reportSummary(from, to);
     },
+  );
+  app.get(
+    "/reports/dashboard",
+    { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
+    async () => reportDashboard(),
   );
 
   /* ── Jadwal (schedule:read / schedule:write) ────────────── */

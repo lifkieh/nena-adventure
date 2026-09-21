@@ -131,10 +131,25 @@ export const settingsApi = {
   set: (b: unknown) => req<unknown>("/admin/settings/owner", { method: "PUT", body: JSON.stringify(b) }),
 };
 
+export interface PaymentRowDto {
+  id: string; amount: number; method: string; kind: string; status: string;
+  paidAt: string | null; verifiedAt: string | null; rejectedReason: string | null;
+  proofUrl: string | null; createdAt: string;
+}
+export interface BookingDetailDto {
+  booking: Record<string, unknown>;
+  participants: { name: string; idNumberLast4: string | null; piiPurgedAt: string | null; isLead: boolean }[];
+  schedule: { id: string; date: string; meetingPoint: string | null; departureTime: string | null; status: string } | null;
+  package: { key: string; name: string } | null;
+  breakdown: { subtotal: number; discount: number; serviceFee: number; total: number; amountPaid: number; outstanding: number };
+  payments: PaymentRowDto[];
+}
+export interface HistoryItem { action: string; createdAt: string; actorEmail: string | null; details: string | null }
+
 export const bookingsApi = {
   list: (q: Record<string, string> = {}) => req<Paginated<Record<string, unknown>>>("/admin/bookings?" + new URLSearchParams(q).toString()),
-  detail: (id: string) => req<{ booking: Record<string, unknown>; participants: unknown[] }>(`/admin/bookings/${id}`),
-  history: (id: string) => req<{ items: unknown[] }>(`/admin/bookings/${id}/history`),
+  detail: (id: string) => req<BookingDetailDto>(`/admin/bookings/${id}`),
+  history: (id: string) => req<{ items: HistoryItem[] }>(`/admin/bookings/${id}/history`),
   transition: (id: string, action: string, reason?: string) => req<unknown>(`/admin/bookings/${id}/transition`, { method: "POST", body: JSON.stringify({ action, reason }) }),
   cancel: (id: string, reason: string) => req<unknown>(`/admin/bookings/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
   sendInvoice: (id: string) => req<unknown>(`/admin/bookings/${id}/send-invoice`, { method: "POST", body: "{}" }),
@@ -159,4 +174,17 @@ export const contentApi = {
 
 export const mediaApi = {
   list: () => req<{ id: string; url: string; alt: string; width: number | null }[]>("/admin/media-library"),
+};
+
+export interface DashboardDto {
+  bookingsToday: number;
+  awaitingProof: number;
+  awaitingSettlement: number;
+  seatsSoldNext7Days: number;
+  verifiedRevenueThisMonth: number;
+  nearestNearlyFull: { id: string; date: string; capacity: number; threshold: number; remaining: number } | null;
+  asOf: string;
+}
+export const reportsApi = {
+  dashboard: () => req<DashboardDto>("/admin/reports/dashboard"),
 };

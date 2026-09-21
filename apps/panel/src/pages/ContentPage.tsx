@@ -6,8 +6,10 @@ import { usePermissions } from "../lib/useAuth";
 import { Loading, ErrorState, NoAccess } from "../components/States";
 
 interface FaqItem { q: string; a: string; active: boolean }
+interface TestiItem { rating: number; quote: string; name: string; meta: string; active: boolean }
+interface SyaratGroup { title: string; items: string[]; active: boolean }
 
-function move(arr: FaqItem[], i: number, dir: -1 | 1): FaqItem[] {
+function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
   if (j < 0 || j >= arr.length) return arr;
   const next = arr.slice();
@@ -22,7 +24,9 @@ export function ContentPage() {
   const qc = useQueryClient();
   const [key, setKey] = useState("hero");
   const [heading, setHeading] = useState("");
-  const [items, setItems] = useState<FaqItem[]>([]);
+  const [faq, setFaq] = useState<FaqItem[]>([]);
+  const [testi, setTesti] = useState<TestiItem[]>([]);
+  const [groups, setGroups] = useState<SyaratGroup[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
   const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read") });
@@ -31,7 +35,9 @@ export function ContentPage() {
   useEffect(() => {
     const src = (secQ.data?.draft ?? secQ.data?.published) as Record<string, unknown> | null;
     setHeading((src?.heading as string) ?? "");
-    setItems(((src?.items as FaqItem[]) ?? []).map((i) => ({ q: i.q, a: i.a, active: i.active ?? true })));
+    setFaq(((src?.items as FaqItem[]) ?? []).map((i) => ({ q: i.q, a: i.a, active: i.active ?? true })));
+    setTesti(((src?.items as TestiItem[]) ?? []).map((i) => ({ rating: i.rating ?? 5, quote: i.quote, name: i.name, meta: i.meta, active: i.active ?? true })));
+    setGroups(((src?.groups as SyaratGroup[]) ?? []).map((g) => ({ title: g.title, items: g.items ?? [], active: g.active ?? true })));
   }, [secQ.data]);
 
   if (!has("content:read")) return <NoAccess />;
@@ -40,14 +46,15 @@ export function ContentPage() {
   const meta = secQ.data as { publishedAt?: string | null; hasUnpublishedDraft?: boolean } | undefined;
 
   function currentBody(): unknown {
-    if (key === "faq") return { items };
+    if (key === "faq") return { items: faq };
+    if (key === "testimoni") return { items: testi };
+    if (key === "syarat") return { groups };
     return { heading };
   }
   function afterOk(m: string) { setMsg(m); qc.invalidateQueries({ queryKey: ["content"] }); qc.invalidateQueries({ queryKey: ["content", key] }); }
   function err(e: unknown) { setMsg(e instanceof ApiError ? e.message : "Terjadi kesalahan."); }
 
   async function saveDraft() { try { await contentApi.saveDraft(key, currentBody()); afterOk("Draft tersimpan (belum diterbitkan)."); } catch (e) { err(e); } }
-  // Terbitkan JUJUR: simpan dulu perubahan lalu terbitkan dalam satu aksi.
   async function publish() { try { await contentApi.saveDraft(key, currentBody()); await contentApi.publish(key); afterOk("Perubahan disimpan & diterbitkan."); } catch (e) { err(e); } }
   async function revert() { try { await contentApi.revert(key); afterOk("Dikembalikan ke versi sebelumnya."); } catch (e) { err(e); } }
 
@@ -79,21 +86,42 @@ export function ContentPage() {
           </>
         ) : key === "faq" ? (
           <div className="space-y-2">
-            {items.map((it, i) => (
+            {faq.map((it, i) => (
               <div key={i} className="rounded-lg border border-slate-200 p-2">
-                <input data-testid={`faq-q-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Pertanyaan" value={it.q} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, q: e.target.value } : x))} disabled={!canWrite} />
-                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Jawaban" rows={2} value={it.a} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, a: e.target.value } : x))} disabled={!canWrite} />
-                {canWrite && (
-                  <div className="mt-1 flex gap-2 text-xs">
-                    <label><input type="checkbox" checked={it.active} onChange={(e) => setItems(items.map((x, j) => j === i ? { ...x, active: e.target.checked } : x))} /> aktif</label>
-                    <button onClick={() => setItems((prev) => move(prev, i, -1))}>↑</button>
-                    <button onClick={() => setItems((prev) => move(prev, i, 1))}>↓</button>
-                    <button className="text-red-600" onClick={() => setItems(items.filter((_, j) => j !== i))}>hapus</button>
-                  </div>
-                )}
+                <input data-testid={`faq-q-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Pertanyaan" value={it.q} onChange={(e) => setFaq(faq.map((x, j) => j === i ? { ...x, q: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Jawaban" rows={2} value={it.a} onChange={(e) => setFaq(faq.map((x, j) => j === i ? { ...x, a: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && itemControls(it.active, () => setFaq(faq.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setFaq((p) => move(p, i, -1)), () => setFaq((p) => move(p, i, 1)), () => setFaq(faq.filter((_, j) => j !== i)))}
               </div>
             ))}
-            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setItems([...items, { q: "", a: "", active: true }])}>+ Tambah FAQ</button>}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setFaq([...faq, { q: "", a: "", active: true }])}>+ Tambah FAQ</button>}
+          </div>
+        ) : key === "testimoni" ? (
+          <div className="space-y-2">
+            {testi.map((it, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <div className="mb-1 flex gap-2">
+                  <input data-testid={`testi-name-${i}`} className="w-1/2 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Nama" value={it.name} onChange={(e) => setTesti(testi.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} disabled={!canWrite} />
+                  <select className="rounded border border-slate-300 px-2 py-1 text-sm" value={it.rating} onChange={(e) => setTesti(testi.map((x, j) => j === i ? { ...x, rating: +e.target.value } : x))} disabled={!canWrite}>
+                    {[5, 4, 3, 2, 1].map((r) => <option key={r} value={r}>{r} ★</option>)}
+                  </select>
+                </div>
+                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Paket, Bulan Tahun" value={it.meta} onChange={(e) => setTesti(testi.map((x, j) => j === i ? { ...x, meta: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Kutipan" rows={2} value={it.quote} onChange={(e) => setTesti(testi.map((x, j) => j === i ? { ...x, quote: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && itemControls(it.active, () => setTesti(testi.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setTesti((p) => move(p, i, -1)), () => setTesti((p) => move(p, i, 1)), () => setTesti(testi.filter((_, j) => j !== i)))}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setTesti([...testi, { rating: 5, quote: "", name: "", meta: "", active: true }])}>+ Tambah testimoni</button>}
+          </div>
+        ) : key === "syarat" ? (
+          <div className="space-y-2">
+            {groups.map((g, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <input data-testid={`syarat-title-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul grup" value={g.title} onChange={(e) => setGroups(groups.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Satu poin per baris" rows={4} value={g.items.join("\n")} onChange={(e) => setGroups(groups.map((x, j) => j === i ? { ...x, items: e.target.value.split("\n").filter((s) => s.trim() !== "") } : x))} disabled={!canWrite} />
+                {canWrite && itemControls(g.active, () => setGroups(groups.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setGroups((p) => move(p, i, -1)), () => setGroups((p) => move(p, i, 1)), () => setGroups(groups.filter((_, j) => j !== i)))}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setGroups([...groups, { title: "", items: [], active: true }])}>+ Tambah grup</button>}
           </div>
         ) : <p className="text-sm text-slate-400">Editor typed untuk section ini menyusul (fase konten lanjutan).</p>}
 
@@ -105,5 +133,16 @@ export function ContentPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function itemControls(active: boolean, toggle: () => void, up: () => void, down: () => void, del: () => void) {
+  return (
+    <div className="mt-1 flex gap-2 text-xs">
+      <label><input type="checkbox" checked={active} onChange={toggle} /> aktif</label>
+      <button onClick={up}>↑</button>
+      <button onClick={down}>↓</button>
+      <button className="text-red-600" onClick={del}>hapus</button>
+    </div>
   );
 }

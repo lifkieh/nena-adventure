@@ -1,6 +1,6 @@
 import { SPOT } from "./data/spot.js";
 import { loadContent } from "./data/api.js";
-import { faqHtml } from "./render.js";
+import { faqHtml, syaratHtml, testimoniHtml } from "./render.js";
 (function(){
   "use strict";
 
@@ -14,6 +14,14 @@ import { faqHtml } from "./render.js";
     if (c.faq && Array.isArray(c.faq.items)){
       var f = document.querySelector('#faq .faq');
       if (f) f.innerHTML = faqHtml(c.faq.items);
+    }
+    if (c.syarat && Array.isArray(c.syarat.groups)){
+      var s = document.querySelector('#syarat .accord');
+      if (s) s.innerHTML = syaratHtml(c.syarat.groups);
+    }
+    if (c.testimoni && Array.isArray(c.testimoni.items)){
+      var r = document.querySelector('#ulasan .revs');
+      if (r) r.innerHTML = testimoniHtml(c.testimoni.items);
     }
   }).catch(function(){ /* biarkan konten bawaan HTML */ });
 

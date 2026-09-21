@@ -119,6 +119,26 @@ try {
   await faqSite2.waitForFunction((t) => (document.querySelector("#faq .faq summary")?.textContent || "") === t, FAQ_ORIG, { timeout: 8000 })
     .catch(() => fail("FAQ tidak kembali ke pertanyaan asli"));
 
+  // ── CMS batch-1 slice: ubah 1 judul Syarat -> tampil di situs -> kembalikan ──
+  const SYA_NEW = "UJI SYARAT BERUBAH";
+  await owner.click('button:has-text("Syarat & Ketentuan")');
+  await owner.waitForSelector('[data-testid="syarat-title-0"]', { timeout: 8000 });
+  const SYA_ORIG = await owner.inputValue('[data-testid="syarat-title-0"]');
+  await owner.fill('[data-testid="syarat-title-0"]', SYA_NEW);
+  await owner.click('[data-testid="publish"]');
+  await owner.waitForTimeout(700);
+  const syaSite = await (await browser.newContext()).newPage();
+  await syaSite.goto(base + "/#/syarat", { waitUntil: "load" });
+  await syaSite.waitForFunction(() => /UJI SYARAT BERUBAH/.test(document.querySelector("#syarat .accord summary")?.textContent || ""), null, { timeout: 8000 })
+    .catch(() => fail("Syarat baru tidak tampil di situs setelah publish"));
+  await owner.fill('[data-testid="syarat-title-0"]', SYA_ORIG);
+  await owner.click('[data-testid="publish"]');
+  await owner.waitForTimeout(700);
+  const syaSite2 = await (await browser.newContext()).newPage();
+  await syaSite2.goto(base + "/#/syarat", { waitUntil: "load" });
+  await syaSite2.waitForFunction((t) => (document.querySelector("#syarat .accord summary")?.textContent || "") === t, SYA_ORIG, { timeout: 8000 })
+    .catch(() => fail("Syarat tidak kembali ke judul asli"));
+
   // ── #4 Hapus jadwal ber-booking aktif -> ditolak lewat modal ──
   await owner.click('button:has-text("Operasional")');
   await owner.goto(base + "/panel/schedules", { waitUntil: "load" });
@@ -137,6 +157,22 @@ try {
     const schedErr = await owner.$eval('[data-testid="sched-error"]', (e) => e.textContent || "").catch(() => "");
     if (!/booking aktif/i.test(schedErr)) fail("hapus jadwal ber-booking tidak ditolak: " + schedErr);
   }
+
+  // ── Detail booking: aksi = transisi legal + tak ada enum mentah di DOM ──
+  await owner.goto(base + "/panel/bookings", { waitUntil: "load" });
+  await owner.waitForSelector('[data-testid^="open-"]', { timeout: 8000 });
+  await owner.click('[data-testid^="open-"]');
+  await owner.waitForSelector('[data-action]', { timeout: 8000 });
+  const activeActions = (await owner.$$eval('[data-action][data-active="true"]', (els) => els.map((e) => e.getAttribute("data-action")))).sort();
+  // Booking manual baru_masuk -> aksi legal: send_invoice, cancel.
+  if (JSON.stringify(activeActions) !== JSON.stringify(["cancel", "send_invoice"])) fail("aksi aktif != transisi legal baru_masuk: " + JSON.stringify(activeActions));
+  const bodyTxt = await owner.$eval("main", (e) => e.innerText || "");
+  const RAW_ENUM = /baru_masuk|menunggu_bayar|verifikasi_bukti|menunggu_pelunasan|siap_jalan|kadaluarsa/;
+  if (RAW_ENUM.test(bodyTxt)) fail("enum mentah muncul di DOM detail booking: " + (bodyTxt.match(RAW_ENUM) || [])[0]);
+
+  // ── Dashboard: kartu ringkasan tampil ──
+  await owner.goto(base + "/panel/", { waitUntil: "load" });
+  await owner.waitForSelector('[data-testid="card-bookingsToday"]', { timeout: 8000 }).catch(() => fail("kartu dashboard tidak tampil"));
 
   // ── B. Operasional tidak bisa tulis konten ──
   const ops = await (await browser.newContext()).newPage();
