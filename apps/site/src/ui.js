@@ -1,7 +1,7 @@
 import { SPOT } from "./data/spot.js";
 import { WA_PRIMARY, WA_SECONDARY } from "./data/wa.js";
 import { loadContent, loadContact, loadPackages } from "./data/api.js";
-import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml, galeriHtml, paketCardsHtml, paketTablesHtml, adventureHtml, destinasiHtml, keselamatanHtml, keselamatanPolicyHtml } from "./render.js";
+import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml, galeriHtml, paketCardsHtml, paketTablesHtml, adventureHtml, destinasiHtml, keselamatanHtml, keselamatanPolicyHtml, registrasiHtml } from "./render.js";
 (function(){
   "use strict";
 
@@ -58,6 +58,29 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
       var sf = document.querySelector('#keamanan .safe');
       if (sf) sf.innerHTML = keselamatanHtml(c.keselamatan.cards);
       if (c.keselamatan.policy){ var po = document.querySelector('#keamanan .policy'); if (po) po.innerHTML = keselamatanPolicyHtml(c.keselamatan.policy); }
+    }
+    if (c.registrasi && Array.isArray(c.registrasi.steps)){
+      var tf = document.querySelector('#registrasi .tflow');
+      if (tf) tf.innerHTML = registrasiHtml(c.registrasi.steps);
+    }
+    if (c.navbar){
+      if (c.navbar.links){
+        Object.keys(c.navbar.links).forEach(function(k){
+          document.querySelectorAll('a[data-page-link="' + k + '"]').forEach(function(a){ a.textContent = c.navbar.links[k]; });
+        });
+      }
+      if (c.navbar.bookingLabel){
+        var bb = document.querySelector('header a.btn--go.btn--sm[href="#/booking"]');
+        if (bb) bb.textContent = c.navbar.bookingLabel;
+      }
+    }
+    if (c.meta){
+      if (c.meta.title){ document.title = c.meta.title; }
+      var setMeta = function(sel, val){ if (val){ var el = document.querySelector(sel); if (el) el.setAttribute("content", val); } };
+      setMeta('meta[name="description"]', c.meta.description);
+      setMeta('meta[property="og:title"]', c.meta.ogTitle);
+      setMeta('meta[property="og:description"]', c.meta.ogDescription);
+      setMeta('meta[property="og:image"]', c.meta.ogImage);
     }
     if (c.paket && Array.isArray(c.paket.cards)){
       loadPackages().then(function(prices){

@@ -247,6 +247,14 @@ export function keselamatanPolicyHtml(policy) {
   return "\n      <h4>" + esc(policy.heading) + "</h4>\n      <p>" + esc(policy.body) + "</p>\n    ";
 }
 
+/** HTML langkah registrasi (.tflow, verbatim). */
+export function registrasiHtml(steps) {
+  var parts = (steps || []).map(function (s) {
+    return "<li><b>" + esc(s.title) + "</b><p>" + esc(s.body) + "</p></li>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */
 export function calendarHtml(remainingByIso, now) {
   var base = new Date(now); base.setHours(0, 0, 0, 0);

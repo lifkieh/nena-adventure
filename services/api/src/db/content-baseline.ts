@@ -36,6 +36,9 @@ export function contentBaseline(): Record<string, unknown> {
     adventure: readJson<{ points: unknown[] }>("adventure.pre-1a.json"),
     destinasi: readJson<{ cards: unknown[] }>("destinasi.pre-1a.json"),
     keselamatan: readJson<{ cards: unknown[]; policy: unknown }>("keselamatan.pre-1a.json"),
+    registrasi: readJson<{ steps: unknown[] }>("registrasi.pre-1a.json"),
+    navbar: readJson<Record<string, unknown>>("navbar.pre-1a.json"),
+    meta: readJson<Record<string, unknown>>("meta.pre-1a.json"),
   };
 }
 
@@ -75,9 +78,18 @@ function richness(key: string, body: unknown): number {
     const cards = (body as { cards?: unknown[] } | null)?.cards;
     return Array.isArray(cards) ? cards.length : 0;
   }
-  if (key === "adventure") {
-    const points = (body as { points?: unknown[] } | null)?.points;
-    return Array.isArray(points) ? points.length : 0;
+  if (key === "adventure" || key === "registrasi") {
+    const arr = (body as { points?: unknown[]; steps?: unknown[] } | null);
+    const list = arr?.points ?? arr?.steps;
+    return Array.isArray(list) ? list.length : 0;
+  }
+  if (key === "navbar") {
+    const links = (body as { links?: Record<string, unknown> } | null)?.links;
+    return links ? Object.keys(links).length : 0;
+  }
+  if (key === "meta") {
+    const t = (body as { title?: string } | null)?.title;
+    return typeof t === "string" && t.trim() ? 1 : 0;
   }
   // hero: kaya bila judul terisi.
   const h = (body as { title?: string; heading?: string } | null);

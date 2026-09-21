@@ -17,6 +17,7 @@ interface AdvPoint { title: string; body: string }
 interface DestCard { spot: string; name: string; tag: string; img: string; alt: string; width: number; height: number }
 interface KesCard { iconSvg: string; title: string; body: string; raw: string }
 interface KesPolicy { heading: string; body: string }
+interface RegStep { title: string; body: string }
 interface PaketCard { key: string; name: string; sub: string; unit: string; note: string; tag: string | null; highlight: boolean; ctaClass: string; ctaHref: string; ctaText: string; features: Feature[] }
 const ICON_OPTS = ["pin", "kalender", "telepon", "jam"];
 const SIZE_OPTS = ["", "w2", "h2", "w2 h2"];
@@ -47,6 +48,9 @@ export function ContentPage() {
   const [dest, setDest] = useState<DestCard[]>([]);
   const [kes, setKes] = useState<KesCard[]>([]);
   const [kesPolicy, setKesPolicy] = useState<KesPolicy>({ heading: "", body: "" });
+  const [regSteps, setRegSteps] = useState<RegStep[]>([]);
+  const [navbar, setNavbar] = useState<{ links: Record<string, string>; bookingLabel: string }>({ links: {}, bookingLabel: "" });
+  const [metaFields, setMetaFields] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -76,6 +80,12 @@ export function ContentPage() {
     setDest(((src?.cards as DestCard[]) ?? []).map((c) => ({ spot: c.spot, name: c.name, tag: c.tag, img: c.img, alt: c.alt, width: c.width ?? 480, height: c.height ?? 640 })));
     setKes(((src?.cards as (KesCard & { items?: string[] })[]) ?? []).map((c) => ({ iconSvg: c.iconSvg, title: c.title, body: c.body, raw: (c.items ?? []).join("\n") })));
     setKesPolicy((src?.policy as KesPolicy) ?? { heading: "", body: "" });
+    setRegSteps(((src?.steps as RegStep[]) ?? []).map((s) => ({ title: s.title, body: s.body })));
+    setNavbar({ links: { ...((src?.links as Record<string, string>) ?? {}) }, bookingLabel: (src?.bookingLabel as string) ?? "" });
+    setMetaFields({
+      title: (src?.title as string) ?? "", description: (src?.description as string) ?? "",
+      ogTitle: (src?.ogTitle as string) ?? "", ogDescription: (src?.ogDescription as string) ?? "", ogImage: (src?.ogImage as string) ?? "",
+    });
   }, [secQ.data]);
 
   if (!has("content:read")) return <NoAccess />;
@@ -98,6 +108,9 @@ export function ContentPage() {
     if (key === "galeri") return { items: gal };
     if (key === "paket") return { cards }; // hanya teks; harga TIDAK disimpan di konten
     if (key === "hero") return hero;
+    if (key === "registrasi") return { steps: regSteps };
+    if (key === "navbar") return navbar;
+    if (key === "meta") return metaFields;
     if (key === "adventure") return { points: adv };
     if (key === "destinasi") return { cards: dest };
     if (key === "keselamatan") return {
@@ -319,6 +332,40 @@ export function ContentPage() {
               <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul kebijakan" value={kesPolicy.heading} onChange={(e) => setKesPolicy({ ...kesPolicy, heading: e.target.value })} disabled={!canWrite} />
               <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={4} placeholder="Isi kebijakan" value={kesPolicy.body} onChange={(e) => setKesPolicy({ ...kesPolicy, body: e.target.value })} disabled={!canWrite} />
             </div>
+          </div>
+        ) : key === "registrasi" ? (
+          <div className="space-y-2">
+            {regSteps.map((s, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <input className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul langkah" value={s.title} onChange={(e) => setRegSteps(regSteps.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={2} placeholder="Isi" value={s.body} onChange={(e) => setRegSteps(regSteps.map((x, j) => j === i ? { ...x, body: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && <div className="mt-1 flex gap-2 text-xs"><button onClick={() => setRegSteps((z) => move(z, i, -1))}>↑</button><button onClick={() => setRegSteps((z) => move(z, i, 1))}>↓</button><button className="text-red-600" onClick={() => setRegSteps(regSteps.filter((_, j) => j !== i))}>hapus</button></div>}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setRegSteps([...regSteps, { title: "", body: "" }])}>+ Tambah langkah</button>}
+            <p className="text-xs text-slate-400">Nomor rekening tetap dari Pengaturan owner, tidak diedit di sini.</p>
+          </div>
+        ) : key === "navbar" ? (
+          <div className="space-y-2">
+            {Object.keys(navbar.links).map((k) => (
+              <label key={k} className="block text-sm">
+                <span className="mb-1 block font-semibold text-slate-600">Label menu: {k}</span>
+                <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={navbar.links[k] ?? ""} onChange={(e) => setNavbar({ ...navbar, links: { ...navbar.links, [k]: e.target.value } })} disabled={!canWrite} />
+              </label>
+            ))}
+            <label className="block text-sm">
+              <span className="mb-1 block font-semibold text-slate-600">Label tombol Booking online</span>
+              <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={navbar.bookingLabel} onChange={(e) => setNavbar({ ...navbar, bookingLabel: e.target.value })} disabled={!canWrite} />
+            </label>
+          </div>
+        ) : key === "meta" ? (
+          <div className="space-y-2">
+            {([["title", "Title"], ["description", "Meta description"], ["ogTitle", "OG title"], ["ogDescription", "OG description"], ["ogImage", "OG image (path)"]] as const).map(([f, label]) => (
+              <label key={f} className="block text-sm">
+                <span className="mb-1 block font-semibold text-slate-600">{label}</span>
+                <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={metaFields[f] ?? ""} onChange={(e) => setMetaFields({ ...metaFields, [f]: e.target.value })} disabled={!canWrite} />
+              </label>
+            ))}
           </div>
         ) : <p className="text-sm text-slate-400">Editor typed untuk section ini menyusul (fase konten lanjutan).</p>}
 

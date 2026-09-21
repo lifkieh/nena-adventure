@@ -186,9 +186,42 @@ function extractKeselamatan(doc) {
   return { cards, policy: { heading: decode(pol[1]), body: decode(pol[2]) } };
 }
 
+function extractRegistrasi(doc) {
+  const inner = doc.match(/<ol class="tflow">([\s\S]*?)<\/ol>/)[1];
+  const steps = [];
+  const re = /<li><b>([\s\S]*?)<\/b><p>([\s\S]*?)<\/p><\/li>/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) steps.push({ title: decode(m[1]), body: decode(m[2]) });
+  return { steps };
+}
+
+function extractNavbar(doc) {
+  const nav = doc.match(/<nav class="nav"[\s\S]*?<\/nav>/)[0];
+  const links = {};
+  const re = /<a href="#\/([a-z]+)" data-page-link="[a-z]+">([\s\S]*?)<\/a>/g;
+  let m;
+  while ((m = re.exec(nav)) !== null) links[m[1]] = decode(m[2]);
+  const btn = doc.match(/<a class="btn btn--go btn--sm" href="#\/booking">([\s\S]*?)<\/a>/);
+  return { links, bookingLabel: btn ? decode(btn[1]) : "Booking online" };
+}
+
+function extractMeta(doc) {
+  const g = (re) => (doc.match(re) || [])[1] ?? "";
+  return {
+    title: decode(g(/<title>([\s\S]*?)<\/title>/)),
+    description: decode(g(/<meta name="description" content="([^"]*)"/)),
+    ogTitle: decode(g(/<meta property="og:title" content="([^"]*)"/)),
+    ogDescription: decode(g(/<meta property="og:description" content="([^"]*)"/)),
+    ogImage: g(/<meta property="og:image" content="([^"]*)"/),
+  };
+}
+
 const doc = html();
 const outputs = {
   "hero.pre-1a.json": extractHero(doc),
+  "registrasi.pre-1a.json": extractRegistrasi(doc),
+  "navbar.pre-1a.json": extractNavbar(doc),
+  "meta.pre-1a.json": extractMeta(doc),
   "adventure.pre-1a.json": extractAdventure(doc),
   "destinasi.pre-1a.json": extractDestinasi(doc),
   "keselamatan.pre-1a.json": extractKeselamatan(doc),

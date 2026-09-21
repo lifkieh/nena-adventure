@@ -89,6 +89,9 @@ function main(): void {
     { key: "adventure", title: "Adventure (3 poin)" },
     { key: "destinasi", title: "Destinasi" },
     { key: "keselamatan", title: "Keselamatan & Asuransi" },
+    { key: "registrasi", title: "Registrasi & Pembayaran" },
+    { key: "navbar", title: "Navbar" },
+    { key: "meta", title: "Meta / SEO" },
   ];
   for (const sec of sections) {
     db.insert(contentSections)
