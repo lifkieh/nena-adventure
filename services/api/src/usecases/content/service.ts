@@ -35,6 +35,13 @@ export function getSection(key: string) {
   const s = repo.findByKey(key);
   if (!s) throw AppError.notFound("Section tidak ditemukan.");
   const pubVer = s.publishedVersionId ? repo.versionById(s.publishedVersionId) : undefined;
+  // Bisa dikembalikan hanya bila ada versi terbit + versi lebih lama sebelumnya.
+  let canRevert = false;
+  if (s.publishedVersionId) {
+    const versions = repo.versionsForSection(s.id);
+    const idx = versions.findIndex((v) => v.id === s.publishedVersionId);
+    canRevert = idx >= 0 && !!versions[idx + 1];
+  }
   return {
     key: s.key,
     title: s.title,
@@ -43,6 +50,7 @@ export function getSection(key: string) {
     publishedAt: pubVer?.createdAt ?? null,
     hasUnpublishedDraft:
       !!s.draftVersionId && s.draftVersionId !== s.publishedVersionId,
+    canRevert,
   };
 }
 

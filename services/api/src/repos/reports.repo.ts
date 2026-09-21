@@ -76,24 +76,17 @@ export function seatsSoldBetween(from: string, to: string): number {
 }
 
 /**
- * Pendapatan TERVERIFIKASI BERSIH sejak instan UTC:
- *   SUM(pembayaran verified) untuk booking yang TIDAK batal/kadaluarsa
- *   dikurangi SUM(refund) booking non-batal/kadaluarsa (refund parsial).
- * Booking batal (mis. sudah direfund) tidak dihitung sama sekali.
+ * Pendapatan TERVERIFIKASI BERSIH sejak instan UTC, TANPA memandang status booking:
+ *   SUM(pembayaran verified, verified_at>=since) - SUM(refund, status_changed_at>=since).
+ * Contoh: booking batal yang sudah bayar 775rb lalu direfund 387,5rb -> bersih 387,5rb.
  */
 export function verifiedRevenueSince(sinceIso: string): number {
   const gross = (sqliteConn
-    .prepare(
-      `SELECT COALESCE(SUM(p.amount),0) AS a FROM payments p JOIN bookings b ON b.id = p.booking_id
-       WHERE p.status='verified' AND p.verified_at >= ? AND b.status NOT IN ('batal','kadaluarsa')`,
-    )
+    .prepare("SELECT COALESCE(SUM(amount),0) AS a FROM payments WHERE status='verified' AND verified_at >= ?")
     .get(sinceIso) as { a: number }).a;
   const refunds = (sqliteConn
-    .prepare(
-      `SELECT COALESCE(SUM(refund_amount),0) AS a FROM bookings
-       WHERE refund_amount > 0 AND status NOT IN ('batal','kadaluarsa')`,
-    )
-    .get() as { a: number }).a;
+    .prepare("SELECT COALESCE(SUM(refund_amount),0) AS a FROM bookings WHERE refund_amount > 0 AND status_changed_at >= ?")
+    .get(sinceIso) as { a: number }).a;
   return gross - refunds;
 }
 

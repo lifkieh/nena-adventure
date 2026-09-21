@@ -6,6 +6,7 @@ import { AppError } from "../lib/errors.js";
 import { repoRoot } from "../db/paths.js";
 import { detectType } from "../lib/upload.js";
 import * as mediaRepo from "../repos/media.repo.js";
+import * as contentRepo from "../repos/content.repo.js";
 import { record, type ActorContext } from "./audit.js";
 
 // Storage PUBLIK (CMS) — TERPISAH dari data/uploads (bukti bayar, privat).
@@ -73,4 +74,17 @@ function toDto(m: mediaRepo.MediaRow) {
 
 export function listLibrary() {
   return mediaRepo.listPublic().map(toDto);
+}
+
+/** Hapus media dengan PENJAGA PEMAKAIAN: tolak bila URL-nya dipakai di konten. */
+export function removeImage(id: string, ctx: ActorContext) {
+  const m = mediaRepo.findById(id);
+  if (!m) throw AppError.notFound("Media tidak ditemukan.");
+  const url = `/media/${m.filename}`;
+  if (contentRepo.anyVersionReferences(url)) {
+    throw AppError.conflict("Media masih dipakai di konten (mis. galeri). Lepas dari konten dulu sebelum menghapus.");
+  }
+  mediaRepo.remove(id);
+  record(ctx, { action: "media_deleted", entity: "media", entityId: id, data: { filename: m.filename } });
+  return { ok: true };
 }

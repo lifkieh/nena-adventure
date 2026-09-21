@@ -49,6 +49,16 @@ export function usedSeats(scheduleId: string): number {
   return row?.used ?? 0;
 }
 
+/** Jumlah SELURUH booking (status apa pun) di jadwal ini. */
+export function bookingCountAny(scheduleId: string): number {
+  const rows = db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(eq(bookings.scheduleId, scheduleId))
+    .all();
+  return rows.length;
+}
+
 /** Jumlah booking AKTIF (bukan batal/kadaluarsa) di jadwal ini. */
 export function activeBookingCount(scheduleId: string): number {
   const rows = db

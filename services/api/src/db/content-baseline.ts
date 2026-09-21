@@ -31,6 +31,8 @@ export function contentBaseline(): Record<string, unknown> {
     testimoni: { items: readJson<unknown[]>("testimoni.pre-1a.json") },
     itinerary: { trips: readJson<unknown[]>("itinerary.pre-1a.json") },
     kontak: { points: readJson<unknown[]>("kontak.pre-1a.json") },
+    galeri: { items: readJson<unknown[]>("galeri.pre-1a.json") },
+    paket: readJson<{ cards: unknown[] }>("paket.pre-1a.json"),
   };
 }
 
@@ -50,7 +52,7 @@ export function stableStringify(v: unknown): string {
 
 /** Ukuran "kekayaan" section untuk deteksi baseline yang lebih miskin. */
 function richness(key: string, body: unknown): number {
-  if (key === "faq" || key === "testimoni") {
+  if (key === "faq" || key === "testimoni" || key === "galeri") {
     const items = (body as { items?: unknown[] } | null)?.items;
     return Array.isArray(items) ? items.length : 0;
   }
@@ -65,6 +67,10 @@ function richness(key: string, body: unknown): number {
   if (key === "kontak") {
     const points = (body as { points?: unknown[] } | null)?.points;
     return Array.isArray(points) ? points.length : 0;
+  }
+  if (key === "paket") {
+    const cards = (body as { cards?: unknown[] } | null)?.cards;
+    return Array.isArray(cards) ? cards.length : 0;
   }
   const h = (body as { heading?: string } | null)?.heading;
   return typeof h === "string" && h.trim() ? 1 : 0;

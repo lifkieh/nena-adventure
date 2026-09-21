@@ -47,6 +47,26 @@ export async function createBooking(payload, idempotencyKey) {
   return body;
 }
 
+/** Kontak publik (WA + URL peta) dari API; fallback ke nilai bawaan (parity-safe). */
+export async function loadContact() {
+  try {
+    var res = await fetch(BASE + "/contact");
+    if (!res.ok) throw new Error("gagal");
+    return await res.json();
+  } catch (e) {
+    return { whatsapp: "6281286133202", mapUrl: "https://www.google.com/maps/search/?api=1&query=Pantai+Pangaradan+Anyer+Banten" };
+  }
+}
+
+/** Harga paket publik (kartu + tabel dirender dari tabel packages). */
+export async function loadPackages() {
+  try {
+    var res = await fetch(BASE + "/packages");
+    if (!res.ok) throw new Error("gagal");
+    return await res.json();
+  } catch (e) { return null; }
+}
+
 /** Muat konten terbit dari API. Cache di localStorage; fallback ke cache terakhir
  *  bila API gagal (situs tidak boleh kosong). */
 export async function loadContent() {

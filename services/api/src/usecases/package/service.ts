@@ -14,6 +14,18 @@ export function list() {
   }));
 }
 
+/** Harga publik untuk situs (kartu paket + tabel) — SUMBER TUNGGAL dari tabel. */
+export function publicPrices() {
+  const reguler = repo.getByKey("reguler");
+  const premium = repo.getByKey("premium");
+  const priv = repo.getByKey("private");
+  return {
+    reguler: reguler ? reguler.prices : {},
+    premium: premium ? premium.prices : {},
+    privateTiers: priv ? repo.tiersFor(priv.id).map((t) => ({ minPax: t.minPax, maxPax: t.maxPax, price: t.price })) : [],
+  };
+}
+
 export function create(input: PackageInput, ctx: ActorContext) {
   if (repo.getByKey(input.key)) {
     throw AppError.conflict("Key paket sudah dipakai.");

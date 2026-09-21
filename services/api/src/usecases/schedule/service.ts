@@ -179,9 +179,11 @@ export function duplicate(
 export function remove(id: string, ctx: ActorContext): void {
   const s = repo.findById(id);
   if (!s) throw AppError.notFound("Jadwal tidak ditemukan.");
-  if (repo.activeBookingCount(id) > 0) {
+  // Jadwal dengan booking status APA PUN (termasuk batal/kadaluarsa) tidak boleh
+  // dihapus — mencegah penghapusan data transaksi. Arahkan ke Arsip.
+  if (repo.bookingCountAny(id) > 0) {
     throw AppError.conflict(
-      'Jadwal punya booking aktif — tidak bisa dihapus. Gunakan "Tutup" untuk menutup pendaftaran.',
+      'Jadwal punya riwayat booking — tidak bisa dihapus. Gunakan "Arsip" untuk menyembunyikannya.',
     );
   }
   repo.remove(id);

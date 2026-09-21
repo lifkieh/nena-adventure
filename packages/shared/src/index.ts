@@ -373,6 +373,10 @@ export const ownerSettingsSchema = z.object({
   serviceFee: z.number().int().nonnegative().optional(),
   dpPercent: z.number().int().min(0).max(100).optional(),
   cutoffDays: z.number().int().min(0).optional(),
+  // Nomor WhatsApp: angka saja (format internasional tanpa +), 8–15 digit.
+  whatsapp: z.string().regex(/^\d{8,15}$/, "Nomor WhatsApp hanya angka (8–15 digit).").optional(),
+  // URL peta harus https.
+  mapUrl: z.string().url().refine((u) => u.startsWith("https://"), "URL peta harus https.").optional(),
 });
 export type OwnerSettingsInput = z.infer<typeof ownerSettingsSchema>;
 

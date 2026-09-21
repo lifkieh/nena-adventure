@@ -38,6 +38,10 @@ export function findById(id: string): MediaRow | undefined {
   return db.select().from(media).where(eq(media.id, id)).get();
 }
 
+export function remove(id: string): void {
+  db.delete(media).where(eq(media.id, id)).run();
+}
+
 export function listPublic(): MediaRow[] {
   return db
     .select()

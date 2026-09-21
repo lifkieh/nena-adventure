@@ -1,6 +1,7 @@
 import { SPOT } from "./data/spot.js";
-import { loadContent } from "./data/api.js";
-import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml } from "./render.js";
+import { WA_PRIMARY } from "./data/wa.js";
+import { loadContent, loadContact, loadPackages } from "./data/api.js";
+import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml, galeriHtml, paketCardsHtml, paketTablesHtml } from "./render.js";
 (function(){
   "use strict";
 
@@ -36,7 +37,36 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
       var ad = document.querySelector('#lokasi .addr');
       if (ad) ad.innerHTML = kontakHtml(c.kontak.points);
     }
+    if (c.galeri && Array.isArray(c.galeri.items)){
+      var gal = document.getElementById('gal');
+      if (gal){ gal.innerHTML = galeriHtml(c.galeri.items); if (window.__nenaBindGaleri) window.__nenaBindGaleri(); }
+    }
+    if (c.paket && Array.isArray(c.paket.cards)){
+      loadPackages().then(function(prices){
+        if (!prices) return;
+        var pk = document.querySelector('#paket .pkgs');
+        if (pk) pk.innerHTML = paketCardsHtml(c.paket.cards, prices);
+        var card = document.querySelector('#paket .card');
+        if (card) card.innerHTML = paketTablesHtml(prices);
+      }).catch(function(){});
+    }
   }).catch(function(){ /* biarkan konten bawaan HTML */ });
+
+  /* ── Kontak dari Pengaturan owner: nomor WA + URL peta (sumber tunggal) ── */
+  loadContact().then(function(k){
+    if (!k) return;
+    if (k.whatsapp){
+      // Ganti HANYA nomor primary (bukan nomor sekunder di footer). Pesan tetap.
+      document.querySelectorAll('a[href*="wa.me/' + WA_PRIMARY + '"]').forEach(function(a){
+        a.href = a.href.split("wa.me/" + WA_PRIMARY).join("wa.me/" + k.whatsapp);
+      });
+    }
+    if (k.mapUrl){
+      document.querySelectorAll('#lokasi a[href*="google.com/maps"]').forEach(function(a){
+        a.href = k.mapUrl;
+      });
+    }
+  }).catch(function(){ /* pakai nilai bawaan HTML */ });
 
   /* ── Search card (hero) — pilih paket & cek booking ────── */
   var searchCard = document.getElementById("searchCard");
@@ -192,12 +222,16 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
     render(idx);
   }
 
-  Array.prototype.forEach.call(document.querySelectorAll("#gal, .dests"), function(wadah){
-    var daftar = Array.prototype.slice.call(wadah.querySelectorAll("button[data-type]"));
-    daftar.forEach(function(t, i){
-      t.addEventListener("click", function(){ buka(daftar, i); });
+  function bindTiles(selector){
+    Array.prototype.forEach.call(document.querySelectorAll(selector), function(wadah){
+      var daftar = Array.prototype.slice.call(wadah.querySelectorAll("button[data-type]"));
+      daftar.forEach(function(t, i){
+        t.addEventListener("click", function(){ buka(daftar, i); });
+      });
     });
-  });
+  }
+  bindTiles("#gal, .dests");
+  window.__nenaBindGaleri = function(){ bindTiles("#gal"); }; // dipakai setelah galeri dirender dari API
   lbBody.addEventListener("click", function(e){
     var th = e.target.closest(".spot-thumb");
     if (th){

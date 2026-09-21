@@ -436,4 +436,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const buffer = await file.toBuffer();
     return mediaLibrary.uploadImage({ buffer, alt, ctx: actorFromReq(req) });
   });
+  app.delete("/media-library/:id", rd("content:write"), async (req) =>
+    mediaLibrary.removeImage((req.params as { id: string }).id, actorFromReq(req)),
+  );
 }

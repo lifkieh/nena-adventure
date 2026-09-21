@@ -43,6 +43,7 @@ function main(): void {
     { key: "brand.timezone", value: JSON.stringify("Asia/Jakarta") },
     { key: "payment.bca_account", value: JSON.stringify("6510693653") },
     { key: "contact.whatsapp", value: JSON.stringify("6281286133202") },
+    { key: "contact.map_url", value: JSON.stringify("https://www.google.com/maps/search/?api=1&query=Pantai+Pangaradan+Anyer+Banten") },
     // Timeout sesi (detik): idle 8 jam, absolute 7 hari.
     { key: "session.idle_seconds", value: JSON.stringify(8 * 60 * 60) },
     { key: "session.absolute_seconds", value: JSON.stringify(7 * 24 * 60 * 60) },
@@ -83,6 +84,7 @@ function main(): void {
     { key: "syarat", title: "Syarat & Ketentuan" },
     { key: "testimoni", title: "Testimoni" },
     { key: "kontak", title: "Kontak & Lokasi" },
+    { key: "galeri", title: "Galeri" },
   ];
   for (const sec of sections) {
     db.insert(contentSections)

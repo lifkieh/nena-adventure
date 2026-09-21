@@ -155,7 +155,7 @@ try {
     await owner.click('[data-testid="confirm-ok"]');
     await owner.waitForTimeout(600);
     const schedErr = await owner.$eval('[data-testid="sched-error"]', (e) => e.textContent || "").catch(() => "");
-    if (!/booking aktif/i.test(schedErr)) fail("hapus jadwal ber-booking tidak ditolak: " + schedErr);
+    if (!/riwayat booking/i.test(schedErr)) fail("hapus jadwal ber-booking tidak ditolak: " + schedErr);
   }
 
   // ── Detail booking: aksi = transisi legal + tak ada enum mentah di DOM ──

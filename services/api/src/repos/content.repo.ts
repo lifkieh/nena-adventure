@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, like, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { contentSections, contentVersions } from "../db/schema.js";
 
@@ -16,6 +16,15 @@ export function createSection(key: string, title: string): SectionRow {
 }
 export function versionById(id: string): VersionRow | undefined {
   return db.select().from(contentVersions).where(eq(contentVersions.id, id)).get();
+}
+/** Ada versi konten (mana pun) yang memuat teks ini? (penjaga pemakaian media). */
+export function anyVersionReferences(needle: string): boolean {
+  const r = db
+    .select({ n: sql<number>`count(*)` })
+    .from(contentVersions)
+    .where(like(contentVersions.body, `%${needle}%`))
+    .get();
+  return (r?.n ?? 0) > 0;
 }
 export function versionsForSection(sectionId: string): VersionRow[] {
   return db

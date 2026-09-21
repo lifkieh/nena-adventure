@@ -127,7 +127,7 @@ export const packagesApi = {
 };
 
 export const settingsApi = {
-  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number }>("/admin/settings/owner"),
+  get: () => req<{ bankAccount: string; serviceFee: number; dpPercent: number; cutoffDays: number; whatsapp: string; mapUrl: string }>("/admin/settings/owner"),
   set: (b: unknown) => req<unknown>("/admin/settings/owner", { method: "PUT", body: JSON.stringify(b) }),
 };
 
@@ -175,6 +175,7 @@ export const contentApi = {
 
 export const mediaApi = {
   list: () => req<{ id: string; url: string; alt: string; width: number | null }[]>("/admin/media-library"),
+  remove: (id: string) => req<{ ok: true }>(`/admin/media-library/${id}`, { method: "DELETE" }),
 };
 
 export interface DashboardDto {

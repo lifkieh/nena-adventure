@@ -1,16 +1,25 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { mediaApi } from "../lib/api";
+import { ApiError, mediaApi } from "../lib/api";
 import { usePermissions } from "../lib/useAuth";
+import { useConfirm } from "../components/Confirm";
 import { Loading, EmptyState, ErrorState, NoAccess } from "../components/States";
 
 export function MediaPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [alt, setAlt] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["media"], queryFn: mediaApi.list, enabled: has("content:read") });
   if (!has("content:read")) return <NoAccess />;
+
+  async function del(m: { id: string; alt: string }) {
+    const r = await confirm({ title: "Hapus gambar?", danger: true, confirmLabel: "Hapus", body: <>Gambar <b>{m.alt}</b> akan dihapus. Ditolak bila masih dipakai di konten.</> });
+    if (!r.confirmed) return;
+    try { await mediaApi.remove(m.id); setMsg("Gambar dihapus."); qc.invalidateQueries({ queryKey: ["media"] }); }
+    catch (e) { setMsg(e instanceof ApiError ? e.message : "Gagal hapus."); }
+  }
 
   async function upload(file: File) {
     setMsg(null);
@@ -40,6 +49,7 @@ export function MediaPage() {
             <figure key={m.id} className="rounded-xl border border-slate-200 bg-white p-2">
               <img src={m.url} alt={m.alt} className="h-24 w-full rounded object-cover" />
               <figcaption className="mt-1 truncate text-xs text-slate-500">{m.alt}</figcaption>
+              {has("content:write") && <button className="mt-1 w-full rounded border border-red-300 px-2 py-0.5 text-xs font-semibold text-red-600" onClick={() => del(m)}>Hapus</button>}
             </figure>
           ))}
         </div>

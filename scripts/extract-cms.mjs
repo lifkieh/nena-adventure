@@ -87,8 +87,50 @@ function extractKontak(doc) {
   return points;
 }
 
+function extractGaleri(doc) {
+  const inner = doc.match(/<div class="gal" id="gal">([\s\S]*?)<\/div>/)[1];
+  const items = [];
+  const re = /<button(?: class="([^"]*)")? data-type="(img|vid)"(?: data-src="([^"]*)")? data-cap="([^"]*)"><img loading="lazy" width="(\d+)" height="(\d+)" src="([^"]*)" alt="([^"]*)">([\s\S]*?)<\/button>/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) {
+    const type = m[2];
+    const it = { type, size: m[1] || "", cap: decode(m[4]), width: Number(m[5]), height: Number(m[6]), thumb: m[7], alt: decode(m[8]), active: true };
+    if (type === "img") it.full = m[3] || "";
+    else { const lbl = m[9].match(/<span class="lbl">([\s\S]*?)<\/span>/); it.videoLabel = lbl ? decode(lbl[1]) : ""; }
+    items.push(it);
+  }
+  return items;
+}
+
+function extractPaket(doc) {
+  const sec = doc.match(/<section class="sec" id="paket">([\s\S]*?)<\/section>\s*<!-- COMPARISON/)[1];
+  const pkgs = sec.match(/<div class="pkgs pkgs--3">([\s\S]*?)<\/div>\s*<div class="card"/)[1];
+  const cards = [];
+  const re = /<div class="pkg( pkg--hi)?">([\s\S]*?)<\/div>(?=\s*<div class="pkg|\s*$)/g;
+  let m;
+  while ((m = re.exec(pkgs)) !== null) {
+    const inner = m[2];
+    const href = (inner.match(/href="#\/booking\?pkg=([a-z]+)"/) || [])[1];
+    const tag = (inner.match(/<span class="pkg-tag">([\s\S]*?)<\/span>/) || [])[1] || null;
+    const name = inner.match(/<h3>([\s\S]*?)<\/h3>/)[1];
+    const sub = inner.match(/<p class="pkg-sub">([\s\S]*?)<\/p>/)[1];
+    const unit = inner.match(/<div class="pkg-price">[\s\S]*?<span>([\s\S]*?)<\/span><\/div>/)[1];
+    let note = inner.match(/<p class="pkg-note">([\s\S]*?)<\/p>/)[1];
+    if (href === "reguler") note = note.replace(/Rp\d{1,3}(?:\.\d{3})*/, "{{harga_normal_reguler}}");
+    const features = [];
+    const li = /<li class="(yes|no)">[\s\S]*?<\/svg><span>([\s\S]*?)<\/span><\/li>/g;
+    let x;
+    while ((x = li.exec(inner)) !== null) features.push({ included: x[1] === "yes", html: x[2] }); // html VERBATIM (ada &amp; / <strong>)
+    const cta = inner.match(/<a class="([^"]*)" href="([^"]*)">([\s\S]*?)<\/a>/);
+    cards.push({ key: href, name: decode(name), sub: decode(sub), unit: decode(unit), note: decode(note), tag: tag ? decode(tag) : null, highlight: !!m[1], features, ctaClass: cta[1], ctaHref: cta[2], ctaText: decode(cta[3]) });
+  }
+  return { cards };
+}
+
 const doc = html();
 const outputs = {
+  "paket.pre-1a.json": extractPaket(doc),
+  "galeri.pre-1a.json": extractGaleri(doc),
   "syarat.pre-1a.json": extractSyarat(doc),
   "testimoni.pre-1a.json": extractTestimoni(doc),
   "itinerary.pre-1a.json": extractItinerary(doc),
@@ -98,6 +140,7 @@ if (outputs["syarat.pre-1a.json"].length !== 3) throw new Error("syarat != 3 gru
 if (outputs["testimoni.pre-1a.json"].length !== 6) throw new Error("testimoni != 6 item");
 if (outputs["itinerary.pre-1a.json"].length !== 3) throw new Error("itinerary != 3 trip");
 if (outputs["kontak.pre-1a.json"].length !== 4) throw new Error("kontak != 4 poin");
+if (outputs["galeri.pre-1a.json"].length !== 7) throw new Error("galeri != 7 item");
 
 let bad = 0;
 for (const [file, data] of Object.entries(outputs)) {

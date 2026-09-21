@@ -42,9 +42,14 @@ export function boardHtml(remainingByIso, now) {
   return html;
 }
 
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+// Nilai atribut verbatim seperti pre-1a (URL menyimpan & mentah). Escape kutip saja.
+function escAttr(s) { return String(s).replace(/"/g, "&quot;"); }
+function starsOf(r) { r = Math.max(0, Math.min(5, r || 5)); return "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r); }
+var STAR_WORD = { 1: "Satu", 2: "Dua", 3: "Tiga", 4: "Empat", 5: "Lima" };
+
 /** HTML FAQ (verbatim-compatible dgn markup situs). Hanya item aktif. */
 export function faqHtml(items) {
-  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   var active = (items || []).filter(function (it) { return it.active !== false; });
   var parts = active.map(function (it, i) {
     return "<details" + (i === 0 ? " open" : "") + "><summary>" + esc(it.q) + "</summary><p>" + esc(it.a) + "</p></details>";
@@ -52,9 +57,7 @@ export function faqHtml(items) {
   return "\n      " + parts.join("\n      ") + "\n    ";
 }
 
-function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-
-/** HTML accordion Syarat & Ketentuan (verbatim-compatible). Hanya grup aktif. */
+/** HTML accordion Syarat & Ketentuan (verbatim). Hanya grup aktif. */
 export function syaratHtml(groups) {
   var active = (groups || []).filter(function (g) { return g.active !== false; });
   var parts = active.map(function (g, i) {
@@ -67,13 +70,12 @@ export function syaratHtml(groups) {
   return "\n      " + parts.join("\n      ") + "\n    ";
 }
 
-var STAR_WORD = { 1: "Satu", 2: "Dua", 3: "Tiga", 4: "Empat", 5: "Lima" };
-/** HTML testimoni/ulasan (verbatim-compatible). Hanya item aktif. */
+/** HTML testimoni/ulasan (verbatim). Hanya item aktif. */
 export function testimoniHtml(items) {
   var active = (items || []).filter(function (it) { return it.active !== false; });
   var parts = active.map(function (it) {
     var r = Math.max(0, Math.min(5, it.rating || 5));
-    var stars = "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r); // r bintang penuh + (5-r) kosong
+    var stars = "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r);
     var initial = esc(String(it.name || "").charAt(0));
     return '<article class="rev">\n'
       + '        <div class="stars" role="img" aria-label="' + STAR_WORD[r] + ' dari lima bintang">' + stars + "</div>\n"
@@ -83,8 +85,6 @@ export function testimoniHtml(items) {
   });
   return "\n      " + parts.join("\n      ") + "\n    ";
 }
-
-function starsOf(r) { r = Math.max(0, Math.min(5, r || 5)); return "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r); }
 
 /** Inner HTML chip ulasan kecil beranda (verbatim). meta dipangkas sebelum koma. */
 export function testimoniChipInner(it) {
@@ -124,6 +124,81 @@ export function kontakHtml(points) {
     return "<li>" + icon + "\n          <div><b>" + esc(p.title) + "</b><p>" + esc(p.body) + "</p></div></li>";
   });
   return "\n        " + parts.join("\n        ") + "\n      ";
+}
+
+/** HTML galeri (verbatim). img/vid, kelas ukuran opsional. Hanya item aktif. */
+export function galeriHtml(items) {
+  var active = (items || []).filter(function (it) { return it.active !== false; });
+  var parts = active.map(function (it) {
+    var cls = it.size ? ' class="' + it.size + '"' : "";
+    var img = '<img loading="lazy" width="' + it.width + '" height="' + it.height + '" src="' + it.thumb + '" alt="' + escAttr(it.alt) + '">';
+    if (it.type === "vid") {
+      return "<button" + cls + ' data-type="vid" data-cap="' + escAttr(it.cap) + '">' + img
+        + '<span class="play" aria-hidden="true"><span><svg width="20" height="20" viewBox="0 0 20 20" fill="#fff"><path d="M6.5 4.2l9.5 5.8-9.5 5.8z"/></svg></span></span>'
+        + '<span class="lbl">' + esc(it.videoLabel) + "</span></button>";
+    }
+    return "<button" + cls + ' data-type="img" data-src="' + escAttr(it.full) + '" data-cap="' + escAttr(it.cap) + '">' + img + "</button>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n      \n    ";
+}
+
+/* ── Paket & harga: teks dari CMS, ANGKA dari tabel packages (token) ──────── */
+// Harga NORMAL (coret) tidak ada di tabel packages — konstanta baseline, bukan konten.
+var PAKET_NORMAL = { reguler: 450000, premium: { jakarta: 875000, tangerang: 825000, serang: 750000, anyer: 650000 } };
+function rp(n) { return "Rp" + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+var SVG_YES = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.6 9.4l3.4 3.4L14.4 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var SVG_NO = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+function cardPrice(key, prices) {
+  if (key === "private") return rp((prices.privateTiers && prices.privateTiers[0] ? prices.privateTiers[0].price : 0));
+  if (key === "premium") return rp((prices.premium && prices.premium.anyer) || 0);
+  return rp((prices.reguler && prices.reguler.anyer) || 0);
+}
+function renderTokens(text, prices) {
+  return String(text).replace(/\{\{harga_normal_reguler\}\}/g, rp(PAKET_NORMAL.reguler));
+}
+
+/** HTML kartu paket (verbatim). Teks dari CMS; harga dari `prices` (tabel). */
+export function paketCardsHtml(cards, prices) {
+  var parts = (cards || []).map(function (c) {
+    var hi = c.highlight ? " pkg--hi" : "";
+    var tag = c.tag ? '\n        <span class="pkg-tag">' + esc(c.tag) + "</span>" : "";
+    var feats = (c.features || []).map(function (f) {
+      return '<li class="' + (f.included ? "yes" : "no") + '">' + (f.included ? SVG_YES : SVG_NO) + "<span>" + f.html + "</span></li>";
+    }).join("\n          ");
+    return '<div class="pkg' + hi + '">' + tag
+      + "\n        <h3>" + esc(c.name) + "</h3>"
+      + '\n        <p class="pkg-sub">' + esc(c.sub) + "</p>"
+      + '\n        <div class="pkg-price"><b class="num">' + cardPrice(c.key, prices) + "</b><span>" + esc(c.unit) + "</span></div>"
+      + '\n        <p class="pkg-note">' + renderTokens(c.note, prices) + "</p>"
+      + '\n        <ul class="feat">\n          ' + feats + "\n        </ul>"
+      + '\n        <a class="' + c.ctaClass + '" href="' + c.ctaHref + '">' + esc(c.ctaText) + "</a>"
+      + "\n      </div>";
+  });
+  return "\n      " + parts.join("\n\n      ") + "\n    ";
+}
+
+/** HTML blok tabel harga (verbatim). SELURUH angka dari `prices` + konstanta normal. */
+export function paketTablesHtml(prices) {
+  var mp = [["Jakarta", "jakarta"], ["Tangerang", "tangerang"], ["Stasiun Serang", "serang"], ["Pantai Pangaradan, Anyer", "anyer"]];
+  var rows = mp.map(function (c) {
+    return "<tr><td>" + c[0] + '</td><td class="num">' + rp(PAKET_NORMAL.premium[c[1]]) + '</td><td class="num"><strong>' + rp(prices.premium[c[1]]) + "</strong></td></tr>";
+  }).join("\n            ");
+  var tiers = (prices.privateTiers || []).map(function (t) {
+    return "<tr><td>" + t.minPax + "–" + t.maxPax + ' peserta</td><td class="num"><strong>' + rp(t.price) + "</strong></td></tr>";
+  }).join("\n            ");
+  return '\n      <h3 style="margin-bottom:var(--s4)">Harga berdasarkan meeting point &amp; jumlah peserta</h3>\n'
+    + '      <div class="cmpwrap" style="background:var(--paper)">\n'
+    + '        <table class="cmp">\n'
+    + "          <thead><tr><th>Open Trip Premium — meeting point</th><th>Harga normal</th><th>Harga promo</th></tr></thead>\n"
+    + "          <tbody>\n            " + rows + "\n          </tbody>\n"
+    + "        </table>\n      </div>\n"
+    + '      <p class="hint" style="margin:var(--s4) 0 var(--s3)">Open Trip Reguler hanya berangkat dari Pantai Pangaradan, Anyer (' + rp(prices.reguler.anyer) + "). Untuk keberangkatan dari Jakarta, Tangerang, atau Stasiun Serang, hubungi admin.</p>\n"
+    + '      <div class="cmpwrap" style="background:var(--paper);margin-top:var(--s4)">\n'
+    + '        <table class="cmp">\n'
+    + "          <thead><tr><th>Private Trip Premium — jumlah peserta</th><th>Harga per rombongan</th></tr></thead>\n"
+    + "          <tbody>\n            " + tiers + "\n          </tbody>\n"
+    + "        </table>\n      </div>\n    ";
 }
 
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */

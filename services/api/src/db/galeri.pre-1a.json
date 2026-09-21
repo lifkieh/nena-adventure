@@ -1,0 +1,79 @@
+[
+  {
+    "type": "img",
+    "size": "w2 h2",
+    "cap": "Pulau Sangiang dari udara, pagi hari.",
+    "width": 800,
+    "height": 600,
+    "thumb": "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=800&q=68",
+    "alt": "Pulau Sangiang dari udara",
+    "active": true,
+    "full": "https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=1600&q=75"
+  },
+  {
+    "type": "vid",
+    "size": "",
+    "cap": "Rekap open trip, 4 menit.",
+    "width": 420,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=420&q=68",
+    "alt": "Cuplikan video paddle board",
+    "active": true,
+    "videoLabel": "Video · 4:02"
+  },
+  {
+    "type": "img",
+    "size": "",
+    "cap": "Snorkeling di Legon Bajo.",
+    "width": 420,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=420&q=68",
+    "alt": "Snorkeling di Legon Bajo",
+    "active": true,
+    "full": "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1600&q=75"
+  },
+  {
+    "type": "img",
+    "size": "w2",
+    "cap": "Garis pantai sisi selatan pulau.",
+    "width": 800,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=68",
+    "alt": "Garis pantai sisi selatan pulau",
+    "active": true,
+    "full": "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1600&q=75"
+  },
+  {
+    "type": "img",
+    "size": "",
+    "cap": "Jalur tracking menuju puncak.",
+    "width": 420,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=420&q=68",
+    "alt": "Jalur tracking menuju puncak",
+    "active": true,
+    "full": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1600&q=75"
+  },
+  {
+    "type": "vid",
+    "size": "",
+    "cap": "Penyeberangan Anyer – Sangiang, 1 menit.",
+    "width": 420,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=420&q=68",
+    "alt": "Cuplikan video penyeberangan",
+    "active": true,
+    "videoLabel": "Video · 1:12"
+  },
+  {
+    "type": "img",
+    "size": "w2",
+    "cap": "Tembuyung Beach saat air surut.",
+    "width": 800,
+    "height": 320,
+    "thumb": "https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=800&q=68",
+    "alt": "Tembuyung Beach saat air surut",
+    "active": true,
+    "full": "https://images.unsplash.com/photo-1468413253725-0d5181091126?auto=format&fit=crop&w=1600&q=75"
+  }
+]
