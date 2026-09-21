@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { userRoleSchema } from "./permissions.js";
 
 /* ────────────────────────────────────────────────────────────
  * Konvensi lintas layanan (dipakai bersama api + panel).
@@ -136,3 +137,88 @@ export const healthResponseSchema = z.object({
   migrations: migrationStatusSchema,
 });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
+
+/* ── Auth ────────────────────────────────────────────────── */
+
+export const loginInputSchema = z.object({
+  email: z.string().email("Email tidak valid."),
+  password: z.string().min(1, "Kata sandi wajib diisi."),
+});
+export type LoginInput = z.infer<typeof loginInputSchema>;
+
+export const changePasswordInputSchema = z.object({
+  currentPassword: z.string().min(1, "Kata sandi lama wajib diisi."),
+  newPassword: z.string().min(8, "Kata sandi baru minimal 8 karakter."),
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
+
+export const userDtoSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  role: userRoleSchema,
+  active: z.boolean(),
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
+});
+export type UserDto = z.infer<typeof userDtoSchema>;
+
+export const meResponseSchema = z.object({
+  user: userDtoSchema,
+  permissions: z.array(z.string()),
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;
+
+/* ── Manajemen pengguna ──────────────────────────────────── */
+
+export const createUserInputSchema = z.object({
+  email: z.string().email("Email tidak valid."),
+  name: z.string().min(2, "Nama minimal 2 karakter."),
+  role: userRoleSchema,
+  password: z.string().min(8, "Kata sandi awal minimal 8 karakter."),
+});
+export type CreateUserInput = z.infer<typeof createUserInputSchema>;
+
+export const updateUserRoleInputSchema = z.object({ role: userRoleSchema });
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleInputSchema>;
+
+export const setActiveInputSchema = z.object({ active: z.boolean() });
+export type SetActiveInput = z.infer<typeof setActiveInputSchema>;
+
+export const resetPasswordInputSchema = z.object({
+  newPassword: z.string().min(8, "Kata sandi baru minimal 8 karakter."),
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordInputSchema>;
+
+/* ── Audit log ───────────────────────────────────────────── */
+
+export const auditLogDtoSchema = z.object({
+  id: z.string(),
+  actorUserId: z.string().nullable(),
+  actorEmail: z.string().nullable(),
+  action: z.string(),
+  entity: z.string(),
+  entityId: z.string().nullable(),
+  ip: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  details: z.unknown().nullable(),
+  createdAt: isoDateTimeSchema,
+});
+export type AuditLogDto = z.infer<typeof auditLogDtoSchema>;
+
+export const auditQuerySchema = z.object({
+  entity: z.string().optional(),
+  actorUserId: z.string().optional(),
+  from: z.string().optional(), // ISO date
+  to: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+});
+export type AuditQuery = z.infer<typeof auditQuerySchema>;
+
+export interface Paginated<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}

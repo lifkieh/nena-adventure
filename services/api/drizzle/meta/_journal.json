@@ -8,6 +8,20 @@
       "when": 1789933451018,
       "tag": "0000_foamy_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789969290395,
+      "tag": "0001_steep_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789969376098,
+      "tag": "0002_thankful_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

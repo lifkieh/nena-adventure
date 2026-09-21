@@ -53,6 +53,58 @@ Harness ini permanen: **Fase 5** akan memakainya untuk membuktikan situs yang me
 dari API tampil identik dengan situs yang membaca dari file data — cukup arahkan `--baseline`
 ke commit situs-baca-file.
 
+## Autentikasi, RBAC & audit (Fase 2)
+
+Panel admin tertutup sesi. Sesi disimpan sebagai cookie **httpOnly** (`nena_session`),
+`SameSite=Lax`, `Secure` saat produksi. Token 32-byte acak; DB hanya menyimpan hash SHA-256.
+Panel **tidak** menyimpan token apa pun di localStorage.
+
+- Password: scrypt (`node:crypto`), N=2^15, r=8, p=1, salt 16-byte, verifikasi timing-safe.
+  Parameter tersimpan di dalam hash → bisa dinaikkan tanpa memecah hash lama.
+- Idle timeout 8 jam, absolute timeout 7 hari (dari `settings`, bisa diubah).
+- Login: rate limit 5 gagal / 15 menit per (IP+email) → 429; pesan gagal seragam
+  (tidak membocorkan email terdaftar/tidak); jeda acak 100–300ms.
+- Otorisasi: `requireAuth` + `requirePermission(perm)`. Semua `/api/admin/**` wajib izin
+  (ada test yang gagal bila ada route admin tanpa deklarasi izin).
+- Audit log: login sukses/gagal, logout, ganti password, perubahan role, CRUD user.
+  NIK, password hash, dan token TIDAK PERNAH masuk audit (diredaksi).
+
+### Role & izin (ringkas)
+
+| Role | Ringkasan izin |
+|------|----------------|
+| owner | semua |
+| admin | semua kecuali `user:manage` & `settings:write` (rekening/biaya/DP/cutoff = owner) |
+| operasional | booking (read/write/cancel), schedule (read/write), content:read, payment:read, report:read |
+| keuangan | booking:read/refund, payment read/verify/refund, report:read |
+| viewer | read-only (TANPA `participant:read_pii`) |
+
+`participant:read_pii` & `participant:export` hanya owner & admin.
+
+### Endpoint auth
+
+```
+POST /api/auth/login            { email, password }  -> set cookie, balas { user, permissions }
+POST /api/auth/logout           -> hapus sesi
+GET  /api/auth/me               -> { user, permissions efektif }
+POST /api/auth/change-password  { currentPassword, newPassword }  (cabut sesi lain)
+GET  /api/admin/users ...       CRUD user (izin user:manage)
+GET  /api/admin/audit-logs      filter entity/actor/tanggal + paginasi (izin user:read)
+```
+
+### QA — cara masuk
+
+- URL login: **http://localhost:3000/panel/login** (atau via dev panel `http://localhost:5173/panel/login`).
+- Owner produksi: dari `.env` — `OWNER_EMAIL` / `OWNER_PASSWORD` (default dev: `owner@nena-adventure.id` / `nena-dev-2026`). `npm run seed` melakukan upsert owner sesuai `.env`.
+- Akun demo per role (password acak dicetak ke terminal, TIDAK ikut seed produksi):
+
+  ```
+  npm run seed:demo-users
+  ```
+
+  Membuat `demo-owner@`, `demo-admin@`, `demo-operasional@`, `demo-keuangan@`,
+  `demo-viewer@` (domain `.test`) untuk menguji pembatasan izin dari sisi UI.
+
 ---
 
 ## Panduan aset (foto/video/logo)

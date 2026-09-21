@@ -67,7 +67,8 @@ export const sessions = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull(),
-    expiresAt: ts("expires_at").notNull(),
+    expiresAt: ts("expires_at").notNull(), // batas ABSOLUT (createdAt + absolute)
+    lastSeenAt: tsNow("last_seen_at"), // untuk idle timeout (sliding)
     ip: text("ip"),
     userAgent: text("user_agent"),
     createdAt: tsNow("created_at"),
@@ -89,7 +90,9 @@ export const auditLogs = sqliteTable(
     action: text("action").notNull(),
     entity: text("entity").notNull(),
     entityId: text("entity_id"),
-    details: text("details"), // JSON string
+    details: text("details"), // JSON string (field sensitif sudah diredaksi)
+    ip: text("ip"),
+    userAgent: text("user_agent"),
     createdAt: tsNow("created_at"),
   },
   (t) => [
