@@ -1,6 +1,6 @@
 import { SPOT } from "./data/spot.js";
 import { loadContent } from "./data/api.js";
-import { faqHtml, syaratHtml, testimoniHtml } from "./render.js";
+import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, kontakHtml } from "./render.js";
 (function(){
   "use strict";
 
@@ -22,6 +22,19 @@ import { faqHtml, syaratHtml, testimoniHtml } from "./render.js";
     if (c.testimoni && Array.isArray(c.testimoni.items)){
       var r = document.querySelector('#ulasan .revs');
       if (r) r.innerHTML = testimoniHtml(c.testimoni.items);
+      // Chip ulasan kecil di beranda ambil dari SUMBER YANG SAMA (bukan hardcoded).
+      var act = c.testimoni.items.filter(function (it) { return it.active !== false; });
+      var chip1 = document.querySelector('.feat2-chip--1'), chip2 = document.querySelector('.feat2-chip--2');
+      if (chip1 && act[0]) chip1.innerHTML = testimoniChipInner(act[0]);
+      if (chip2 && act[1]) chip2.innerHTML = testimoniChipInner(act[1]);
+    }
+    if (c.itinerary && Array.isArray(c.itinerary.trips)){
+      var it = document.querySelector('#itinerary .accord');
+      if (it) it.innerHTML = itineraryHtml(c.itinerary.trips);
+    }
+    if (c.kontak && Array.isArray(c.kontak.points)){
+      var ad = document.querySelector('#lokasi .addr');
+      if (ad) ad.innerHTML = kontakHtml(c.kontak.points);
     }
   }).catch(function(){ /* biarkan konten bawaan HTML */ });
 

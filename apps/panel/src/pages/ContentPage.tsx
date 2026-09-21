@@ -8,6 +8,10 @@ import { Loading, ErrorState, NoAccess } from "../components/States";
 interface FaqItem { q: string; a: string; active: boolean }
 interface TestiItem { rating: number; quote: string; name: string; meta: string; active: boolean }
 interface SyaratGroup { title: string; items: string[]; active: boolean }
+interface Step { time: string; activity: string }
+interface Trip { title: string; steps: Step[]; active: boolean }
+interface KontakPoint { icon: string; title: string; body: string; active: boolean }
+const ICON_OPTS = ["pin", "kalender", "telepon", "jam"];
 
 function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
@@ -27,6 +31,8 @@ export function ContentPage() {
   const [faq, setFaq] = useState<FaqItem[]>([]);
   const [testi, setTesti] = useState<TestiItem[]>([]);
   const [groups, setGroups] = useState<SyaratGroup[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [points, setPoints] = useState<KontakPoint[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
   const listQ = useQuery({ queryKey: ["content"], queryFn: contentApi.list, enabled: has("content:read") });
@@ -38,6 +44,8 @@ export function ContentPage() {
     setFaq(((src?.items as FaqItem[]) ?? []).map((i) => ({ q: i.q, a: i.a, active: i.active ?? true })));
     setTesti(((src?.items as TestiItem[]) ?? []).map((i) => ({ rating: i.rating ?? 5, quote: i.quote, name: i.name, meta: i.meta, active: i.active ?? true })));
     setGroups(((src?.groups as SyaratGroup[]) ?? []).map((g) => ({ title: g.title, items: g.items ?? [], active: g.active ?? true })));
+    setTrips(((src?.trips as Trip[]) ?? []).map((t) => ({ title: t.title, steps: (t.steps ?? []).map((s) => ({ time: s.time, activity: s.activity })), active: t.active ?? true })));
+    setPoints(((src?.points as KontakPoint[]) ?? []).map((p) => ({ icon: p.icon ?? "pin", title: p.title, body: p.body, active: p.active ?? true })));
   }, [secQ.data]);
 
   if (!has("content:read")) return <NoAccess />;
@@ -49,6 +57,8 @@ export function ContentPage() {
     if (key === "faq") return { items: faq };
     if (key === "testimoni") return { items: testi };
     if (key === "syarat") return { groups };
+    if (key === "itinerary") return { trips };
+    if (key === "kontak") return { points };
     return { heading };
   }
   function afterOk(m: string) { setMsg(m); qc.invalidateQueries({ queryKey: ["content"] }); qc.invalidateQueries({ queryKey: ["content", key] }); }
@@ -122,6 +132,34 @@ export function ContentPage() {
               </div>
             ))}
             {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setGroups([...groups, { title: "", items: [], active: true }])}>+ Tambah grup</button>}
+          </div>
+        ) : key === "itinerary" ? (
+          <div className="space-y-2">
+            {trips.map((t, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <input data-testid={`itin-title-${i}`} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul itinerary" value={t.title} onChange={(e) => setTrips(trips.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 font-mono text-xs" rows={6} placeholder="Satu langkah per baris: 07.00 Aktivitas" value={t.steps.map((s) => `${s.time} ${s.activity}`).join("\n")}
+                  onChange={(e) => setTrips(trips.map((x, j) => j === i ? { ...x, steps: e.target.value.split("\n").filter((l) => l.trim()).map((l) => { const m = l.trim().match(/^(\S+)\s+(.*)$/); return m ? { time: m[1]!, activity: m[2]! } : { time: l.trim(), activity: "" }; }) } : x))} disabled={!canWrite} />
+                {canWrite && itemControls(t.active, () => setTrips(trips.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setTrips((p) => move(p, i, -1)), () => setTrips((p) => move(p, i, 1)), () => setTrips(trips.filter((_, j) => j !== i)))}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setTrips([...trips, { title: "", steps: [], active: true }])}>+ Tambah itinerary</button>}
+          </div>
+        ) : key === "kontak" ? (
+          <div className="space-y-2">
+            {points.map((p, i) => (
+              <div key={i} className="rounded-lg border border-slate-200 p-2">
+                <div className="mb-1 flex gap-2">
+                  <select data-testid={`kontak-icon-${i}`} className="rounded border border-slate-300 px-2 py-1 text-sm" value={p.icon} onChange={(e) => setPoints(points.map((x, j) => j === i ? { ...x, icon: e.target.value } : x))} disabled={!canWrite}>
+                    {ICON_OPTS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
+                  </select>
+                  <input data-testid={`kontak-title-${i}`} className="w-full rounded border border-slate-300 px-2 py-1 text-sm font-semibold" placeholder="Judul" value={p.title} onChange={(e) => setPoints(points.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} disabled={!canWrite} />
+                </div>
+                <textarea className="w-full rounded border border-slate-300 px-2 py-1 text-sm" rows={2} placeholder="Keterangan" value={p.body} onChange={(e) => setPoints(points.map((x, j) => j === i ? { ...x, body: e.target.value } : x))} disabled={!canWrite} />
+                {canWrite && itemControls(p.active, () => setPoints(points.map((x, j) => j === i ? { ...x, active: !x.active } : x)), () => setPoints((z) => move(z, i, -1)), () => setPoints((z) => move(z, i, 1)), () => setPoints(points.filter((_, j) => j !== i)))}
+              </div>
+            ))}
+            {canWrite && <button className="rounded border border-slate-300 px-3 py-1 text-sm" onClick={() => setPoints([...points, { icon: "pin", title: "", body: "", active: true }])}>+ Tambah poin</button>}
           </div>
         ) : <p className="text-sm text-slate-400">Editor typed untuk section ini menyusul (fase konten lanjutan).</p>}
 

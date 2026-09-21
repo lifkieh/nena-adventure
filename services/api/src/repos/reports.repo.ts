@@ -40,10 +40,17 @@ export function statusCounts(from: string, to: string): {
 
 /* ── Dashboard ringkasan ─────────────────────────────────── */
 
-/** Jumlah booking dibuat sejak instan UTC tertentu (created_at >= sinceIso). */
-export function countBookingsCreatedSince(sinceIso: string): number {
+/** Booking AKTIF (bukan batal/kadaluarsa) dibuat sejak instan UTC. */
+export function countActiveBookingsCreatedSince(sinceIso: string): number {
   const r = sqliteConn
-    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ?")
+    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status NOT IN ('batal','kadaluarsa')")
+    .get(sinceIso) as { c: number };
+  return r.c;
+}
+/** Booking batal/kadaluarsa dibuat sejak instan UTC (untuk label terpisah). */
+export function countInactiveBookingsCreatedSince(sinceIso: string): number {
+  const r = sqliteConn
+    .prepare("SELECT COUNT(*) AS c FROM bookings WHERE created_at >= ? AND status IN ('batal','kadaluarsa')")
     .get(sinceIso) as { c: number };
   return r.c;
 }
@@ -68,12 +75,26 @@ export function seatsSoldBetween(from: string, to: string): number {
   return r.seats;
 }
 
-/** Pendapatan TERVERIFIKASI (payments.status='verified') sejak instan UTC. */
+/**
+ * Pendapatan TERVERIFIKASI BERSIH sejak instan UTC:
+ *   SUM(pembayaran verified) untuk booking yang TIDAK batal/kadaluarsa
+ *   dikurangi SUM(refund) booking non-batal/kadaluarsa (refund parsial).
+ * Booking batal (mis. sudah direfund) tidak dihitung sama sekali.
+ */
 export function verifiedRevenueSince(sinceIso: string): number {
-  const r = sqliteConn
-    .prepare("SELECT COALESCE(SUM(amount),0) AS amount FROM payments WHERE status='verified' AND verified_at >= ?")
-    .get(sinceIso) as { amount: number };
-  return r.amount;
+  const gross = (sqliteConn
+    .prepare(
+      `SELECT COALESCE(SUM(p.amount),0) AS a FROM payments p JOIN bookings b ON b.id = p.booking_id
+       WHERE p.status='verified' AND p.verified_at >= ? AND b.status NOT IN ('batal','kadaluarsa')`,
+    )
+    .get(sinceIso) as { a: number }).a;
+  const refunds = (sqliteConn
+    .prepare(
+      `SELECT COALESCE(SUM(refund_amount),0) AS a FROM bookings
+       WHERE refund_amount > 0 AND status NOT IN ('batal','kadaluarsa')`,
+    )
+    .get() as { a: number }).a;
+  return gross - refunds;
 }
 
 /** Jadwal terbit terdekat (date>=today) yang hampir penuh: 0 < sisa <= threshold. */

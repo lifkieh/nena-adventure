@@ -84,6 +84,48 @@ export function testimoniHtml(items) {
   return "\n      " + parts.join("\n      ") + "\n    ";
 }
 
+function starsOf(r) { r = Math.max(0, Math.min(5, r || 5)); return "★★★★★☆☆☆☆☆".slice(5 - r, 10 - r); }
+
+/** Inner HTML chip ulasan kecil beranda (verbatim). meta dipangkas sebelum koma. */
+export function testimoniChipInner(it) {
+  var metaShort = String(it.meta || "").split(",")[0].trim();
+  return '<span class="ava">' + esc(String(it.name || "").charAt(0)) + "</span><div><b>"
+    + esc(it.name) + "</b><small>" + starsOf(it.rating) + " " + esc(metaShort) + "</small></div>";
+}
+
+/** HTML accordion Itinerary (verbatim). Hanya trip aktif. */
+export function itineraryHtml(trips) {
+  var active = (trips || []).filter(function (t) { return t.active !== false; });
+  var parts = active.map(function (t, i) {
+    var steps = (t.steps || []).map(function (s) {
+      return '<li><time class="num">' + esc(s.time) + "</time><div><h4>" + esc(s.activity) + "</h4></div></li>";
+    }).join("\n          ");
+    return "<details" + (i === 0 ? " open" : "") + ">\n"
+      + "        <summary>" + esc(t.title) + "</summary>\n"
+      + '        <ol class="itin" style="border-top:0">\n          ' + steps + "\n        </ol>\n"
+      + "      </details>";
+  });
+  return "\n      " + parts.join("\n      ") + "\n    ";
+}
+
+// SVG ikon kontak — VERBATIM dari pre-1a (jangan diubah, dipakai untuk parity).
+var KONTAK_ICONS = {
+  pin: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5 6-9.4A6 6 0 004 8.6C4 13 10 18 10 18z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="10" cy="8.4" r="2.2" stroke="currentColor" stroke-width="1.7"/></svg>',
+  kalender: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  telepon: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5.5C4 12 8 16 14.5 16l1.8-2.6-3.2-2-1.6 1.6c-1.5-.8-2.7-2-3.5-3.5l1.6-1.6-2-3.2L5 6.4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  jam: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.6" stroke="currentColor" stroke-width="1.7"/><path d="M10 6v4.4l2.8 1.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+};
+
+/** HTML daftar alamat/kontak (verbatim). Hanya poin aktif. */
+export function kontakHtml(points) {
+  var active = (points || []).filter(function (p) { return p.active !== false; });
+  var parts = active.map(function (p) {
+    var icon = KONTAK_ICONS[p.icon] || KONTAK_ICONS.pin;
+    return "<li>" + icon + "\n          <div><b>" + esc(p.title) + "</b><p>" + esc(p.body) + "</p></div></li>";
+  });
+  return "\n        " + parts.join("\n        ") + "\n      ";
+}
+
 /** HTML kalender 4 bulan. Tanggal tanpa jadwal tidak dirender (bukan "penuh"). */
 export function calendarHtml(remainingByIso, now) {
   var base = new Date(now); base.setHours(0, 0, 0, 0);

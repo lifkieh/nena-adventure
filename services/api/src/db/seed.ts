@@ -82,6 +82,7 @@ function main(): void {
     { key: "faq", title: "FAQ" },
     { key: "syarat", title: "Syarat & Ketentuan" },
     { key: "testimoni", title: "Testimoni" },
+    { key: "kontak", title: "Kontak & Lokasi" },
   ];
   for (const sec of sections) {
     db.insert(contentSections)

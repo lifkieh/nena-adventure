@@ -53,13 +53,51 @@ function extractTestimoni(doc) {
   return items;
 }
 
+function extractItinerary(doc) {
+  const sec = doc.match(/<section[^>]*id="itinerary"[\s\S]*?<\/section>/)[0];
+  const box = sec.match(/<div class="accord"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/)[1];
+  const trips = [];
+  const re = /<details[^>]*>\s*<summary>([\s\S]*?)<\/summary>\s*<ol[^>]*>([\s\S]*?)<\/ol>\s*<\/details>/g;
+  let m;
+  while ((m = re.exec(box)) !== null) {
+    const steps = [];
+    const li = /<li><time class="num">([\s\S]*?)<\/time><div><h4>([\s\S]*?)<\/h4><\/div><\/li>/g;
+    let x;
+    while ((x = li.exec(m[2])) !== null) steps.push({ time: decode(x[1].trim()), activity: decode(x[2].trim()) });
+    trips.push({ title: decode(m[1].trim()), steps, active: true });
+  }
+  return trips;
+}
+
+function iconOf(svg) {
+  if (svg.includes("<rect")) return "kalender";
+  if (svg.includes('cy="8.4"')) return "pin";
+  if (svg.includes("M4 5.5C4 12")) return "telepon";
+  if (svg.includes('r="7.6"')) return "jam";
+  return "pin";
+}
+function extractKontak(doc) {
+  const inner = doc.match(/<ul class="addr">([\s\S]*?)<\/ul>/)[1];
+  const points = [];
+  const re = /<li>(<svg[\s\S]*?<\/svg>)\s*<div><b>([\s\S]*?)<\/b><p>([\s\S]*?)<\/p><\/div><\/li>/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) {
+    points.push({ icon: iconOf(m[1]), title: decode(m[2].trim()), body: decode(m[3].trim()), active: true });
+  }
+  return points;
+}
+
 const doc = html();
 const outputs = {
   "syarat.pre-1a.json": extractSyarat(doc),
   "testimoni.pre-1a.json": extractTestimoni(doc),
+  "itinerary.pre-1a.json": extractItinerary(doc),
+  "kontak.pre-1a.json": extractKontak(doc),
 };
 if (outputs["syarat.pre-1a.json"].length !== 3) throw new Error("syarat != 3 grup");
 if (outputs["testimoni.pre-1a.json"].length !== 6) throw new Error("testimoni != 6 item");
+if (outputs["itinerary.pre-1a.json"].length !== 3) throw new Error("itinerary != 3 trip");
+if (outputs["kontak.pre-1a.json"].length !== 4) throw new Error("kontak != 4 poin");
 
 let bad = 0;
 for (const [file, data] of Object.entries(outputs)) {

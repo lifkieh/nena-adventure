@@ -29,6 +29,8 @@ export function contentBaseline(): Record<string, unknown> {
     faq: { items: faqBaseline() },
     syarat: { groups: readJson<unknown[]>("syarat.pre-1a.json") },
     testimoni: { items: readJson<unknown[]>("testimoni.pre-1a.json") },
+    itinerary: { trips: readJson<unknown[]>("itinerary.pre-1a.json") },
+    kontak: { points: readJson<unknown[]>("kontak.pre-1a.json") },
   };
 }
 
@@ -55,6 +57,14 @@ function richness(key: string, body: unknown): number {
   if (key === "syarat") {
     const groups = (body as { groups?: unknown[] } | null)?.groups;
     return Array.isArray(groups) ? groups.length : 0;
+  }
+  if (key === "itinerary") {
+    const trips = (body as { trips?: unknown[] } | null)?.trips;
+    return Array.isArray(trips) ? trips.length : 0;
+  }
+  if (key === "kontak") {
+    const points = (body as { points?: unknown[] } | null)?.points;
+    return Array.isArray(points) ? points.length : 0;
   }
   const h = (body as { heading?: string } | null)?.heading;
   return typeof h === "string" && h.trim() ? 1 : 0;

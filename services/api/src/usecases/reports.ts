@@ -20,7 +20,8 @@ export function dashboard(now: Date = new Date()) {
   const monthStartUtc = new Date(Date.UTC(y, m, 1) - WIB_MS).toISOString();
 
   return {
-    bookingsToday: reportsRepo.countBookingsCreatedSince(todayStartUtc),
+    bookingsToday: reportsRepo.countActiveBookingsCreatedSince(todayStartUtc),
+    bookingsTodayCancelled: reportsRepo.countInactiveBookingsCreatedSince(todayStartUtc),
     awaitingProof: reportsRepo.countBookingsByStatus("verifikasi_bukti"),
     awaitingSettlement: reportsRepo.countBookingsByStatus("menunggu_pelunasan"),
     seatsSoldNext7Days: reportsRepo.seatsSoldBetween(today, plus7),

@@ -25,7 +25,7 @@ export function DashboardPage() {
 
   const nf = d.nearestNearlyFull;
   const cards: Card[] = [
-    { key: "bookingsToday", label: "Booking hari ini", to: "/bookings", value: String(d.bookingsToday), empty: d.bookingsToday === 0, emptyText: "Belum ada booking hari ini." },
+    { key: "bookingsToday", label: "Booking aktif hari ini", to: "/bookings", value: d.bookingsTodayCancelled > 0 ? `${d.bookingsToday} aktif · ${d.bookingsTodayCancelled} batal/kadaluarsa` : String(d.bookingsToday), empty: d.bookingsToday === 0 && d.bookingsTodayCancelled === 0, emptyText: "Belum ada booking hari ini." },
     { key: "awaitingProof", label: "Menunggu verifikasi bukti", to: "/verification", value: String(d.awaitingProof), empty: d.awaitingProof === 0, emptyText: "Tidak ada bukti menunggu." },
     { key: "awaitingSettlement", label: "Menunggu pelunasan", to: "/bookings", value: String(d.awaitingSettlement), empty: d.awaitingSettlement === 0, emptyText: "Tidak ada yang menunggu pelunasan." },
     { key: "seatsSoldNext7Days", label: "Kursi terjual 7 hari ke depan", to: "/schedules", value: `${d.seatsSoldNext7Days} kursi`, empty: d.seatsSoldNext7Days === 0, emptyText: "Belum ada kursi terjual pekan ini." },

@@ -5,6 +5,7 @@
  * lalu bersihkan data uji lewat TRANSISI LEGAL (batal). Cetak hasil.
  */
 import { execSync, spawn } from "node:child_process";
+import { rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, request } from "playwright";
@@ -12,7 +13,8 @@ import { chromium, request } from "playwright";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 3222;
 const base = `http://127.0.0.1:${PORT}`;
-const DB = "services/api/data/nena.db";
+// DB TERPISAH — smoke tidak boleh menulis ke database dev (nena.db).
+const DB = "services/api/data/smoke.db";
 const OWNER_EMAIL = "owner@nena-adventure.id";
 const OWNER_PASSWORD = "smoke-owner-pass";
 const env = { ...process.env, PORT: String(PORT), DB_PATH: DB, SESSION_SECRET: "smoke-secret-1234567890", ENCRYPTION_KEY: "0".repeat(64), OWNER_EMAIL, OWNER_PASSWORD };
@@ -62,7 +64,8 @@ async function bookPkg(browser, pkg, pax, expectTotal) {
 let child;
 try {
   killPort(PORT);
-  log("Seed nena.db (rekonsiliasi konten + paket)…");
+  log("Siapkan smoke.db terisolasi (bukan nena.db)…");
+  for (const ext of ["", "-wal", "-shm"]) rmSync(resolve(ROOT, DB + ext), { force: true });
   execSync("npm run migrate", { cwd: ROOT, env, stdio: "ignore" });
   execSync("npm run seed", { cwd: ROOT, env, stdio: "ignore" });
 

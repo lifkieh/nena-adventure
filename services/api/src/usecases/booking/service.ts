@@ -11,6 +11,7 @@ import * as seatRepo from "../../repos/seat-ledger.repo.js";
 import * as participantsRepo from "../../repos/participants.repo.js";
 import * as paymentsRepo from "../../repos/payments.repo.js";
 import * as packagesRepo from "../../repos/packages.repo.js";
+import * as usersRepo from "../../repos/users.repo.js";
 import * as auditRepo from "../../repos/audit.repo.js";
 import type { Booking } from "../../db/schema.js";
 import { record, type ActorContext } from "../audit.js";
@@ -470,6 +471,27 @@ export function getBookingDetail(id: string) {
     proofUrl: p.proofMediaId ? `/api/admin/media/${p.proofMediaId}` : null,
     createdAt: p.createdAt,
   }));
+  // Sisi uang keluar: refund + pembatalan.
+  const cancelledByEmail = booking.cancelledBy ? usersRepo.findById(booking.cancelledBy)?.email ?? null : null;
+  const cancellation =
+    booking.refundAmount > 0 || booking.cancelReason || booking.cancelledBy
+      ? { refundAmount: booking.refundAmount, cancelReason: booking.cancelReason, cancelledByEmail }
+      : null;
+  // Refund tampil juga sebagai entri "uang keluar" di riwayat pembayaran.
+  if (booking.refundAmount > 0) {
+    payments.push({
+      id: "refund-" + booking.id,
+      amount: -booking.refundAmount,
+      method: "refund",
+      kind: "refund",
+      status: "refunded",
+      paidAt: null,
+      verifiedAt: booking.statusChangedAt,
+      rejectedReason: null,
+      proofUrl: null,
+      createdAt: booking.statusChangedAt ?? booking.createdAt,
+    });
+  }
   return {
     booking: toBookingDto(booking),
     participants,
@@ -485,6 +507,7 @@ export function getBookingDetail(id: string) {
       amountPaid: booking.amountPaid,
       outstanding: booking.total - booking.amountPaid,
     },
+    cancellation,
     payments,
   };
 }

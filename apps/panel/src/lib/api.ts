@@ -142,6 +142,7 @@ export interface BookingDetailDto {
   schedule: { id: string; date: string; meetingPoint: string | null; departureTime: string | null; status: string } | null;
   package: { key: string; name: string } | null;
   breakdown: { subtotal: number; discount: number; serviceFee: number; total: number; amountPaid: number; outstanding: number };
+  cancellation: { refundAmount: number; cancelReason: string | null; cancelledByEmail: string | null } | null;
   payments: PaymentRowDto[];
 }
 export interface HistoryItem { action: string; createdAt: string; actorEmail: string | null; details: string | null }
@@ -178,6 +179,7 @@ export const mediaApi = {
 
 export interface DashboardDto {
   bookingsToday: number;
+  bookingsTodayCancelled: number;
   awaitingProof: number;
   awaitingSettlement: number;
   seatsSoldNext7Days: number;

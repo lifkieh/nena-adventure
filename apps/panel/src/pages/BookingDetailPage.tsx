@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BOOKING_ACTIONS, bookingActionMeta, bookingActionLabel, bookingStatusLabel,
+  BOOKING_ACTIONS, bookingActionMeta, auditActionLabel, bookingStatusLabel,
   legalActionsFor, formatJakarta, formatRupiah, scheduleStatusLabel, type BookingAction,
 } from "@nena/shared";
 import { ApiError, bookingsApi, type HistoryItem } from "../lib/api";
@@ -12,12 +12,7 @@ import { BookingStatus } from "../components/StatusPill";
 import { Countdown, holdDeadline } from "../components/Countdown";
 import { Loading, ErrorState, NoAccess } from "../components/States";
 
-function timelineLabel(action: string): string {
-  if (action === "booking_created") return "Booking dibuat";
-  if (action === "pii_access") return "Data peserta dibuka";
-  if (action.startsWith("booking_")) return bookingActionLabel(action.slice("booking_".length));
-  return action;
-}
+const timelineLabel = auditActionLabel;
 
 export function BookingDetailPage() {
   const { id = "" } = useParams();
@@ -123,6 +118,14 @@ export function BookingDetailPage() {
             <Row k="Total" v={<b>{formatRupiah(d.breakdown.total)}</b>} rawV />
             <Row k="Sudah dibayar" v={formatRupiah(d.breakdown.amountPaid)} />
             <Row k="Sisa tagihan" v={formatRupiah(d.breakdown.outstanding)} />
+            {d.cancellation && (d.cancellation.refundAmount > 0 || d.cancellation.cancelReason) && (
+              <>
+                <div className="my-1 border-t border-slate-100" />
+                {d.cancellation.refundAmount > 0 && <Row k="Refund (uang keluar)" v={<span className="text-red-600">- {formatRupiah(d.cancellation.refundAmount)}</span>} rawV />}
+                {d.cancellation.cancelReason && <Row k="Alasan pembatalan" v={d.cancellation.cancelReason} />}
+                {d.cancellation.cancelledByEmail && <Row k="Dibatalkan oleh" v={d.cancellation.cancelledByEmail} />}
+              </>
+            )}
           </dl>
         </Card>
 
@@ -161,8 +164,8 @@ export function BookingDetailPage() {
                 <li key={p.id} className="flex items-center gap-3 border-b border-slate-100 pb-2">
                   {p.proofUrl && has("payment:read") ? <a href={p.proofUrl} target="_blank" rel="noreferrer"><img src={p.proofUrl} alt="bukti" className="h-12 w-12 rounded object-cover" /></a> : <div className="h-12 w-12 rounded bg-slate-100" />}
                   <div>
-                    <div className="font-bold">{formatRupiah(p.amount)} · {p.method}</div>
-                    <div className="text-xs text-slate-500">{p.kind} · {p.status === "verified" ? "terverifikasi" : p.status === "rejected" ? "ditolak" : "menunggu"}{p.verifiedAt ? ` · ${formatJakarta(p.verifiedAt)}` : ""}</div>
+                    <div className={`font-bold ${p.amount < 0 ? "text-red-600" : ""}`}>{p.amount < 0 ? `- ${formatRupiah(-p.amount)}` : formatRupiah(p.amount)} · {p.method === "refund" ? "refund (uang keluar)" : p.method}</div>
+                    <div className="text-xs text-slate-500">{p.kind} · {p.status === "verified" ? "terverifikasi" : p.status === "rejected" ? "ditolak" : p.status === "refunded" ? "dikembalikan" : "menunggu"}{p.verifiedAt ? ` · ${formatJakarta(p.verifiedAt)}` : ""}</div>
                     {p.rejectedReason && <div className="text-xs text-red-600">Alasan tolak: {p.rejectedReason}</div>}
                   </div>
                 </li>

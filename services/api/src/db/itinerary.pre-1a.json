@@ -1,0 +1,188 @@
+[
+  {
+    "title": "Itinerary Open Trip Reguler",
+    "steps": [
+      {
+        "time": "07.00",
+        "activity": "Berangkat menuju Pulau Sangiang"
+      },
+      {
+        "time": "07.30",
+        "activity": "Mengunjungi Turtle Area"
+      },
+      {
+        "time": "08.00",
+        "activity": "Mengunjungi Tembuyung Beach"
+      },
+      {
+        "time": "09.30",
+        "activity": "Snorkeling di Legon Bajo"
+      },
+      {
+        "time": "11.30",
+        "activity": "Makan siang"
+      },
+      {
+        "time": "12.00",
+        "activity": "ISOMA, mandi, dan mengganti pakaian"
+      },
+      {
+        "time": "13.00",
+        "activity": "Trekking Hutan Hujan"
+      },
+      {
+        "time": "13.30",
+        "activity": "Mengunjungi Goa Kelelawar"
+      },
+      {
+        "time": "14.00",
+        "activity": "Mengunjungi Puncak Begal"
+      },
+      {
+        "time": "15.00",
+        "activity": "Mengunjungi Puncak Harapan"
+      },
+      {
+        "time": "15.30",
+        "activity": "Menikmati Sepanjang Beach"
+      },
+      {
+        "time": "16.45",
+        "activity": "Kembali menuju Desa Sangiang"
+      },
+      {
+        "time": "17.00",
+        "activity": "Kembali menuju Meeting Point"
+      },
+      {
+        "time": "17.30",
+        "activity": "Perjalanan selesai"
+      }
+    ],
+    "active": true
+  },
+  {
+    "title": "Itinerary Open Trip Premium",
+    "steps": [
+      {
+        "time": "07.00",
+        "activity": "Berangkat menuju Pulau Sangiang"
+      },
+      {
+        "time": "07.30",
+        "activity": "Mengunjungi Turtle Area"
+      },
+      {
+        "time": "08.00",
+        "activity": "Bermain paddle board di Tembuyung Beach"
+      },
+      {
+        "time": "09.30",
+        "activity": "Snorkeling di Legon Bajo"
+      },
+      {
+        "time": "11.30",
+        "activity": "Makan siang"
+      },
+      {
+        "time": "12.00",
+        "activity": "ISOMA, mandi, dan mengganti pakaian"
+      },
+      {
+        "time": "13.00",
+        "activity": "Trekking Hutan Hujan"
+      },
+      {
+        "time": "13.30",
+        "activity": "Mengunjungi Goa Kelelawar"
+      },
+      {
+        "time": "14.00",
+        "activity": "Mengunjungi Puncak Begal"
+      },
+      {
+        "time": "15.00",
+        "activity": "Mengunjungi Puncak Harapan"
+      },
+      {
+        "time": "15.30",
+        "activity": "Menikmati Sepanjang Beach"
+      },
+      {
+        "time": "16.45",
+        "activity": "Kembali menuju Desa Sangiang"
+      },
+      {
+        "time": "17.00",
+        "activity": "Kembali menuju Meeting Point"
+      },
+      {
+        "time": "17.30",
+        "activity": "Perjalanan selesai"
+      }
+    ],
+    "active": true
+  },
+  {
+    "title": "Itinerary Private Trip Premium",
+    "steps": [
+      {
+        "time": "07.00",
+        "activity": "Berangkat menuju Pulau Sangiang"
+      },
+      {
+        "time": "07.30",
+        "activity": "Mengunjungi Turtle Area"
+      },
+      {
+        "time": "08.00",
+        "activity": "Bermain paddle board di Tembuyung Beach"
+      },
+      {
+        "time": "09.30",
+        "activity": "Snorkeling di Legon Bajo"
+      },
+      {
+        "time": "10.30",
+        "activity": "Free diving di Legon Waru"
+      },
+      {
+        "time": "11.30",
+        "activity": "Makan siang"
+      },
+      {
+        "time": "12.00",
+        "activity": "ISOMA, mandi, dan mengganti pakaian"
+      },
+      {
+        "time": "12.30",
+        "activity": "Trekking Hutan Hujan"
+      },
+      {
+        "time": "13.30",
+        "activity": "Mengunjungi Goa Kelelawar"
+      },
+      {
+        "time": "14.15",
+        "activity": "Mengunjungi Puncak Begal"
+      },
+      {
+        "time": "14.30",
+        "activity": "Mengunjungi Puncak Harapan"
+      },
+      {
+        "time": "15.00",
+        "activity": "Menikmati Sepanjang Beach"
+      },
+      {
+        "time": "17.00",
+        "activity": "Kembali menuju Meeting Point"
+      },
+      {
+        "time": "18.00",
+        "activity": "Perjalanan selesai"
+      }
+    ],
+    "active": true
+  }
+]

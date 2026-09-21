@@ -85,3 +85,34 @@ export function legalActionsFor(status: string): BookingAction[] {
 export function bookingActionLabel(a: string): string {
   return (bookingActionMeta as Record<string, { label: string }>)[a]?.label ?? a;
 }
+
+/** Label Bahasa Indonesia untuk aksi audit (timeline). Tak boleh bocor enum mentah. */
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  booking_created: "Booking dibuat",
+  proof_uploaded: "Bukti diunggah",
+  payment_verified: "Pembayaran diverifikasi",
+  payment_rejected: "Bukti pembayaran ditolak",
+  pii_access: "Data peserta dibuka",
+  pii_purged: "Data peserta dihapus",
+  voucher_issued: "Voucher diterbitkan",
+  export_zurich: "Ekspor data asuransi",
+  role_changed: "Peran diubah",
+  price_changed: "Harga diubah",
+};
+
+function humanize(s: string): string {
+  const t = s.replace(/_/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+export function auditActionLabel(action: string): string {
+  if (AUDIT_ACTION_LABELS[action]) return AUDIT_ACTION_LABELS[action];
+  // Transisi booking: "booking_<aksi>" -> label aksi.
+  if (action.startsWith("booking_")) {
+    const a = action.slice("booking_".length);
+    const meta = (bookingActionMeta as Record<string, { label: string }>)[a];
+    if (meta) return meta.label;
+  }
+  // Fallback: humanize supaya TIDAK pernah menampilkan enum mentah ber-underscore.
+  return humanize(action);
+}
