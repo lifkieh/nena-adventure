@@ -13,6 +13,7 @@ import * as auditRepo from "../../repos/audit.repo.js";
 import type { Booking } from "../../db/schema.js";
 import { record, type ActorContext } from "../audit.js";
 import { computePrice } from "./pricing.js";
+import { toBookingDto } from "./dto.js";
 import {
   assertTransition,
   computeRefund,
@@ -436,7 +437,11 @@ export function expireOverdueHolds(nowIso: string = new Date().toISOString()): n
 
 export function listBookings(filter: bookingsRepo.BookingListFilter) {
   const { rows, total } = bookingsRepo.list(filter);
-  return { items: rows, page: filter.page, pageSize: filter.pageSize, total };
+  const items = rows.map((r) => ({
+    ...toBookingDto(r),
+    scheduleDate: r.scheduleDate,
+  }));
+  return { items, page: filter.page, pageSize: filter.pageSize, total };
 }
 
 /** Detail booking — TANPA PII utuh (hanya idNumberLast4). NIK/tgl lahir via openParticipantPii. */
@@ -449,7 +454,7 @@ export function getBookingDetail(id: string) {
     piiPurgedAt: p.piiPurgedAt,
     isLead: p.isLead,
   }));
-  return { booking, participants };
+  return { booking: toBookingDto(booking), participants };
 }
 
 /** Buka PII utuh (dekripsi) — hanya dipanggil endpoint participant:read_pii.

@@ -14,6 +14,7 @@ import {
   applyTransition,
   hashAccessToken,
 } from "../booking/service.js";
+import { toBookingDto } from "../booking/dto.js";
 import { canTransition } from "../booking/transition.js";
 import { issueForBooking } from "../voucher/service.js";
 import { providerFor } from "./provider.js";
@@ -129,7 +130,7 @@ export function getDetail(paymentId: string) {
   const payment = paymentsRepo.findById(paymentId);
   if (!payment) throw AppError.notFound("Pembayaran tidak ditemukan.");
   const booking = bookingsRepo.findById(payment.bookingId);
-  return { payment, booking };
+  return { payment, booking: booking ? toBookingDto(booking) : null };
 }
 
 export function approve(paymentId: string, ctx: ActorContext) {
@@ -160,7 +161,7 @@ export function approve(paymentId: string, ctx: ActorContext) {
   if (updated.status === "siap_jalan") {
     issueForBooking(booking.id, ctx);
   }
-  return updated;
+  return toBookingDto(updated);
 }
 
 export function reject(paymentId: string, reason: string, ctx: ActorContext) {
@@ -182,7 +183,7 @@ export function reject(paymentId: string, reason: string, ctx: ActorContext) {
     entityId: payment.id,
     data: { reason },
   });
-  return updated;
+  return toBookingDto(updated);
 }
 
 export { UPLOAD_DIR };

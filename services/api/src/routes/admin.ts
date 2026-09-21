@@ -15,6 +15,7 @@ import { actorFromReq, requireAuth, requirePermission } from "../plugins/auth.js
 import * as usersUseCase from "../usecases/users.js";
 import { queryLogs } from "../usecases/audit.js";
 import * as bookingService from "../usecases/booking/service.js";
+import { toBookingDto } from "../usecases/booking/dto.js";
 import * as paymentService from "../usecases/payment/service.js";
 import * as voucherService from "../usecases/voucher/service.js";
 import { getMedia } from "../usecases/media.js";
@@ -189,7 +190,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         ctx: actorFromReq(req),
       });
       reply.status(201);
-      return booking;
+      return toBookingDto(booking);
     },
   );
 
@@ -201,10 +202,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       const { dueAt } = z
         .object({ dueAt: z.string().optional() })
         .parse(req.body ?? {});
-      return bookingService.applyTransition(id, "send_invoice", {
+      return toBookingDto(bookingService.applyTransition(id, "send_invoice", {
         dueAt,
         ctx: actorFromReq(req),
-      });
+      }));
     },
   );
 
@@ -214,10 +215,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     async (req) => {
       const { id } = req.params as { id: string };
       const { action, reason } = transitionSchema.parse(req.body);
-      return bookingService.applyTransition(id, action, {
+      return toBookingDto(bookingService.applyTransition(id, action, {
         reason,
         ctx: actorFromReq(req),
-      });
+      }));
     },
   );
 
@@ -230,10 +231,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       const { reason } = z
         .object({ reason: z.string().min(1, "Alasan wajib diisi.") })
         .parse(req.body);
-      return bookingService.applyTransition(id, "cancel", {
+      return toBookingDto(bookingService.applyTransition(id, "cancel", {
         reason,
         ctx: actorFromReq(req),
-      });
+      }));
     },
   );
 

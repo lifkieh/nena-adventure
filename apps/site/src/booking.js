@@ -2,7 +2,7 @@ import { WA_PRIMARY as WA } from "./data/wa.js";
 import { REKENING_BCA } from "./data/rekening.js";
 import { HARGA, TIER_PRIVATE } from "./data/harga.js";
 import { LABEL_MP, LABEL_PKG } from "./data/meetingpoint.js";
-import { loadSchedules, createBooking, getSummary } from "./data/api.js";
+import { loadSchedules, createBooking, getSummary, uploadProof } from "./data/api.js";
 (function(){
   "use strict";
   var KUOTA = 24, LAYANAN = 5000;
@@ -345,13 +345,64 @@ import { loadSchedules, createBooking, getSummary } from "./data/api.js";
     }
   });
 
-  /* ── Upload bukti transfer (arsip lokal, tetap dilampirkan manual di WhatsApp) ── */
+  /* ── Upload bukti transfer (POST ke API) ─────────────────── */
   var buktiUpload = $("buktiUpload");
+  var buktiTerkirim = false;
+
+  function getSaved(){
+    try { return JSON.parse(sessionStorage.getItem("nena_booking") || "null"); }
+    catch (e) { return null; }
+  }
+  function setHint(msg, err){
+    var h = $("buktiHint"); if (!h) return;
+    h.textContent = msg; h.style.color = err ? "var(--err)" : "";
+  }
+  function tampilkanMenungguVerifikasi(){
+    buktiTerkirim = true;
+    clearInterval(jam);
+    var tp = $("timer") ? $("timer").closest("p") : null;
+    if (tp) tp.textContent = "Kursi Anda aman. Bukti sedang menunggu verifikasi admin.";
+    var lbl = document.querySelector('label[for="buktiUpload"]');
+    if (lbl) lbl.hidden = true;
+    if (buktiUpload){ buktiUpload.hidden = true; buktiUpload.disabled = false; }
+    var h = $("buktiHint");
+    if (h){
+      h.style.color = "";
+      h.innerHTML = "<strong>Bukti sudah kami terima. Menunggu verifikasi admin.</strong><br>"
+        + "Bukti sudah terkirim otomatis — WhatsApp hanya untuk konfirmasi bila perlu.";
+    }
+    if (buktiUpload && !document.getElementById("gantiBukti")){
+      var b = document.createElement("button");
+      b.type = "button"; b.id = "gantiBukti"; b.className = "btn btn--out btn--sm";
+      b.style.marginTop = "10px"; b.textContent = "Ganti bukti";
+      b.addEventListener("click", function(){
+        if (lbl) lbl.hidden = false;
+        buktiUpload.hidden = false; buktiUpload.disabled = false; buktiUpload.value = "";
+        buktiUpload.click();
+      });
+      buktiUpload.parentNode.appendChild(b);
+    }
+  }
+  async function unggahBukti(f){
+    var saved = getSaved();
+    if (!saved || !saved.code){ setHint("Sesi booking tidak ditemukan. Muat ulang halaman.", true); return; }
+    var namaOk = /\.(jpe?g|png|pdf)$/i.test(f.name)
+      || ["image/jpeg", "image/png", "application/pdf"].indexOf(f.type) > -1;
+    if (!namaOk){ setHint("File harus JPG, PNG, atau PDF.", true); buktiUpload.value = ""; return; }
+    if (f.size > 5 * 1024 * 1024){ setHint("Ukuran file melebihi 5MB.", true); buktiUpload.value = ""; return; }
+    setHint("Sedang mengunggah bukti…", false); buktiUpload.disabled = true;
+    try {
+      await uploadProof(saved.code, saved.token, f);
+      tampilkanMenungguVerifikasi();
+    } catch (err){
+      // Kode booking TETAP di layar; hanya tampilkan pesan gagal + biar bisa coba lagi.
+      setHint((err && err.message ? err.message : "Gagal mengunggah bukti.") + " Silakan coba lagi.", true);
+      buktiUpload.disabled = false;
+    }
+  }
   if (buktiUpload) buktiUpload.addEventListener("change", function(){
     var f = buktiUpload.files && buktiUpload.files[0];
-    $("buktiHint").textContent = f
-      ? "Terpilih: " + f.name + ". Lampirkan file yang sama saat chat WhatsApp dengan admin."
-      : "Format JPG, PNG, atau PDF. File ini membantu admin memverifikasi lebih cepat.";
+    if (f) unggahBukti(f);
   });
 
   var jam = null;
@@ -385,14 +436,27 @@ import { loadSchedules, createBooking, getSummary } from "./data/api.js";
     try { saved = JSON.parse(raw); } catch (e) { return; }
     if (!saved || !saved.code) return;
     var sum = await getSummary(saved.code, saved.token);
-    if (!sum || sum.status !== "menunggu_bayar" || (sum.holdSecondsLeft != null && sum.holdSecondsLeft <= 0)){
+    if (!sum){ try { sessionStorage.removeItem("nena_booking"); } catch (e) {} return; }
+
+    if (sum.status === "menunggu_bayar"){
+      if (sum.holdSecondsLeft != null && sum.holdSecondsLeft <= 0){
+        try { sessionStorage.removeItem("nena_booking"); } catch (e) {}
+        return;
+      }
+      isiPanelDariSummary(sum);
+      $("kode").textContent = sum.code;
+      keLangkah(4);
+      mulaiTimerHingga(sum.holdExpiresAt);
+    } else if (sum.status === "verifikasi_bukti"){
+      // Sudah upload — tampilkan "menunggu verifikasi", TANPA timer berjalan.
+      isiPanelDariSummary(sum);
+      $("kode").textContent = sum.code;
+      keLangkah(4);
+      tampilkanMenungguVerifikasi();
+    } else {
+      // Status lain (siap_jalan/selesai/batal/kadaluarsa) — booking tak lagi di alur ini.
       try { sessionStorage.removeItem("nena_booking"); } catch (e) {}
-      return;
     }
-    isiPanelDariSummary(sum);
-    $("kode").textContent = sum.code;
-    keLangkah(4);
-    mulaiTimerHingga(sum.holdExpiresAt);
   }
 
   /** Isi ulang panel Ringkasan + blok "Ringkasan pesanan" dari data server. */

@@ -51,6 +51,31 @@ export async function createBooking(payload, idempotencyKey) {
   return body;
 }
 
+/** Upload bukti (multipart). Token via header X-Booking-Token. Lempar Error bila gagal. */
+export async function uploadProof(code, token, file) {
+  var fd = new FormData();
+  fd.append("file", file);
+  var res = await fetch(BASE + "/bookings/" + encodeURIComponent(code) + "/proof", {
+    method: "POST",
+    headers: { "x-booking-token": token }, // JANGAN set content-type: biar boundary otomatis
+    body: fd,
+  });
+  var body = null;
+  try {
+    body = await res.json();
+  } catch (e) {
+    body = null;
+  }
+  if (!res.ok) {
+    var msg = (body && body.error && body.error.message) || "Gagal mengunggah bukti.";
+    var err = new Error(msg);
+    err.code = body && body.error && body.error.code;
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
 /** Ambil ringkasan pesanan (untuk restore setelah refresh). null bila gagal.
  *  Token dikirim via header X-Booking-Token (bukan query string). */
 export async function getSummary(code, token) {

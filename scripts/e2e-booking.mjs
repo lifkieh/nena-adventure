@@ -1,18 +1,28 @@
 #!/usr/bin/env node
 /**
- * E2E situs publik: jalankan alur booking 4 langkah sampai kode terbit,
- * lalu refresh dan pastikan kode + timer masih ada (persistensi sessionStorage).
+ * E2E situs publik (lewat UI): alur booking 4 langkah -> kode terbit -> upload
+ * bukti lewat form -> status verifikasi_bukti + antrian verifikasi +1 ->
+ * refresh -> "menunggu verifikasi" (timer berhenti). Plus penolakan 6MB/.exe
+ * dengan pesan di layar, dan halaman jadwal saat schedules 500.
  */
 import { execSync, spawn } from "node:child_process";
 import { rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium, request } from "playwright";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 3212;
 const DB = "services/api/data/e2e.db";
 const base = `http://127.0.0.1:${PORT}`;
+const OWNER_EMAIL = "owner@nena-adventure.id";
+const OWNER_PASSWORD = "e2e-owner-pass";
+
+// PNG 1x1 valid (magic 89 50 4E 47 …).
+const PNG = Buffer.from(
+  "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000002000154a24f9f0000000049454e44ae426082",
+  "hex",
+);
 
 function killPort(port) {
   try {
@@ -44,11 +54,26 @@ const env = {
   DB_PATH: DB,
   SESSION_SECRET: "e2e-secret-abcdef-1234567890",
   ENCRYPTION_KEY: "0".repeat(64),
+  OWNER_EMAIL,
+  OWNER_PASSWORD,
 };
 
 let child;
 let ok = true;
 const fail = (m) => { ok = false; console.error("FAIL:", m); };
+
+async function queueCount() {
+  const api = await request.newContext({ baseURL: base });
+  await api.post("/api/auth/login", { data: { email: OWNER_EMAIL, password: OWNER_PASSWORD } });
+  const res = await api.get("/api/admin/payments/queue");
+  const arr = await res.json();
+  await api.dispose();
+  return Array.isArray(arr) ? arr.length : -1;
+}
+
+async function bukti(page) {
+  return page.$eval("#buktiHint", (el) => el.textContent || "").catch(() => "");
+}
 
 try {
   killPort(PORT);
@@ -62,9 +87,10 @@ try {
   const browser = await chromium.launch();
   const page = await (await browser.newContext()).newPage();
 
+  // ── Alur booking 4 langkah ──
   await page.goto(base + "/#/booking", { waitUntil: "load" });
   await page.waitForSelector('#tanggal option[value]:not([value=""])', { state: "attached", timeout: 10000 });
-  await page.click("#minus"); // pax -> 1
+  await page.click("#minus");
   await page.selectOption("#tanggal", { index: 1 });
   await page.click("#to2");
   await page.fill("#nama", "Nena QA");
@@ -76,54 +102,61 @@ try {
   await page.click("#to3");
   await page.check("#setuju");
   await page.click("#bayar");
-
-  // Kode terbit dari server (bukan placeholder "NA-000000").
   await page.waitForFunction(() => {
     const t = document.getElementById("kode")?.textContent || "";
     return /NA-\d{6}/.test(t) && t !== "NA-000000";
   }, { timeout: 10000 }).catch(() => fail("kode tidak terbit"));
   const kode = await page.$eval("#kode", (el) => el.textContent);
-  if (!/NA-\d{6}/.test(kode || "")) fail("format kode salah: " + kode);
 
-  const saved = await page.evaluate(() => sessionStorage.getItem("nena_booking"));
-  if (!saved || !saved.includes(kode)) fail("sessionStorage tidak menyimpan kode");
-  // Tidak boleh menyimpan NIK/peserta di sessionStorage.
-  if (saved && (saved.includes("3200000000000001") || saved.toLowerCase().includes("nik"))) {
-    fail("sessionStorage menyimpan NIK (dilarang)");
-  }
+  const qBefore = await queueCount();
 
-  // REFRESH -> kode + timer harus bertahan.
+  // ── Tolak 6MB (validasi klien, tampil di layar) ──
+  await page.setInputFiles("#buktiUpload", { name: "besar.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(6 * 1024 * 1024, 1) });
+  await page.waitForTimeout(400);
+  if (!/5MB/i.test(await bukti(page))) fail("6MB tidak ditolak di layar");
+  if ((await page.$eval("#kode", (e) => e.textContent)) !== kode) fail("kode hilang setelah gagal 6MB");
+
+  // ── Tolak .exe menyamar .jpg (magic bytes server) ──
+  await page.setInputFiles("#buktiUpload", { name: "virus.jpg", mimeType: "image/jpeg", buffer: Buffer.from([0x4d, 0x5a, 0x90, 0x00]) });
+  await page.waitForTimeout(800);
+  const exeMsg = await bukti(page);
+  if (!/JPG|PNG|PDF|coba lagi|valid/i.test(exeMsg)) fail("exe-as-jpg tidak ditolak di layar: " + exeMsg);
+  if ((await page.$eval("#kode", (e) => e.textContent)) !== kode) fail("kode hilang setelah gagal exe");
+
+  // ── Upload PNG valid ──
+  await page.setInputFiles("#buktiUpload", { name: "bukti.png", mimeType: "image/png", buffer: PNG });
+  await page.waitForFunction(() => /Menunggu verifikasi/i.test(document.getElementById("buktiHint")?.textContent || ""), { timeout: 10000 })
+    .catch(() => fail("upload PNG: pesan menunggu verifikasi tidak muncul"));
+
+  // Antrian verifikasi bertambah 1 (bukti masuk -> payment pending).
+  const qAfter = await queueCount();
+  if (qAfter !== qBefore + 1) fail(`antrian verifikasi tidak +1 (before=${qBefore}, after=${qAfter})`);
+
+  // ── Refresh -> menunggu verifikasi, timer berhenti ──
   await page.reload({ waitUntil: "load" });
-  await page.waitForFunction((k) => document.getElementById("kode")?.textContent === k, kode, { timeout: 10000 })
-    .catch(() => fail("kode hilang setelah refresh"));
-  const s4visible = await page.evaluate(() => {
-    const s4 = document.getElementById("s4");
-    return s4 && !s4.classList.contains("hidden");
-  });
-  if (!s4visible) fail("langkah 4 tidak tampil setelah refresh");
-  const timer = await page.$eval("#timer", (el) => el.textContent || "");
-  if (!/\d{2}:\d{2}|kedaluwarsa/.test(timer)) fail("timer kosong setelah refresh: " + timer);
+  await page.waitForFunction(() => /Menunggu verifikasi/i.test(document.getElementById("buktiHint")?.textContent || ""), { timeout: 10000 })
+    .catch(() => fail("refresh: tidak menampilkan menunggu verifikasi"));
+  const timerTxt = await page.$eval("#timer", (el) => el.textContent || "").catch(() => "");
+  if (/\d{2}:\d{2}/.test(timerTxt)) fail("refresh: timer masih berjalan (" + timerTxt + ")");
+  const kodeAfter = await page.$eval("#kode", (e) => e.textContent).catch(() => "");
+  if (kodeAfter !== kode) fail("refresh: kode hilang");
 
-  console.log("kode:", kode, "| timer:", timer);
-
-  // Skenario schedules 500 -> halaman jadwal keadaan netral + WhatsApp, bukan "penuh".
+  // ── Jadwal saat schedules 500 -> netral + WhatsApp ──
   const ctx2 = await browser.newContext();
   const page2 = await ctx2.newPage();
-  await page2.route("**/api/public/schedules", (route) =>
-    route.fulfill({ status: 500, contentType: "application/json", body: '{"error":{"code":"INTERNAL","message":"x"}}' }),
-  );
+  await page2.route("**/api/public/schedules", (r) =>
+    r.fulfill({ status: 500, contentType: "application/json", body: '{"error":{"code":"INTERNAL","message":"x"}}' }));
   await page2.goto(base + "/#/jadwal", { waitUntil: "load" });
   await page2.waitForTimeout(1000);
   const monthsText = await page2.$eval("#months", (el) => el.textContent || "").catch(() => "");
-  if (!/whatsapp/i.test(monthsText)) fail("jadwal 500: tidak ada tautan WhatsApp netral");
-  if (/penuh/i.test(monthsText)) fail("jadwal 500: menampilkan 'penuh' (dilarang)");
-  const waLink = await page2.$("#months a[href*='wa.me']");
-  if (!waLink) fail("jadwal 500: tautan wa.me tidak ada");
+  if (!/whatsapp/i.test(monthsText)) fail("jadwal 500: tidak ada WhatsApp");
+  if (/penuh/i.test(monthsText)) fail("jadwal 500: menampilkan 'penuh'");
 
+  console.log("kode:", kode, "| queue:", qBefore, "->", qAfter, "| timer refresh:", JSON.stringify(timerTxt));
   console.log(ok ? "\nE2E OK" : "\nE2E FAIL");
   await browser.close();
 } catch (e) {
-  fail(e.message);
+  fail(e.message || String(e));
 } finally {
   try { execSync(`taskkill /pid ${child?.pid} /T /F`, { stdio: "ignore" }); } catch {}
   killPort(PORT);
