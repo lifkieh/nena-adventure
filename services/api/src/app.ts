@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -8,6 +9,8 @@ import { apiRoutes } from "./routes/index.js";
 import { errorHandler, notFoundEnvelope } from "./lib/errors.js";
 
 const SITE_DIR = resolve(repoRoot, "apps/site");
+const PANEL_DIR = resolve(repoRoot, "apps/panel/dist");
+const PANEL_INDEX = resolve(PANEL_DIR, "index.html");
 
 export interface RegisteredRoute {
   method: string;
@@ -23,6 +26,7 @@ declare module "fastify" {
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: { level: "warn" } });
+  const panelBuilt = existsSync(PANEL_INDEX);
 
   app.setErrorHandler(errorHandler);
 
@@ -38,28 +42,59 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
   });
 
-  // Cookie (untuk sesi httpOnly). Secret dipakai bila cookie ditandatangani.
   await app.register(fastifyCookie, { secret: env.SESSION_SECRET });
 
-  // API di bawah /api (HTTP + validasi Zod saja di lapisan ini).
+  /* ── Urutan registrasi EKSPLISIT (bukan kebetulan) ──────────
+   * 1. /api  -> route API (paling utama)
+   * 2. /panel -> panel admin statis (dist), bila sudah di-build
+   * 3. /      -> situs publik statis
+   * Radix router memilih prefix terpanjang, jadi /panel/** & /api/**
+   * TIDAK akan tertangkap fallback situs publik. notFoundHandler
+   * mengarahkan sisa path ke fallback yang benar per-prefix.
+   * ──────────────────────────────────────────────────────────── */
+
+  // 1. API
   await app.register(apiRoutes, { prefix: "/api" });
 
-  // Situs publik statis (apps/site) di root — pengganti Live Server.
-  // wildcard:true = lookup filesystem per-request (mendukung file & subfolder
-  // apa pun: styles/, src/, src/data/) dengan MIME benar; file hilang jatuh ke
-  // setNotFoundHandler (SPA fallback ke index.html).
+  // 3-decorate: situs publik didaftar lebih dulu supaya reply.sendFile ada.
   await app.register(fastifyStatic, {
     root: SITE_DIR,
     prefix: "/",
     wildcard: true,
   });
 
-  // 404: /api/* -> JSON seragam; selain itu fallback ke index.html situs.
+  // 2. Panel admin statis (hanya bila dist ada). decorateReply:false karena
+  //    reply.sendFile sudah didekorasi oleh registrasi situs di atas.
+  if (panelBuilt) {
+    await app.register(fastifyStatic, {
+      root: PANEL_DIR,
+      prefix: "/panel/",
+      wildcard: true,
+      decorateReply: false,
+    });
+  }
+
+  // 404 / fallback SPA per-prefix.
   app.setNotFoundHandler((req, reply) => {
     if (req.url.startsWith("/api")) {
       reply.status(404).send(notFoundEnvelope());
       return;
     }
+    if (req.url === "/panel" || req.url.startsWith("/panel/") || req.url.startsWith("/panel?")) {
+      if (!panelBuilt) {
+        reply.status(503).send({
+          error: {
+            code: "PANEL_NOT_BUILT",
+            message:
+              "Panel belum di-build. Jalankan `npm run build` lalu mulai ulang server.",
+          },
+        });
+        return;
+      }
+      reply.type("text/html").sendFile("index.html", PANEL_DIR);
+      return;
+    }
+    // Situs publik (SPA hash-routing).
     reply.sendFile("index.html");
   });
 

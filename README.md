@@ -92,9 +92,22 @@ GET  /api/admin/users ...       CRUD user (izin user:manage)
 GET  /api/admin/audit-logs      filter entity/actor/tanggal + paginasi (izin user:read)
 ```
 
-### QA — cara masuk
+### Menyajikan panel
 
-- URL login: **http://localhost:3000/panel/login** (atau via dev panel `http://localhost:5173/panel/login`).
+Panel adalah SPA build (Vite, base `/panel/`). API menyajikannya di prefix `/panel`:
+
+- `npm run build` — build panel ke `apps/panel/dist` + verifikasi artefak.
+- Lalu jalankan API (`npm run dev` atau `npm start -w @nena/api`) → panel tayang di
+  **http://localhost:3000/panel/** (`/panel/**` fallback ke index panel; `/panel/assets/**`
+  MIME benar). Situs publik tetap di `/`, API di `/api`. Ketiganya tidak saling menangkap.
+- Kalau `dist` belum ada, `/panel/**` membalas **503 "panel belum di-build"** (tidak diam-diam
+  jatuh ke situs publik).
+- Dev alternatif: `npm run dev:panel` (Vite di `http://localhost:5173/panel/`, proxy `/api` → 3000).
+
+### QA — cara masuk (URL terverifikasi)
+
+- URL login: **http://localhost:3000/panel/login** (setelah `npm run build`).
+  Dev: `http://localhost:5173/panel/login`.
 - Owner produksi: dari `.env` — `OWNER_EMAIL` / `OWNER_PASSWORD` (default dev: `owner@nena-adventure.id` / `nena-dev-2026`). `npm run seed` melakukan upsert owner sesuai `.env`.
 - Akun demo per role (password acak dicetak ke terminal, TIDAK ikut seed produksi):
 

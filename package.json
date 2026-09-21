@@ -12,7 +12,7 @@
     "dev": "concurrently -n api,panel -c blue,magenta \"npm:dev:api\" \"npm:dev:panel\"",
     "dev:api": "npm run dev -w @nena/api",
     "dev:panel": "npm run dev -w @nena/panel",
-    "build": "npm run build -w @nena/panel",
+    "build": "npm run build -w @nena/panel && node scripts/verify-panel-build.mjs",
     "generate": "npm run generate -w @nena/api",
     "migrate": "npm run migrate -w @nena/api",
     "seed": "npm run seed -w @nena/api",
