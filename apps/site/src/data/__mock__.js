@@ -1,19 +1,5 @@
-// SUMBER SEMENTARA - diganti API di fase 5.
-// Semua generator data palsu diisolasi di sini. Jangan dihapus — diganti API di fase 5.
-
-const KUOTA = 24;
-
-// sisaKursi: kuota deterministik dari tanggal (Math.sin). Asal: index.html lama.
-export function sisaKursi(d){
-  var seed = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
-  var x = Math.sin(seed) * 10000;
-  return Math.floor((x - Math.floor(x)) * (KUOTA + 3));
-}
-
-// generateKode: kode booking NA-xxxxxx acak di klien.
-export function generateKode(){
-  return "NA-" + String(Math.floor(100000 + Math.random() * 900000));
-}
+// SUMBER MOCK yang TERSISA. sisaKursi() & generateKode() sudah DIHAPUS di fase 3
+// (diganti panggilan API: /api/public/schedules & POST /api/public/bookings).
 
 // seedAcak + bangunGrup: grup trip per tanggal (seeded random) untuk view admin lama.
 // Diisolasi; tidak dipakai situs publik setelah view admin dihapus.

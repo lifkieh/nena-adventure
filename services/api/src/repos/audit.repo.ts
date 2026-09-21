@@ -26,6 +26,7 @@ export function insert(input: {
 
 export interface AuditQueryParams {
   entity?: string;
+  entityId?: string;
   actorUserId?: string;
   from?: string;
   to?: string;
@@ -50,6 +51,7 @@ export function query(params: AuditQueryParams): {
 } {
   const conds = [];
   if (params.entity) conds.push(eq(auditLogs.entity, params.entity));
+  if (params.entityId) conds.push(eq(auditLogs.entityId, params.entityId));
   if (params.actorUserId)
     conds.push(eq(auditLogs.actorUserId, params.actorUserId));
   if (params.from) conds.push(gte(auditLogs.createdAt, params.from));

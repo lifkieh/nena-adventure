@@ -203,6 +203,8 @@ export const bookings = sqliteTable(
     // Skema pembayaran TERPISAH dari status alur — jangan dilebur.
     paymentScheme: text("payment_scheme").notNull().default("lunas"), // lunas | dp
     promoId: text("promo_id"),
+    idempotencyKey: text("idempotency_key"), // dedup POST publik
+    accessTokenHash: text("access_token_hash"), // token akses ringkasan (hash)
     refundAmount: money("refund_amount"),
     priceOverrideReason: text("price_override_reason"),
     cancelReason: text("cancel_reason"),
@@ -222,9 +224,40 @@ export const bookings = sqliteTable(
   },
   (t) => [
     uniqueIndex("ux_bookings_code").on(t.code),
+    uniqueIndex("ux_bookings_idempotency").on(t.idempotencyKey),
     index("ix_bookings_schedule").on(t.scheduleId),
     index("ix_bookings_status").on(t.status),
   ],
+);
+
+/* ── packages (sumber harga; klien tidak menentukan harga) ── */
+export const packages = sqliteTable(
+  "packages",
+  {
+    id: pk(),
+    key: text("key").notNull(), // reguler | premium | private
+    name: text("name").notNull(),
+    prices: text("prices").notNull(), // JSON: { meetingPoint: rupiah }
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: tsNow("created_at"),
+  },
+  (t) => [uniqueIndex("ux_packages_key").on(t.key)],
+);
+
+/* ── package_tiers (harga rombongan Private Trip per rentang pax) ── */
+export const packageTiers = sqliteTable(
+  "package_tiers",
+  {
+    id: pk(),
+    packageId: text("package_id")
+      .notNull()
+      .references(() => packages.id, { onDelete: "cascade" }),
+    minPax: integer("min_pax").notNull(),
+    maxPax: integer("max_pax").notNull(),
+    price: integer("price").notNull(), // rupiah per rombongan
+    createdAt: tsNow("created_at"),
+  },
+  (t) => [index("ix_package_tiers_pkg").on(t.packageId)],
 );
 
 /* ── booking_participants ────────────────────────────────── */
@@ -435,4 +468,6 @@ export const schema = {
   contentSections,
   contentVersions,
   media,
+  packages,
+  packageTiers,
 };

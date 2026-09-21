@@ -11,7 +11,7 @@
  * Determinisme dipaksa (Math.random + Date + setInterval dibekukan, jaringan
  * eksternal diblok) supaya kedua build dirender pada kondisi identik.
  */
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join, resolve, normalize } from "node:path";
@@ -101,11 +101,16 @@ const INIT = `
 
 const NORM_CSS = `*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}
 html{scroll-behavior:auto!important}
-:focus{outline:none!important}`;
+:focus{outline:none!important}
+/* Timer & kode booking berbeda antar-run (jam server / kode acak server);
+   sembunyikan agar piksel stabil. Nilainya sudah dinormalkan di DOM. */
+#timer,#kode{visibility:hidden!important}`;
 
 function normalizeHtml(html) {
   return html
     .replace(/NA-\d{6}/g, "NA-XXXXXX")
+    // Netralkan isi elemen timer (baseline "60:00" vs refactor jam-server).
+    .replace(/(id="timer"[^>]*>)[^<]*/g, "$1TIMER")
     .replace(/\d{2}:\d{2}(?!\d)/g, "TT:TT");
 }
 
@@ -126,8 +131,16 @@ async function captureView(page, hash, selector) {
 async function driveBooking(page) {
   const caps = [];
   await gotoHash(page, "#/booking");
+  // Dropdown terisi (baseline: sinkron; refactor: async dari API).
+  await page
+    .waitForSelector('#tanggal option[value]:not([value=""])', { state: "attached", timeout: 8000 })
+    .catch(() => {});
+  // pax -> 1 supaya selalu cukup kursi utk tanggal apa pun yang tersisa > 0.
+  await page.click("#minus").catch(() => {});
+  await page.waitForTimeout(150);
+
   const grab = async (label) => {
-    await page.waitForTimeout(120);
+    await page.waitForTimeout(150);
     const html = await page.$eval("#view-booking", (el) => el.outerHTML);
     const shot = await page.screenshot({ fullPage: true, animations: "disabled" });
     caps.push({ label, html: normalizeHtml(html), shot });
@@ -154,18 +167,20 @@ async function driveBooking(page) {
   await page.click("#to3");
   await grab("booking-s3");
 
-  // langkah 3 -> 4 : setujui, bayar
+  // langkah 3 -> 4 : setujui, bayar (refactor: POST async ke API)
   await page.check("#setuju");
   await page.click("#bayar");
+  await page.waitForTimeout(1200); // tunggu POST + render s4
   await grab("booking-s4");
 
   return caps;
 }
 
-async function captureAll(base) {
+async function captureAll(base, reset = async () => {}) {
   const browser = await chromium.launch();
   const result = {}; // key -> {html, shot}
   for (const vp of VIEWPORTS) {
+    await reset(); // pulihkan kursi (refactor) sebelum tiap viewport
     const ctx = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
       deviceScaleFactor: 1,
@@ -181,7 +196,14 @@ async function captureAll(base) {
     const page = await ctx.newPage();
     await page.goto(base + "/", { waitUntil: "load" });
     await page.addStyleTag({ content: NORM_CSS });
-    await page.waitForTimeout(200);
+    // Papan & kalender terisi async (baseline: sinkron; refactor: fetch API).
+    await page
+      .waitForSelector("#boardRows .board-row", { timeout: 8000 })
+      .catch(() => {});
+    await page
+      .waitForSelector("#months .month", { timeout: 8000 })
+      .catch(() => {});
+    await page.waitForTimeout(250);
 
     for (const [name, hash] of SUBPAGES) {
       const cap = await captureView(page, hash, "#view-home");
@@ -228,13 +250,89 @@ function parseBaseline(argv) {
   return process.env.PARITY_BASELINE || "pre-1a";
 }
 
+const API_PORT = 3211;
+const PARITY_DB = "services/api/data/parity.db";
+
+/** Bunuh proses apa pun yang memegang port (Windows: netstat + taskkill). */
+function killPort(port) {
+  try {
+    const out = execSync("netstat -ano -p tcp", { encoding: "utf8" });
+    const pids = new Set();
+    for (const line of out.split(/\r?\n/)) {
+      if (line.includes(":" + port + " ") || line.includes(":" + port + "\t")) {
+        const cols = line.trim().split(/\s+/);
+        const pid = cols[cols.length - 1];
+        if (/^\d+$/.test(pid) && pid !== "0") pids.add(pid);
+      }
+    }
+    for (const pid of pids) {
+      try {
+        execSync(`taskkill /pid ${pid} /T /F`, { stdio: "ignore" });
+      } catch {}
+    }
+  } catch {}
+}
+
+async function waitHealth(base, ms = 30000) {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch(base + "/api/health");
+      if (r.ok) return true;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  throw new Error("API parity tidak siap tepat waktu.");
+}
+
+/**
+ * Boot API (working tree) dengan DB parity ter-seed (schedules = fixture Math.sin).
+ * API menyajikan situs refactor di / DAN endpoint /api/public/* yang dibutuhkannya.
+ */
+async function startRefactoredApi() {
+  const env = {
+    ...process.env,
+    PORT: String(API_PORT),
+    DB_PATH: PARITY_DB,
+    NODE_ENV: "production", // secure cookie tak relevan; hanya publik yg dipakai
+    SESSION_SECRET: "parity-secret-abcdef-1234567890",
+    ENCRYPTION_KEY: "0".repeat(64),
+  };
+  killPort(API_PORT); // pastikan tidak ada API lama memegang DB
+  for (const ext of ["", "-wal", "-shm"]) {
+    rmSync(resolve(ROOT, PARITY_DB + ext), { force: true });
+  }
+  execSync("npm run migrate", { cwd: ROOT, env, stdio: "ignore" });
+  execSync("npm run seed", { cwd: ROOT, env, stdio: "ignore" });
+  execSync("npm run seed:parity", { cwd: ROOT, env, stdio: "ignore" });
+
+  const child = spawn("npm", ["run", "start", "-w", "@nena/api"], {
+    cwd: ROOT,
+    env,
+    shell: true,
+    stdio: "ignore",
+  });
+  const base = `http://127.0.0.1:${API_PORT}`;
+  await waitHealth(base);
+  return {
+    base,
+    // Pulihkan kursi/booking ke fixture bersih (dipanggil antar-viewport).
+    reset: () => {
+      execSync("npm run seed:parity", { cwd: ROOT, env, stdio: "ignore" });
+    },
+    stop: () => {
+      try {
+        execSync(`taskkill /pid ${child.pid} /T /F`, { stdio: "ignore" });
+      } catch {}
+      killPort(API_PORT); // pastikan tree benar-benar mati
+    },
+  };
+}
+
 async function main() {
-  // Baseline = ref git pembanding (tag/branch/sha). Default: tag `pre-1a`
-  // (monolith beku sebelum modularisasi). Fase 5 memakai harness sama untuk
-  // membandingkan situs-baca-API vs situs-baca-file: `npm run parity -- --baseline <ref>`.
   const BASELINE = parseBaseline(process.argv.slice(2));
 
-  // Siapkan worktree baseline
+  // Siapkan worktree baseline (situs monolith Math.sin, disajikan statis).
   rmSync(WORKTREE, { recursive: true, force: true });
   try {
     execSync(`git worktree remove --force "${WORKTREE}"`, { cwd: ROOT, stdio: "ignore" });
@@ -245,25 +343,25 @@ async function main() {
   });
 
   const baselineSite = resolve(WORKTREE, "apps/site");
-  const refactorSite = resolve(ROOT, "apps/site");
   if (!existsSync(join(baselineSite, "index.html"))) {
     throw new Error("baseline apps/site/index.html tidak ada di worktree");
   }
 
   const srvA = await staticServer(baselineSite);
-  const srvB = await staticServer(refactorSite);
   const baseUrlA = `http://127.0.0.1:${srvA.address().port}`;
-  const baseUrlB = `http://127.0.0.1:${srvB.address().port}`;
 
-  console.log(`Baseline : ${BASELINE}  -> ${baseUrlA}`);
-  console.log(`Refactor : working tree -> ${baseUrlB}`);
+  console.log(`Baseline : ${BASELINE} (statis) -> ${baseUrlA}`);
+  console.log("Menyalakan API refactor (DB parity ter-seed)…");
+  const api = await startRefactoredApi();
+  console.log(`Refactor : API -> ${api.base}`);
+
   console.log("Menangkap baseline…");
   const A = await captureAll(baseUrlA);
   console.log("Menangkap refactor…");
-  const B = await captureAll(baseUrlB);
+  const B = await captureAll(api.base, api.reset);
 
   srvA.close();
-  srvB.close();
+  api.stop();
   execSync(`git worktree remove --force "${WORKTREE}"`, { cwd: ROOT, stdio: "ignore" });
 
   // Bandingkan

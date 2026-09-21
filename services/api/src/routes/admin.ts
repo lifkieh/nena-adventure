@@ -1,7 +1,10 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import {
   auditQuerySchema,
   createUserInputSchema,
+  packageTypeSchema,
+  paymentSchemeSchema,
   resetPasswordInputSchema,
   setActiveInputSchema,
   updateUserRoleInputSchema,
@@ -10,6 +13,52 @@ import { toUserDto } from "../lib/dto.js";
 import { actorFromReq, requireAuth, requirePermission } from "../plugins/auth.js";
 import * as usersUseCase from "../usecases/users.js";
 import { queryLogs } from "../usecases/audit.js";
+import * as bookingService from "../usecases/booking/service.js";
+
+const bookingListQuerySchema = z.object({
+  status: z.string().optional(),
+  source: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  search: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+});
+
+const manualBookingSchema = z.object({
+  scheduleId: z.string().min(1),
+  packageKey: packageTypeSchema,
+  meetingPoint: z.string().min(1),
+  pax: z.number().int().positive().max(30),
+  paymentScheme: paymentSchemeSchema,
+  customer: z.object({
+    name: z.string().min(3),
+    phone: z.string().min(8),
+    email: z.string().email(),
+  }),
+  participants: z
+    .array(
+      z.object({
+        name: z.string().min(2),
+        birthDate: z.string().optional(),
+        idNumber: z.string().optional(),
+      }),
+    )
+    .min(1),
+  priceOverride: z.number().int().optional(),
+  priceOverrideReason: z.string().optional(),
+});
+
+const transitionSchema = z.object({
+  action: z.enum([
+    "submit_proof",
+    "approve_dp",
+    "approve_full",
+    "reject",
+    "complete",
+  ]),
+  reason: z.string().optional(),
+});
 
 /**
  * Semua route /api/admin/** wajib sesi valid (requireAuth) DAN mendeklarasikan
@@ -83,5 +132,90 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/audit-logs",
     { config: { permission: "user:read" }, preHandler: [requirePermission("user:read")] },
     async (req) => queryLogs(auditQuerySchema.parse(req.query)),
+  );
+
+  /* ── Booking (list/detail/history: booking:read) ────────── */
+  app.get(
+    "/bookings",
+    { config: { permission: "booking:read" }, preHandler: [requirePermission("booking:read")] },
+    async (req) => bookingService.listBookings(bookingListQuerySchema.parse(req.query)),
+  );
+
+  app.get(
+    "/bookings/:id",
+    { config: { permission: "booking:read" }, preHandler: [requirePermission("booking:read")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      const canPii = req.authUser!.permissions.includes("participant:read_pii");
+      return bookingService.getBookingDetail(id, canPii);
+    },
+  );
+
+  app.get(
+    "/bookings/:id/history",
+    { config: { permission: "booking:read" }, preHandler: [requirePermission("booking:read")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      return bookingService.getBookingHistory(id);
+    },
+  );
+
+  /* ── Booking (buat manual + transisi: booking:write) ────── */
+  app.post(
+    "/bookings",
+    { config: { permission: "booking:write" }, preHandler: [requirePermission("booking:write")] },
+    async (req, reply) => {
+      const input = manualBookingSchema.parse(req.body);
+      const booking = bookingService.createManualBooking({
+        ...input,
+        ctx: actorFromReq(req),
+      });
+      reply.status(201);
+      return booking;
+    },
+  );
+
+  app.post(
+    "/bookings/:id/send-invoice",
+    { config: { permission: "booking:write" }, preHandler: [requirePermission("booking:write")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      const { dueAt } = z
+        .object({ dueAt: z.string().optional() })
+        .parse(req.body ?? {});
+      return bookingService.applyTransition(id, "send_invoice", {
+        dueAt,
+        ctx: actorFromReq(req),
+      });
+    },
+  );
+
+  app.post(
+    "/bookings/:id/transition",
+    { config: { permission: "booking:write" }, preHandler: [requirePermission("booking:write")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      const { action, reason } = transitionSchema.parse(req.body);
+      return bookingService.applyTransition(id, action, {
+        reason,
+        ctx: actorFromReq(req),
+      });
+    },
+  );
+
+  /* ── Batal (booking:cancel) ─────────────────────────────── */
+  app.post(
+    "/bookings/:id/cancel",
+    { config: { permission: "booking:cancel" }, preHandler: [requirePermission("booking:cancel")] },
+    async (req) => {
+      const { id } = req.params as { id: string };
+      const { reason } = z
+        .object({ reason: z.string().min(1, "Alasan wajib diisi.") })
+        .parse(req.body);
+      return bookingService.applyTransition(id, "cancel", {
+        reason,
+        ctx: actorFromReq(req),
+      });
+    },
   );
 }

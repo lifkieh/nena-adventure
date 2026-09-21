@@ -222,3 +222,37 @@ export interface Paginated<T> {
   pageSize: number;
   total: number;
 }
+
+/* ── Booking publik ──────────────────────────────────────── */
+
+export const publicBookingInputSchema = z.object({
+  scheduleId: z.string().min(1),
+  packageKey: packageTypeSchema,
+  meetingPoint: z.string().min(1),
+  pax: z.number().int().positive().max(30),
+  paymentScheme: paymentSchemeSchema,
+  customer: z.object({
+    name: z.string().min(3, "Nama pemesan minimal 3 karakter."),
+    phone: z.string().min(8, "Nomor HP tidak valid."),
+    email: z.string().email("Email tidak valid."),
+  }),
+  participants: z
+    .array(
+      z.object({
+        name: z.string().min(2),
+        birthDate: z.string().optional(),
+        idNumber: z.string().optional(),
+      }),
+    )
+    .min(1, "Minimal 1 peserta."),
+  clientTotal: z.number().int().optional(),
+});
+export type PublicBookingInput = z.infer<typeof publicBookingInputSchema>;
+
+export interface PublicScheduleDto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  remaining: number;
+  label: string; // "kursi masih banyak" | "sisa N kursi" | "kuota penuh"
+  publicNote: string | null;
+}

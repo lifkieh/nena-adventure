@@ -118,6 +118,31 @@ Panel adalah SPA build (Vite, base `/panel/`). API menyajikannya di prefix `/pan
   Membuat `demo-owner@`, `demo-admin@`, `demo-operasional@`, `demo-keuangan@`,
   `demo-viewer@` (domain `.test`) untuk menguji pembatasan izin dari sisi UI.
 
+## Booking engine (Fase 3)
+
+Server jadi otoritas harga & kursi. Situs publik membaca jadwal/kursi dari API.
+
+- Harga: tabel `packages` + `package_tiers`; biaya layanan/DP/hold/ambang di `settings`.
+  Server menghitung ulang total & MENOLAK bila `clientTotal` tidak cocok.
+- Kursi: `seat_ledger` append-only, sisa = `capacity - SUM(delta)`. Semua perubahan
+  kursi + status dalam SATU transaksi `BEGIN IMMEDIATE` (WAL + busy_timeout). Tidak ada counter.
+- Status: 8 status (`baru_masuk`…`selesai`/`kadaluarsa`/`batal`) via mesin transisi eksplisit
+  (`usecases/booking/transition.ts`); transisi tak terdaftar ditolak. Refund H-7+ 80% / H-3..6 50% / <H-3 0%.
+- Job kedaluwarsa: interval tiap menit + evaluasi lazy saat `/schedules` dibaca; idempoten (tak double-release).
+
+Endpoint publik:
+```
+GET  /api/public/schedules              tanggal + sisa kursi + label + publicNote (open & belum lewat)
+POST /api/public/bookings               buat booking (Zod, harga server, hold kursi, kode NA- unik DB)
+                                         header Idempotency-Key -> pengiriman ulang = booking sama
+GET  /api/public/bookings/:code?token=  ringkasan + sisa hold (halaman langkah 4 tahan refresh)
+```
+Endpoint admin (izin RBAC): `GET/POST /api/admin/bookings`, `:id` detail (NIK utuh hanya
+`participant:read_pii`), `:id/history`, `:id/send-invoice`, `:id/transition`, `:id/cancel`.
+
+Fixture parity: `npm run seed:parity` mengisi jadwal agar sisa kursi = nilai lama, sehingga
+`npm run parity` tetap 0 selisih DOM meski angka kini dari DB. E2E alur situs: `npm run test:e2e`.
+
 ---
 
 ## Panduan aset (foto/video/logo)

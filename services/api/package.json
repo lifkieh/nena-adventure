@@ -11,6 +11,7 @@
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "seed:demo-users": "tsx src/db/seed-demo-users.ts",
+    "seed:parity": "tsx src/db/seed-parity.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

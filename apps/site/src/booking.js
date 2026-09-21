@@ -2,7 +2,7 @@ import { WA_PRIMARY as WA } from "./data/wa.js";
 import { REKENING_BCA } from "./data/rekening.js";
 import { HARGA, TIER_PRIVATE } from "./data/harga.js";
 import { LABEL_MP, LABEL_PKG } from "./data/meetingpoint.js";
-import { sisaKursi, generateKode } from "./data/__mock__.js";
+import { loadSchedules, createBooking, getSummary } from "./data/api.js";
 (function(){
   "use strict";
   var KUOTA = 24, LAYANAN = 5000;
@@ -20,26 +20,30 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
     return HARI[d.getDay()] + ", " + d.getDate() + " " + BLN[d.getMonth()] + " " + d.getFullYear();
   }
 
-  /* ── Isi pilihan tanggal ────────────────────────────────── */
-  var sel = $("tanggal"), stok = {};
-  (function(){
-    var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + 1);
-    var opsi = '<option value="">— pilih tanggal —</option>', n = 0, guard = 0;
-    while (n < 14 && guard < 200){
-      var w = d.getDay();
-      if (w === 0 || w === 6){
-        var sisa = sisaKursi(d);
-        if (sisa > 0){
-          stok[iso(d)] = sisa;
-          opsi += '<option value="' + iso(d) + '">' + HARI[w] + ", " + d.getDate() + " " + BLN[d.getMonth()]
-                + " — sisa " + sisa + " kursi</option>";
-          n++;
+  /* ── Isi pilihan tanggal (dari server) ──────────────────── */
+  var sel = $("tanggal"), stok = {}, idByIso = {};
+  function isiTanggal(){
+    return loadSchedules().then(function(data){
+      var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + 1);
+      var opsi = '<option value="">— pilih tanggal —</option>', n = 0, guard = 0;
+      while (n < 14 && guard < 200){
+        var w = d.getDay();
+        if (w === 0 || w === 6){
+          var key = iso(d);
+          var sisa = data.remainingByIso[key];
+          if (typeof sisa === "number" && sisa > 0){
+            stok[key] = sisa;
+            idByIso[key] = data.idByIso[key];
+            opsi += '<option value="' + key + '">' + HARI[w] + ", " + d.getDate() + " " + BLN[d.getMonth()]
+                  + " — sisa " + sisa + " kursi</option>";
+            n++;
+          }
         }
+        d.setDate(d.getDate() + 1); guard++;
       }
-      d.setDate(d.getDate() + 1); guard++;
-    }
-    sel.innerHTML = opsi;
-  })();
+      sel.innerHTML = opsi;
+    }).catch(function(){ /* jaringan gagal: dropdown tetap kosong */ });
+  }
 
   /* ── Baca parameter URL dari homepage ───────────────────── */
   function terapkanParam(qs){
@@ -52,7 +56,6 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
     var date = q.get("date");
     if (date && stok[date]) sel.value = date;
   }
-  terapkanParam((location.hash.split("?")[1] || ""));
 
   /* ── State ─────────────────────────────────────────────── */
   var pax = 2;
@@ -249,23 +252,21 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
     keLangkah(3);
   });
 
-  /* ── Bayar ─────────────────────────────────────────────── */
-  $("bayar").addEventListener("click", function(){
-    var setuju = $("setuju");
-    if (!setuju.checked){
-      $("errSetuju").classList.add("on");
-      setuju.focus();
-      return;
-    }
-    $("errSetuju").classList.remove("on");
-
-    var h = hitung(), lunas = skema() === "lunas", nominal = lunas ? h.total : h.dp;
-    var kode = generateKode();
+  /* ── Bayar (POST ke server; kode & timer dari server) ───── */
+  var idemKey = null;
+  function kumpulkanPeserta(){
+    return $$("#paxList .pax").map(function(p){
+      return {
+        name: p.querySelector(".pnama").value.trim(),
+        birthDate: p.querySelector(".plahir").value || undefined,
+        idNumber: p.querySelector(".pid").value.trim() || undefined,
+      };
+    });
+  }
+  function isiRingkasan(kode, nominal){
+    var m = metode(), h = hitung(), namaPkg = LABEL_PKG[paket()];
     $("kode").textContent = kode;
-    var m = metode();
     renderMetodeBox($("payBox"), nominal);
-
-    var namaPkg = LABEL_PKG[paket()];
     $("recap").innerHTML =
         '<li><span>Paket</span><b>' + namaPkg + '</b></li>'
       + '<li><span>Tanggal</span><b>' + labelTanggal(sel.value) + '</b></li>'
@@ -277,7 +278,6 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
       + '<li><span>Cara bayar</span><b>' + m + '</b></li>'
       + '<li><span>Total tagihan</span><b>' + rupiah(h.total) + '</b></li>'
       + '<li><span>Dibayar sekarang</span><b>' + rupiah(nominal) + '</b></li>';
-
     $("waKonfirmasi").href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(
       "Halo Nena Adventure, saya sudah booking dan bayar.\n"
       + "Kode: " + kode + "\n"
@@ -288,9 +288,55 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
       + "Nominal dibayar: " + rupiah(nominal) + "\n"
       + "(Bukti pembayaran akan saya lampirkan di sini.)"
     );
+  }
 
-    keLangkah(4);
-    mulaiTimer(60 * 60);
+  $("bayar").addEventListener("click", async function(){
+    var setuju = $("setuju");
+    if (!setuju.checked){
+      $("errSetuju").classList.add("on");
+      setuju.focus();
+      return;
+    }
+    $("errSetuju").classList.remove("on");
+    if (!sel.value || !idByIso[sel.value]){
+      alert("Silakan pilih tanggal keberangkatan lebih dulu.");
+      return;
+    }
+
+    var h = hitung(), lunas = skema() === "lunas", nominal = lunas ? h.total : h.dp;
+    if (!idemKey) idemKey = (self.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    var btn = $("bayar"); btn.disabled = true;
+    try {
+      var res = await createBooking({
+        scheduleId: idByIso[sel.value],
+        packageKey: paket(),
+        meetingPoint: mpKey(),
+        pax: pax,
+        paymentScheme: skema(),
+        customer: { name: $("nama").value.trim(), phone: $("hp").value.trim(), email: $("email").value.trim() },
+        participants: kumpulkanPeserta(),
+        clientTotal: h.total,
+      }, idemKey);
+
+      try {
+        sessionStorage.setItem("nena_booking", JSON.stringify({
+          code: res.code, token: res.token, holdExpiresAt: res.holdExpiresAt,
+        }));
+      } catch (e) { /* sessionStorage penuh/diblok — abaikan */ }
+
+      isiRingkasan(res.code, nominal);
+      keLangkah(4);
+      mulaiTimerHingga(res.holdExpiresAt);
+      idemKey = null; // sukses -> kunci baru untuk pesanan berikutnya
+    } catch (err) {
+      var pesan = err && err.message ? err.message : "Terjadi kesalahan. Coba lagi.";
+      if (err && err.code === "SEAT_UNAVAILABLE"){
+        pesan = err.message + " Silakan pilih tanggal lain.";
+      }
+      alert(pesan);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   /* ── Upload bukti transfer (arsip lokal, tetap dilampirkan manual di WhatsApp) ── */
@@ -303,18 +349,43 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
   });
 
   var jam = null;
-  function mulaiTimer(detik){
-    clearInterval(jam);
+  function tampilTimer(detik){
     var t = $("timer");
+    if (!t) return;
+    if (detik <= 0){ t.textContent = "kedaluwarsa"; return; }
+    t.textContent = pad(Math.floor(detik / 60)) + ":" + pad(detik % 60);
+  }
+  /** Timer dihitung dari holdExpiresAt server (bukan 60 menit lokal). */
+  function mulaiTimerHingga(holdExpiresAtIso){
+    clearInterval(jam);
+    function detikSisa(){
+      if (!holdExpiresAtIso) return 0;
+      return Math.max(0, Math.floor((Date.parse(holdExpiresAtIso) - Date.now()) / 1000));
+    }
+    tampilTimer(detikSisa()); // set awal langsung (tak menunggu tick)
     jam = setInterval(function(){
-      detik--;
-      if (detik <= 0){
-        clearInterval(jam);
-        t.textContent = "kedaluwarsa";
-        return;
-      }
-      t.textContent = pad(Math.floor(detik / 60)) + ":" + pad(detik % 60);
+      var d = detikSisa();
+      tampilTimer(d);
+      if (d <= 0) clearInterval(jam);
     }, 1000);
+  }
+
+  /** Restore pesanan dari sessionStorage setelah refresh (kode + timer bertahan). */
+  async function restoreSesi(){
+    var raw;
+    try { raw = sessionStorage.getItem("nena_booking"); } catch (e) { raw = null; }
+    if (!raw) return;
+    var saved;
+    try { saved = JSON.parse(raw); } catch (e) { return; }
+    if (!saved || !saved.code) return;
+    var sum = await getSummary(saved.code, saved.token);
+    if (!sum || sum.status !== "menunggu_bayar" || (sum.holdSecondsLeft != null && sum.holdSecondsLeft <= 0)){
+      try { sessionStorage.removeItem("nena_booking"); } catch (e) {}
+      return;
+    }
+    $("kode").textContent = sum.code;
+    keLangkah(4);
+    mulaiTimerHingga(sum.holdExpiresAt);
   }
 
   /* ── Event ─────────────────────────────────────────────── */
@@ -334,14 +405,24 @@ import { sisaKursi, generateKode } from "./data/__mock__.js";
 
   $("waHelp").href = "https://wa.me/" + WA + "?text=" + encodeURIComponent("Halo, saya butuh bantuan saat booking di website.");
 
+  function onBooking(query){
+    isiTanggal().then(function(){
+      terapkanParam(query);
+      bangunPeserta();
+      render();
+      restoreSesi(); // tampilkan s4 bila ada pesanan tersimpan (refresh)
+    });
+  }
+
   window.addEventListener("nena:route", function(e){
     if (e.detail.view !== "booking") return;
-    terapkanParam(e.detail.query);
-    if (langkah === 4) keLangkah(1);
-    bangunPeserta();
-    render();
+    onBooking(e.detail.query);
   });
 
   render();
+  // Jika halaman langsung dibuka di #/booking (mis. refresh di langkah 4).
+  if ((location.hash || "").indexOf("booking") > -1){
+    onBooking(location.hash.split("?")[1] || "");
+  }
 })();
 

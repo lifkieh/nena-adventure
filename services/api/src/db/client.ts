@@ -11,6 +11,8 @@ mkdirSync(dirname(env.dbPath), { recursive: true });
 export const sqliteConn: Database.Database = new Database(env.dbPath);
 sqliteConn.pragma("journal_mode = WAL");
 sqliteConn.pragma("foreign_keys = ON");
+// Tunggu bila DB terkunci (konkurensi tulis) alih-alih langsung gagal.
+sqliteConn.pragma("busy_timeout = 5000");
 
 /** Instance Drizzle — HANYA boleh dipakai dari lapisan repos/. */
 export const db = drizzle(sqliteConn, { schema });

@@ -17,9 +17,11 @@
     "migrate": "npm run migrate -w @nena/api",
     "seed": "npm run seed -w @nena/api",
     "seed:demo-users": "npm run seed:demo-users -w @nena/api",
+    "seed:parity": "npm run seed:parity -w @nena/api",
     "typecheck": "npm run typecheck -w @nena/shared && npm run typecheck -w @nena/api && npm run typecheck -w @nena/panel",
     "test": "npm run test -w @nena/api",
-    "parity": "node scripts/parity.mjs"
+    "parity": "node scripts/parity.mjs",
+    "test:e2e": "node scripts/e2e-booking.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
