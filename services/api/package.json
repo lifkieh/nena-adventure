@@ -14,7 +14,8 @@
     "seed:parity": "tsx src/db/seed-parity.ts",
     "job:purge-pii": "tsx src/db/job-purge-pii.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:content": "tsx src/db/seed-content.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

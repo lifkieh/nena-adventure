@@ -12,6 +12,10 @@ import { SchedulesPage } from "./pages/SchedulesPage";
 import { ContentPage } from "./pages/ContentPage";
 import { UsersPage } from "./pages/UsersPage";
 import { AuditPage } from "./pages/AuditPage";
+import { VerificationPage } from "./pages/VerificationPage";
+import { ParticipantsPage } from "./pages/ParticipantsPage";
+import { PackagesPage } from "./pages/PackagesPage";
+import { MediaPage } from "./pages/MediaPage";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -26,8 +30,12 @@ const router = createBrowserRouter(
       children: [
         { index: true, element: <DashboardPage /> },
         { path: "bookings", element: <BookingsPage /> },
+        { path: "verification", element: <VerificationPage /> },
         { path: "schedules", element: <SchedulesPage /> },
+        { path: "participants", element: <ParticipantsPage /> },
+        { path: "packages", element: <PackagesPage /> },
         { path: "content", element: <ContentPage /> },
+        { path: "media", element: <MediaPage /> },
         { path: "users", element: <UsersPage /> },
         { path: "audit", element: <AuditPage /> },
         { path: "*", element: <NotFoundPage /> },

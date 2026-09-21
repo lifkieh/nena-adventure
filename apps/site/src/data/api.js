@@ -51,6 +51,24 @@ export async function createBooking(payload, idempotencyKey) {
   return body;
 }
 
+/** Muat konten terbit dari API. Cache di localStorage; fallback ke cache terakhir
+ *  bila API gagal (situs tidak boleh kosong). */
+export async function loadContent() {
+  try {
+    var res = await fetch(BASE + "/content");
+    if (!res.ok) throw new Error("gagal");
+    var data = await res.json();
+    try { localStorage.setItem("nena_content", JSON.stringify(data)); } catch (e) {}
+    return data;
+  } catch (e) {
+    try {
+      var cached = localStorage.getItem("nena_content");
+      if (cached) return JSON.parse(cached);
+    } catch (e2) {}
+    return null; // biar situs pakai konten bawaan di HTML
+  }
+}
+
 /** Upload bukti (multipart). Token via header X-Booking-Token. Lempar Error bila gagal. */
 export async function uploadProof(code, token, file) {
   var fd = new FormData();

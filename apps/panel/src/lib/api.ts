@@ -96,3 +96,55 @@ export const auditApi = {
       "/admin/audit-logs?" + new URLSearchParams(params).toString(),
     ),
 };
+
+/* ── Operasional ─────────────────────────────────────────── */
+export interface ScheduleDto {
+  id: string; date: string; capacity: number; threshold: number;
+  status: string; publicNote: string | null; used: number; remaining: number;
+  belowThreshold: boolean;
+}
+export const schedulesApi = {
+  list: (q: Record<string, string> = {}) =>
+    req<ScheduleDto[]>("/admin/schedules?" + new URLSearchParams(q).toString()),
+  create: (b: unknown) => req<ScheduleDto>("/admin/schedules", { method: "POST", body: JSON.stringify(b) }),
+  update: (id: string, b: unknown) => req<ScheduleDto>(`/admin/schedules/${id}`, { method: "PATCH", body: JSON.stringify(b) }),
+  remove: (id: string) => req<{ ok: true }>(`/admin/schedules/${id}`, { method: "DELETE" }),
+  setStatus: (id: string, status: string) => req<ScheduleDto>(`/admin/schedules/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }),
+  genPreview: (b: unknown) => req<{ items: { date: string; exists: boolean }[] }>("/admin/schedules/generate/preview", { method: "POST", body: JSON.stringify(b) }),
+  genCommit: (b: unknown) => req<{ created: number; skipped: number }>("/admin/schedules/generate/commit", { method: "POST", body: JSON.stringify(b) }),
+};
+
+export const packagesApi = {
+  list: () => req<{ id: string; key: string; name: string; prices: Record<string, number>; active: boolean; tiers: unknown[] }[]>("/admin/packages"),
+  update: (id: string, b: unknown) => req<unknown>(`/admin/packages/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+};
+
+export const bookingsApi = {
+  list: (q: Record<string, string> = {}) => req<Paginated<Record<string, unknown>>>("/admin/bookings?" + new URLSearchParams(q).toString()),
+  detail: (id: string) => req<{ booking: Record<string, unknown>; participants: unknown[] }>(`/admin/bookings/${id}`),
+  history: (id: string) => req<{ items: unknown[] }>(`/admin/bookings/${id}/history`),
+  transition: (id: string, action: string, reason?: string) => req<unknown>(`/admin/bookings/${id}/transition`, { method: "POST", body: JSON.stringify({ action, reason }) }),
+  cancel: (id: string, reason: string) => req<unknown>(`/admin/bookings/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
+  sendInvoice: (id: string) => req<unknown>(`/admin/bookings/${id}/send-invoice`, { method: "POST", body: "{}" }),
+  reissueVoucher: (id: string) => req<{ code: string; url: string }>(`/admin/bookings/${id}/reissue-voucher`, { method: "POST", body: "{}" }),
+  pii: (id: string) => req<{ participants: { name: string; idNumber: string | null; birthDate: string | null }[] }>(`/admin/bookings/${id}/pii`),
+};
+
+export const paymentsApi = {
+  queue: () => req<Record<string, unknown>[]>("/admin/payments/queue"),
+  approve: (id: string) => req<unknown>(`/admin/payments/${id}/approve`, { method: "POST", body: "{}" }),
+  reject: (id: string, reason: string) => req<unknown>(`/admin/payments/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+};
+
+/* ── Konten (CMS) ────────────────────────────────────────── */
+export const contentApi = {
+  list: () => req<{ key: string; title: string; hasDraft: boolean; hasPublished: boolean }[]>("/admin/content"),
+  get: (key: string) => req<{ key: string; title: string; draft: unknown; published: unknown }>(`/admin/content/${key}`),
+  saveDraft: (key: string, body: unknown) => req<unknown>(`/admin/content/${key}/draft`, { method: "PUT", body: JSON.stringify({ body }) }),
+  publish: (key: string) => req<unknown>(`/admin/content/${key}/publish`, { method: "POST", body: "{}" }),
+  revert: (key: string) => req<unknown>(`/admin/content/${key}/revert`, { method: "POST", body: "{}" }),
+};
+
+export const mediaApi = {
+  list: () => req<{ id: string; url: string; alt: string; width: number | null }[]>("/admin/media-library"),
+};

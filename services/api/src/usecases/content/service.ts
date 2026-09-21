@@ -20,6 +20,17 @@ export function listSections(): ContentSectionDto[] {
   }));
 }
 
+export function getSectionSafe(key: string) {
+  const s = repo.findByKey(key);
+  if (!s) return null;
+  return {
+    key: s.key,
+    title: s.title,
+    draft: parse(s.draftVersionId),
+    published: parse(s.publishedVersionId),
+  };
+}
+
 export function getSection(key: string) {
   const s = repo.findByKey(key);
   if (!s) throw AppError.notFound("Section tidak ditemukan.");

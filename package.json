@@ -22,7 +22,9 @@
     "typecheck": "npm run typecheck -w @nena/shared && npm run typecheck -w @nena/api && npm run typecheck -w @nena/panel",
     "test": "npm run test -w @nena/api",
     "parity": "node scripts/parity.mjs",
-    "test:e2e": "node scripts/e2e-booking.mjs"
+    "test:e2e": "node scripts/e2e-booking.mjs",
+    "seed:content": "npm run seed:content -w @nena/api",
+    "test:e2e-panel": "node scripts/e2e-panel.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

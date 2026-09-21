@@ -1,6 +1,16 @@
 import { SPOT } from "./data/spot.js";
+import { loadContent } from "./data/api.js";
 (function(){
   "use strict";
+
+  /* ── Konten dari CMS (fallback ke konten bawaan HTML) ───── */
+  loadContent().then(function(c){
+    if (c && c.hero && typeof c.hero.heading === "string"){
+      var h = document.querySelector('#view-home .hero2-copy h1');
+      if (h) h.textContent = c.hero.heading;
+    }
+  }).catch(function(){ /* biarkan konten bawaan HTML */ });
+
   /* ── Search card (hero) — pilih paket & cek booking ────── */
   var searchCard = document.getElementById("searchCard");
   if (searchCard){
