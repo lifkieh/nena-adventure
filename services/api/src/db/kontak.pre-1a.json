@@ -1,0 +1,26 @@
+[
+  {
+    "icon": "pin",
+    "title": "Pantai Pangaradan",
+    "body": "Belakang Polsek Anyer, Kecamatan Anyar, Kabupaten Serang, Banten.",
+    "active": true
+  },
+  {
+    "icon": "kalender",
+    "title": "Waktu kumpul",
+    "body": "06.30 WIB. Kapal berangkat 07.00 dan tidak menunggu peserta yang terlambat.",
+    "active": true
+  },
+  {
+    "icon": "telepon",
+    "title": "Dari Jakarta",
+    "body": "Sekitar 2,5–3 jam lewat Tol Tangerang–Merak, keluar Cilegon Barat lalu ke arah Anyer. Parkir tersedia di lokasi.",
+    "active": true
+  },
+  {
+    "icon": "jam",
+    "title": "Butuh dijemput?",
+    "body": "Penjemputan dari Jakarta, Tangerang, Serang, dan Cilegon bisa diatur dengan biaya tambahan. Pilih opsinya saat booking.",
+    "active": true
+  }
+]

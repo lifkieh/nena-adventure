@@ -1,0 +1,44 @@
+[
+  {
+    "rating": 5,
+    "quote": "Fasilitasnya lengkap tapi harganya masih masuk akal. Kapalnya berangkat tepat waktu, tidak menunggu-nunggu seperti trip lain yang pernah saya ikuti.",
+    "name": "Ayu P.",
+    "meta": "Open Trip Premium, Agustus 2026",
+    "active": true
+  },
+  {
+    "rating": 5,
+    "quote": "Semua sudah termasuk, tidak ada biaya kejutan di lokasi. Itu yang paling saya hargai. Tiket masuk tiap spot benar-benar tidak ditagih lagi.",
+    "name": "Mush T.",
+    "meta": "Open Trip Reguler, Agustus 2026",
+    "active": true
+  },
+  {
+    "rating": 5,
+    "quote": "Saya tidak bisa berenang dan sempat ragu. Guide-nya menemani terus selama snorkeling, jadi tetap bisa ikut sampai selesai.",
+    "name": "Dani E.",
+    "meta": "Open Trip Reguler, Juli 2026",
+    "active": true
+  },
+  {
+    "rating": 5,
+    "quote": "Family gathering kantor kami 32 orang, koordinasinya rapi dari awal sampai pulang. Konsumsi dan dokumentasi sesuai janji.",
+    "name": "Raju G.",
+    "meta": "Family Gathering, Agustus 2026",
+    "active": true
+  },
+  {
+    "rating": 5,
+    "quote": "Airnya jernih dan spotnya banyak. Briefing keselamatan sebelum naik kapal dilakukan serius, bukan formalitas.",
+    "name": "Vincent L.",
+    "meta": "Open Trip Premium, Juli 2026",
+    "active": true
+  },
+  {
+    "rating": 4,
+    "quote": "Tripnya bagus. Satu catatan, jadwal makan siang agak mundur karena antre di spot foto. Selebihnya memuaskan.",
+    "name": "Ilham S.",
+    "meta": "Open Trip Reguler, Agustus 2026",
+    "active": true
+  }
+]

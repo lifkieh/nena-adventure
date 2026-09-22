@@ -1,0 +1,33 @@
+{
+  "reguler": {
+    "anyer": 385000
+  },
+  "premium": {
+    "jakarta": 850000,
+    "tangerang": 800000,
+    "serang": 650000,
+    "anyer": 525000
+  },
+  "privateTiers": [
+    {
+      "minPax": 1,
+      "maxPax": 6,
+      "price": 4500000
+    },
+    {
+      "minPax": 7,
+      "maxPax": 9,
+      "price": 5500000
+    },
+    {
+      "minPax": 10,
+      "maxPax": 11,
+      "price": 6300000
+    },
+    {
+      "minPax": 12,
+      "maxPax": 14,
+      "price": 7300000
+    }
+  ]
+}

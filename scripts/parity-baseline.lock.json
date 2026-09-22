@@ -1,0 +1,6 @@
+{
+  "ref": "pre-1a",
+  "commit": "15d5e923a42e311ddc74620bb4e94f881756037c",
+  "reason": "Pin awal: baseline monolith situs SEBELUM refactor (Fase 1A). Tidak boleh diubah tanpa --regen-baseline + alasan.",
+  "pinnedAt": "2026-09-21"
+}

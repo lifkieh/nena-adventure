@@ -1,0 +1,45 @@
+{
+  "name": "@nena/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/db/seed.ts",
+    "seed:demo-users": "tsx src/db/seed-demo-users.ts",
+    "seed:parity": "tsx src/db/seed-parity.ts",
+    "job:purge-pii": "tsx src/db/job-purge-pii.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed:content": "tsx src/db/seed-content.ts",
+    "content:verify": "tsx src/db/content-verify.ts",
+    "packages:verify": "tsx src/db/packages-verify.ts",
+    "reconcile:ledger": "tsx src/db/reconcile-ledger.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/static": "^8.0.3",
+    "@nena/shared": "*",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.2.1",
+    "nodemailer": "^10.0.10",
+    "ulid": "^2.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^8.0.2",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

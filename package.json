@@ -1,0 +1,51 @@
+{
+  "name": "nena-adventure",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/panel"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,panel -c blue,magenta \"npm:dev:api\" \"npm:dev:panel\"",
+    "dev:api": "npm run dev -w @nena/api",
+    "dev:panel": "npm run dev -w @nena/panel",
+    "build": "npm run build -w @nena/panel && node scripts/verify-panel-build.mjs",
+    "generate": "npm run generate -w @nena/api",
+    "migrate": "npm run migrate -w @nena/api",
+    "seed": "npm run seed -w @nena/api",
+    "seed:demo-users": "npm run seed:demo-users -w @nena/api",
+    "seed:parity": "npm run seed:parity -w @nena/api",
+    "job:purge-pii": "npm run job:purge-pii -w @nena/api",
+    "typecheck": "npm run typecheck -w @nena/shared && npm run typecheck -w @nena/api && npm run typecheck -w @nena/panel",
+    "test": "npm run test -w @nena/api",
+    "parity": "node scripts/parity.mjs",
+    "parity:audit": "node scripts/parity-audit.mjs",
+    "extract:faq": "node scripts/extract-faq.mjs",
+    "extract:cms": "node scripts/extract-cms.mjs",
+    "test:e2e": "node scripts/e2e-booking.mjs",
+    "seed:content": "npm run seed:content -w @nena/api",
+    "content:verify": "npm run content:verify -w @nena/api",
+    "packages:verify": "npm run packages:verify -w @nena/api",
+    "reconcile:ledger": "npm run reconcile:ledger -w @nena/api",
+    "reconcile:ledger:dry": "npm run reconcile:ledger -w @nena/api -- --dry-run",
+    "db:init": "npm run migrate && npm run seed && npm run seed:content",
+    "backup": "node scripts/backup-db.mjs",
+    "restore": "node scripts/restore-db.mjs",
+    "extract:prices": "node scripts/extract-prices.mjs",
+    "test:e2e-panel": "node scripts/e2e-panel.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "drizzle-orm": "^0.45.2",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.63.0",
+    "pngjs": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

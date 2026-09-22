@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "title": "Booking online di website.",
+      "body": "Pilih paket, tanggal keberangkatan, dan isi data peserta (nama & identitas sesuai KTP untuk asuransi)."
+    },
+    {
+      "title": "Bayar DP minimal 50%.",
+      "body": "Transfer ke rekening resmi BCA Nena Adventure Nusantara, atau scan QRIS resmi — sesuai total tagihan di halaman booking."
+    },
+    {
+      "title": "Upload bukti bayar & konfirmasi WhatsApp.",
+      "body": "Unggah bukti transfer/QRIS langsung di halaman booking, lalu tombol \"Konfirmasi ke admin via WhatsApp\" otomatis menyiapkan pesan konfirmasi."
+    },
+    {
+      "title": "Booking terverifikasi.",
+      "body": "Setelah admin memverifikasi, Anda menerima e-voucher dan link grup WhatsApp perjalanan."
+    },
+    {
+      "title": "Lunasi sisa pembayaran maksimal H-3.",
+      "body": "Dengan cara yang sama — transfer/QRIS, upload bukti, dan konfirmasi WhatsApp."
+    },
+    {
+      "title": "Terima info teknis keberangkatan.",
+      "body": "Dibagikan lewat grup WhatsApp perjalanan, lalu berangkat sesuai jadwal."
+    }
+  ]
+}

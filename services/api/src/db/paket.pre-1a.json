@@ -1,0 +1,161 @@
+{
+  "cards": [
+    {
+      "key": "reguler",
+      "name": "Open Trip Reguler",
+      "sub": "Kapal tradisional, gabung dengan peserta lain",
+      "unit": "/ orang",
+      "note": "Harga normal {{harga_normal_reguler}}. Berangkat dari Pantai Pangaradan, Anyer.",
+      "tag": null,
+      "highlight": false,
+      "features": [
+        {
+          "included": true,
+          "bold": false,
+          "text": "Kapal tradisional, captain, dan ABK"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Tiket masuk seluruh destinasi"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Life jacket dan peralatan snorkeling"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Dokumentasi underwater GoPro & kamera iPhone 17 Pro Max"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Makan siang, air mineral, tour guide"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "First aid kit"
+        },
+        {
+          "included": false,
+          "bold": false,
+          "text": "Speedboat & transportasi darat PP"
+        },
+        {
+          "included": false,
+          "bold": false,
+          "text": "Paddle board, drone, asuransi wisata"
+        }
+      ],
+      "ctaClass": "btn btn--out btn--wide",
+      "ctaHref": "#/booking?pkg=reguler",
+      "ctaText": "Pilih Open Trip Reguler"
+    },
+    {
+      "key": "premium",
+      "name": "Open Trip Premium",
+      "sub": "Speedboat, dengan dokumentasi lengkap",
+      "unit": "/ orang",
+      "note": "Dari Anyer. Harga berbeda untuk Jakarta, Tangerang, dan Stasiun Serang — lihat perbandingan meeting point di bawah.",
+      "tag": "Paling banyak dipilih",
+      "highlight": true,
+      "features": [
+        {
+          "included": true,
+          "bold": false,
+          "text": "Speedboat, captain, dan ABK"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Transportasi PP dari meeting point pilihan"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Paddle board / canoeing, makanan ikan"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Dokumentasi GoPro, drone + pilot, iPhone 17 Pro Max"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Kelapa muda di Sepanjang Beach"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Asuransi wisata Zurich"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Makan siang, air mineral, tour guide"
+        },
+        {
+          "included": false,
+          "bold": false,
+          "text": "Free diving Legon Waru & Krakatoa View"
+        }
+      ],
+      "ctaClass": "btn btn--go btn--wide",
+      "ctaHref": "#/booking?pkg=premium",
+      "ctaText": "Pilih Open Trip Premium"
+    },
+    {
+      "key": "private",
+      "name": "Private Trip Premium",
+      "sub": "Satu kapal khusus rombongan Anda",
+      "unit": "/ 1–6 peserta",
+      "note": "Naik bertahap sesuai jumlah peserta, lihat tabel harga di bawah. Meeting point Pantai Pangaradan, Anyer.",
+      "tag": null,
+      "highlight": false,
+      "features": [
+        {
+          "included": true,
+          "bold": true,
+          "text": "Semua fasilitas Open Trip Premium"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Kapal eksklusif untuk rombongan sendiri"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Free diving di Legon Waru"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Panorama Krakatoa View"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Jadwal dan itinerary lebih fleksibel"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Cocok keluarga, komunitas, dan corporate"
+        },
+        {
+          "included": true,
+          "bold": false,
+          "text": "Transportasi PP sesuai kesepakatan"
+        }
+      ],
+      "ctaClass": "btn btn--out btn--wide",
+      "ctaHref": "#/booking?pkg=private",
+      "ctaText": "Pilih Private Trip Premium"
+    }
+  ]
+}

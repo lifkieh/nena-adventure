@@ -1,0 +1,11 @@
+{
+  "links": {
+    "destinasi": "Destinasi",
+    "paket": "Paket",
+    "itinerary": "Itinerary",
+    "keselamatan": "Keselamatan",
+    "jadwal": "Jadwal",
+    "lokasi": "Lokasi"
+  },
+  "bookingLabel": "Booking online"
+}

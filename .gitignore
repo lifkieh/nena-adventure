@@ -12,3 +12,26 @@ desktop.ini
 *.tmp
 *.bak
 ~$*
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# Env (secrets)
+.env
+.env.local
+
+# SQLite database + WAL
+services/api/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Parity harness
+.parity-baseline/
+.parity-out/
+
+apps/panel/.vite/
