@@ -57,6 +57,14 @@ Nilai-nilai berikut sengaja TIDAK diisi contoh yang terlihat asli — owner meng
 Situs publik membaca nilai-nilai ini dari API — mengubahnya di panel langsung
 mengubah tampilan situs (rekening & QRIS di halaman booking, WA di kontak).
 
+**Cara mengunggah gambar (disarankan):** dari Panel → Konten, pada tiap field
+gambar klik **"Ubah gambar" → "Unggah & pakai"** (unggah langsung dari halaman
+konten, tak perlu tempel URL). Gambar tersimpan di media library situs.
+
+**Sebelum rilis:** semua foto contoh dari Unsplash (mis. di Galeri/Destinasi/Beranda)
+WAJIB diganti dengan **foto trip asli milik owner**. Foto Unsplash hanya penampung
+sementara dan tak boleh tampil di situs produksi.
+
 ## 5. Backup & restore (SUDAH DIUJI)
 - Backup (aman saat server jalan): `npm run backup`
   → `services/api/data/backups/nena-YYYYMMDD-HHMMSS.db`

@@ -2,6 +2,16 @@ import { createReadStream } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { AppError } from "../lib/errors.js";
+import { hit } from "../lib/req-limit.js";
+
+/** Batasi laju endpoint export (berat + bisa disalahgunakan): 10 / 60 detik per admin. */
+function guardExportRate(req: { ip: string }, reply: { header: (k: string, v: string) => void }, userId: string | null): void {
+  const rl = hit(`export:${userId ?? req.ip}`, 10, 60_000);
+  if (rl.limited) {
+    reply.header("Retry-After", String(rl.retryAfterSeconds));
+    throw new AppError("RATE_LIMITED", "Terlalu banyak permintaan export. Coba lagi sebentar.", 429);
+  }
+}
 import {
   auditQuerySchema,
   bulkScheduleStatusSchema,
@@ -101,6 +111,13 @@ const transitionSchema = z.object({
  */
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireAuth);
+  // Data admin (uang, kursi, PII) TIDAK boleh di-cache proxy/browser: no-store +
+  // private + Vary: Cookie (respons bergantung sesi). Berlaku semua route admin.
+  app.addHook("onSend", async (_req, reply, payload) => {
+    reply.header("Cache-Control", "no-store, private");
+    reply.header("Vary", "Cookie");
+    return payload;
+  });
 
   /* ── Pengguna & peran (user:manage) ─────────────────────── */
   app.get(
@@ -343,10 +360,12 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/exports/zurich",
     { config: { permission: "participant:export" }, preHandler: [requirePermission("participant:export")] },
     async (req, reply) => {
+      const actor = actorFromReq(req);
+      guardExportRate(req, reply, actor.userId);
       const { date } = z
         .object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.") })
         .parse(req.query);
-      const { csv } = exportZurich(date, actorFromReq(req));
+      const { csv } = exportZurich(date, actor);
       reply.header("content-disposition", `attachment; filename="zurich-${date}.csv"`);
       reply.type("text/csv; charset=utf-8");
       return csv;
@@ -381,6 +400,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/reports/export.csv",
     { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
     async (req, reply) => {
+      guardExportRate(req, reply, actorFromReq(req).userId);
       const csv = reportCsv(todayJakarta());
       // Audit HANYA setelah CSV benar-benar terbentuk & berisi (bukan sebelum).
       if (csv && csv.trim().length > 0) {
