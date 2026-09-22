@@ -15,6 +15,7 @@ const OPERASIONAL: NavItem[] = [
   { to: "/promos", label: "Promo / voucher", perm: "package:read" },
   { to: "/reports", label: "Laporan", perm: "report:read" },
   { to: "/notifications", label: "Template notifikasi", perm: "content:read" },
+  { to: "/notifications/history", label: "Riwayat notifikasi", perm: "booking:read" },
   { to: "/settings", label: "Pengaturan owner", perm: "settings:write" },
   { to: "/users", label: "Pengguna & peran", perm: "user:manage" },
   { to: "/audit", label: "Audit log", perm: "user:read" },

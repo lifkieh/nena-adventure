@@ -533,27 +533,41 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.post("/promos", rd("package:write"), async (req) => promoService.create(promoSchema.parse(req.body), actorFromReq(req)));
   app.put("/promos/:id", rd("package:write"), async (req) => promoService.update((req.params as { id: string }).id, promoSchema.parse(req.body), actorFromReq(req)));
 
-  /* ── Template notifikasi (content:read/write) + kirim manual (booking:write) ── */
-  const notifSchema = z.object({ channel: z.enum(["wa", "email"]).optional(), subject: z.string(), body: z.string().min(1) });
+  /* ── Notifikasi EMAIL (kanal WhatsApp dihapus dari sistem notifikasi) ── */
+  const notifSchema = z.object({ subject: z.string().min(1), body: z.string().min(1) });
   app.get("/notification-templates", rd("content:read"), async () => notifService.listTemplates());
   app.put("/notification-templates/:key", rd("content:write"), async (req) =>
     notifService.updateTemplate((req.params as { key: string }).key, notifSchema.parse(req.body), actorFromReq(req)),
   );
-  // Status SMTP (untuk mengaktifkan/menonaktifkan tombol "Kirim email").
+  // Pratinjau editor (data booking contoh nyata). Validasi placeholder tak dikenal.
+  app.post("/notification-templates/:key/preview", rd("content:read"), async (req) => {
+    const p = z.object({ subject: z.string(), body: z.string() }).partial().parse(req.body ?? {});
+    const draft = p.subject !== undefined && p.body !== undefined ? { subject: p.subject, body: p.body } : undefined;
+    return notifService.previewTemplate((req.params as { key: string }).key, draft);
+  });
+  // Status SMTP + mode notifikasi (untuk UI).
   app.get("/notifications/smtp-status", rd("booking:read"), async () => ({
     configured: notifService.smtpConfigured(),
   }));
-  // Pratinjau (untuk dialog konfirmasi) — tidak mengirim, tidak mengaudit.
-  app.post("/bookings/:id/notify/preview", rd("booking:write"), async (req) => {
+  // Kirim email uji ke email owner (owner-only). Konfirmasi di UI.
+  app.post("/notifications/test", rd("settings:write"), async (req) => {
     const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.previewForBooking((req.params as { id: string }).id, key);
+    return notifService.sendTest(key, actorFromReq(req));
   });
-  // Kirim email via SMTP (kanal utama). Sukses/gagal diaudit.
+  // Outbox / riwayat notifikasi.
+  app.get("/notifications/outbox", rd("booking:read"), async (req) => {
+    const { status } = req.query as { status?: string };
+    return notifService.listOutbox({ status });
+  });
+  app.post("/notifications/outbox/:id/resend", rd("booking:write"), async (req) =>
+    notifService.resend((req.params as { id: string }).id, actorFromReq(req)),
+  );
+  // Kirim email manual untuk booking (mis. Tagihan). Konfirmasi di UI.
   app.post("/bookings/:id/notify/email", rd("booking:write"), async (req) => {
     const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.sendEmailForBooking((req.params as { id: string }).id, key, actorFromReq(req));
+    return notifService.sendManual((req.params as { id: string }).id, key, actorFromReq(req));
   });
-  // Riwayat email terkirim untuk booking.
+  // Riwayat email untuk satu booking (dari outbox).
   app.get("/bookings/:id/emails", rd("booking:read"), async (req) =>
     notifService.listEmailHistory((req.params as { id: string }).id),
   );

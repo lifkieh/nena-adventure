@@ -22,6 +22,7 @@ import { OwnerSettingsPage } from "./pages/OwnerSettingsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { PromosPage } from "./pages/PromosPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { NotificationHistoryPage } from "./pages/NotificationHistoryPage";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const router = createBrowserRouter(
         { path: "content", element: <ContentPage /> },
         { path: "media", element: <MediaPage /> },
         { path: "notifications", element: <NotificationsPage /> },
+        { path: "notifications/history", element: <NotificationHistoryPage /> },
         { path: "users", element: <UsersPage /> },
         { path: "audit", element: <AuditPage /> },
         { path: "*", element: <NotFoundPage /> },

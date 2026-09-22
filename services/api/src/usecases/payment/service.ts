@@ -17,6 +17,7 @@ import {
 import { toBookingDto } from "../booking/dto.js";
 import { canTransition } from "../booking/transition.js";
 import { issueForBooking } from "../voucher/service.js";
+import * as notifService from "../notification/service.js";
 import { providerFor } from "./provider.js";
 
 // Direktori upload DI LUAR apps/site (tidak tersaji statis, tidak bisa di-listing).
@@ -198,6 +199,10 @@ export function reject(paymentId: string, reason: string, ctx: ActorContext) {
     entityId: payment.id,
     data: { reason },
   });
+  // Email "bukti ditolak" otomatis (alasan wajib; is_test->dryrun; fire-and-forget).
+  void notifService
+    .enqueueAndSend({ bookingId: payment.bookingId, templateKey: "proof_rejected", stateTransition: `reject:${payment.id}`, ctx, extraVars: { alasan: reason } })
+    .catch(() => {});
   return toBookingDto(updated);
 }
 
