@@ -51,6 +51,16 @@ export function retryable(maxAttempts: number): OutboxRow[] {
     .all();
 }
 
+/** Baris terakhir utk (booking, template) sejak `sinceIso` (untuk cooldown kirim manual). */
+export function recentByBookingTemplate(bookingId: string, templateKey: string, sinceIso: string): OutboxRow | undefined {
+  return db
+    .select()
+    .from(emailOutbox)
+    .where(and(eq(emailOutbox.bookingId, bookingId), eq(emailOutbox.templateKey, templateKey), sql`${emailOutbox.createdAt} >= ${sinceIso}`))
+    .orderBy(desc(emailOutbox.createdAt))
+    .get();
+}
+
 /** Jumlah email TERKIRIM (live) dalam `sinceIso`..sekarang (untuk rate limit per jam). */
 export function sentSince(sinceIso: string): number {
   const r = db

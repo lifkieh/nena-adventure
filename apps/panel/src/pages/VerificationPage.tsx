@@ -14,7 +14,7 @@ export function VerificationPage() {
   const [err, setErr] = useState<string | null>(null);
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const q = useQuery({ queryKey: ["verif-queue"], queryFn: paymentsApi.queue, enabled: has("payment:read") });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["verif-queue"] });
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["verif-queue"] }); qc.invalidateQueries({ queryKey: ["outbox"] }); };
   const run = <T,>(p: Promise<T>) => p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Gagal."));
 
   async function approve(p: Record<string, unknown>) {

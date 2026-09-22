@@ -238,11 +238,13 @@ export interface ReportTables {
 export interface NotifTemplate { key: string; label: string; channel: string; subject: string; body: string }
 export interface NotifTemplatePreview { subject: string; text: string; html: string; usedSample: boolean }
 export interface OutboxItem {
-  id: string; bookingId: string | null; templateKey: string; label: string;
+  id: string; bookingId: string | null; bookingCode: string | null; templateKey: string; label: string;
   to: string; subject: string; bodyText: string; bodyHtml: string;
   status: string; statusLabel: string; mode: string; attemptCount: number;
   lastError: string | null; createdAt: string; sentAt: string | null;
 }
+export interface SendCooldown { cooldown: true; minutesAgo: number; label: string }
+export type SendResult = OutboxItem | SendCooldown | null;
 export const notifApi = {
   list: () => req<NotifTemplate[]>("/admin/notification-templates"),
   update: (key: string, b: { subject: string; body: string }) => req<NotifTemplate>(`/admin/notification-templates/${key}`, { method: "PUT", body: JSON.stringify(b) }),
@@ -251,7 +253,7 @@ export const notifApi = {
   test: (key: string) => req<{ status: string; mode: string; to: string; note?: string }>("/admin/notifications/test", { method: "POST", body: JSON.stringify({ key }) }),
   outbox: (status?: string) => req<{ items: OutboxItem[] }>(`/admin/notifications/outbox${status ? `?status=${status}` : ""}`),
   resend: (id: string) => req<OutboxItem | null>(`/admin/notifications/outbox/${id}/resend`, { method: "POST", body: "{}" }),
-  sendEmail: (bookingId: string, key: string) => req<OutboxItem | null>(`/admin/bookings/${bookingId}/notify/email`, { method: "POST", body: JSON.stringify({ key }) }),
+  sendEmail: (bookingId: string, key: string, force = false) => req<SendResult>(`/admin/bookings/${bookingId}/notify/email`, { method: "POST", body: JSON.stringify({ key, force }) }),
 };
 
 export const reportsApi = {

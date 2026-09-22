@@ -11,8 +11,9 @@ export function NotificationsPage() {
   const { has } = usePermissions();
   const qc = useQueryClient();
   const confirm = useConfirm();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  // Pesan/error PER kartu template (P3-2: admin melihatnya di kartu, bukan di atas halaman).
+  const [cardMsg, setCardMsg] = useState<Record<string, string | undefined>>({});
+  const [cardErr, setCardErr] = useState<Record<string, string | undefined>>({});
   const [drafts, setDrafts] = useState<Record<string, { subject: string; body: string }>>({});
   const [preview, setPreview] = useState<Record<string, NotifTemplatePreview | undefined>>({});
   // Field terakhir difokus (untuk sisipan chip di posisi kursor).
@@ -42,44 +43,40 @@ export function NotificationsPage() {
     });
   }
 
+  function setOk(key: string, m: string) { setCardMsg((s) => ({ ...s, [key]: m })); setCardErr((s) => ({ ...s, [key]: undefined })); }
+  function setBad(key: string, e: unknown) { setCardErr((s) => ({ ...s, [key]: e instanceof ApiError ? e.message : "Terjadi kesalahan." })); setCardMsg((s) => ({ ...s, [key]: undefined })); }
+
   async function save(t: NotifTemplate) {
-    setErr(null); setMsg(null);
     const d = drafts[t.key]!;
     try {
       await notifApi.update(t.key, { subject: d.subject, body: d.body });
-      setMsg(`Template "${t.label}" tersimpan.`);
+      setOk(t.key, `Template "${t.label}" tersimpan.`);
       qc.invalidateQueries({ queryKey: ["notif-templates"] });
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal simpan template."); }
+    } catch (e) { setBad(t.key, e); }
   }
 
   async function doPreview(t: NotifTemplate) {
-    setErr(null);
     const d = drafts[t.key]!;
     try {
       const pv = await notifApi.previewTemplate(t.key, { subject: d.subject, body: d.body });
       setPreview((p) => ({ ...p, [t.key]: pv }));
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "Pratinjau gagal (cek placeholder)."); }
+      setCardErr((s) => ({ ...s, [t.key]: undefined }));
+    } catch (e) { setBad(t.key, e); }
   }
 
   async function test(t: NotifTemplate) {
-    setErr(null); setMsg(null);
     const r = await confirm({ title: `Kirim email uji: ${t.label}?`, confirmLabel: "Kirim uji", body: <>Email uji akan dikirim ke alamat owner. Tunduk pada mode notifikasi (dryrun/live).</> });
     if (!r.confirmed) return;
     try {
       const res = await notifApi.test(t.key);
-      setMsg(`Uji "${t.label}": ${res.status}${res.note ? ` — ${res.note}` : ` ke ${res.to}`} (mode ${res.mode}).`);
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal kirim uji."); }
+      setOk(t.key, `Uji: ${res.status}${res.note ? ` — ${res.note}` : ` ke ${res.to}`} (mode ${res.mode}).`);
+    } catch (e) { setBad(t.key, e); }
   }
 
   return (
     <section className="space-y-3">
       <h2 className="text-xl font-extrabold text-slate-800">Template notifikasi (email)</h2>
-      <p className="text-sm text-slate-500">Kanal = email. WhatsApp bukan kanal notifikasi (hanya kontak manual di detail booking). Placeholder tersedia — klik chip untuk menyisipkan:</p>
-      <div className="flex flex-wrap gap-1">
-        {PLACEHOLDERS.map((ph) => <span key={ph} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-500">{ph}</span>)}
-      </div>
-      {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</div>}
-      {msg && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
+      <p className="text-sm text-slate-500">Kanal = email. WhatsApp bukan kanal notifikasi (hanya kontak manual di detail booking). Klik chip di tiap kartu untuk menyisipkan placeholder.</p>
       {q.data.map((t) => (
         <div key={t.key} className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="mb-1 text-sm font-bold text-slate-700">{t.label}</div>
@@ -111,6 +108,8 @@ export function NotificationsPage() {
             <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100" onClick={() => doPreview(t)}>Pratinjau</button>
             {canTest && <button className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100" onClick={() => test(t)}>Kirim email uji</button>}
           </div>
+          {cardErr[t.key] && <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{cardErr[t.key]}</div>}
+          {cardMsg[t.key] && <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{cardMsg[t.key]}</div>}
           {preview[t.key] && (
             <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
               <div className="text-xs text-slate-400">Pratinjau {preview[t.key]!.usedSample ? "(data booking contoh)" : "(data dummy)"}</div>

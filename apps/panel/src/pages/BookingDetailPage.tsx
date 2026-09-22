@@ -39,7 +39,28 @@ export function BookingDetailPage() {
   const b = d.booking;
   const status = String(b.status);
   const legal = new Set(legalActionsFor(status));
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["booking", id] }); qc.invalidateQueries({ queryKey: ["booking-history", id] }); qc.invalidateQueries({ queryKey: ["bookings"] }); };
+  const hasProof = d.payments.some((p) => !!p.proofUrl);
+  // P2-3: gerbang tombol email per status. Nonaktif = tetap ada + tooltip alasan.
+  function emailGate(key: string): { ok: boolean; tip: string } {
+    switch (key) {
+      case "invoice": return { ok: status === "menunggu_bayar" || status === "menunggu_pelunasan", tip: "Hanya saat menunggu pembayaran/pelunasan" };
+      case "settlement": return { ok: status === "menunggu_pelunasan", tip: "Hanya saat menunggu pelunasan" };
+      case "evoucher": return { ok: status === "siap_jalan" || status === "selesai", tip: "Hanya saat siap jalan / selesai" };
+      case "cancellation": return { ok: status === "batal", tip: "Hanya saat booking batal" };
+      case "proof_rejected": return { ok: hasProof, tip: "Hanya setelah ada bukti pembayaran" };
+      case "booking_confirmation": return { ok: status !== "batal" && status !== "kadaluarsa", tip: "Tidak untuk booking batal/kadaluarsa" };
+      default: return { ok: true, tip: "" };
+    }
+  }
+  // Invalidate SEMUA yang bergantung booking ini + outbox global (P2-2: riwayat email
+  // & Riwayat notifikasi harus fresh tanpa reload manual setelah aksi apa pun).
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["booking", id] });
+    qc.invalidateQueries({ queryKey: ["booking-history", id] });
+    qc.invalidateQueries({ queryKey: ["booking-emails", id] });
+    qc.invalidateQueries({ queryKey: ["outbox"] });
+    qc.invalidateQueries({ queryKey: ["bookings"] });
+  };
 
   async function doAction(a: BookingAction) {
     const meta = bookingActionMeta[a];
@@ -57,21 +78,35 @@ export function BookingDetailPage() {
     p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Aksi gagal."));
   }
 
-  // Email manual (mis. Tagihan). Konfirmasi dulu; hasil ditampilkan status manusiawi.
-  async function sendEmail(key: string, label: string) {
+  // Email manual (mis. Tagihan). Konfirmasi dulu; cooldown 10 mnt cegah dobel kirim.
+  async function sendEmail(key: string, label: string, force = false) {
     try {
       const email = String(b.customerEmail ?? "");
       if (!email) { setErr("Booking ini tidak punya alamat email."); return; }
-      const r = await confirm({
-        title: `Kirim email: ${label}?`,
-        confirmLabel: "Kirim email",
-        body: <>Kirim template <b>{label}</b> ke <b>{email}</b>? Isi email memakai data booking ini. Hasil tercatat di Riwayat notifikasi.</>,
-      });
-      if (!r.confirmed) return;
-      const res = await notifApi.sendEmail(id, key);
+      if (!force) {
+        const r = await confirm({
+          title: `Kirim email: ${label}?`,
+          confirmLabel: "Kirim email",
+          body: <>Kirim template <b>{label}</b> ke <b>{email}</b>? Isi memakai data booking ini. Tercatat di Riwayat notifikasi.</>,
+        });
+        if (!r.confirmed) return;
+      }
+      const res = await notifApi.sendEmail(id, key, force);
+      // Cooldown: sudah dikirim belum lama — konfirmasi ulang, bukan blokir permanen.
+      if (res && "cooldown" in res) {
+        const c = await confirm({
+          title: "Sudah dikirim baru-baru ini",
+          danger: true,
+          confirmLabel: "Kirim lagi",
+          body: <>Email <b>{label}</b> sudah dikirim <b>{res.minutesAgo} menit</b> lalu. Kirim lagi?</>,
+        });
+        if (c.confirmed) await sendEmail(key, label, true);
+        return;
+      }
       setErr(null);
       setMsg(res ? `Email "${label}": ${res.statusLabel}${res.mode !== "live" ? ` (mode ${res.mode})` : ""}.` : `Email "${label}" diproses.`);
       qc.invalidateQueries({ queryKey: ["booking-emails", id] });
+      qc.invalidateQueries({ queryKey: ["outbox"] });
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal mengirim email."); setMsg(null); }
   }
 
@@ -132,13 +167,18 @@ export function BookingDetailPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
           <div className="mb-2 font-semibold text-slate-500">Kirim email notifikasi</div>
           <div className="flex flex-wrap gap-2">
-            {notifQ.data!.map((t: NotifTemplate) => (
-              <button
-                key={t.key}
-                className="rounded border border-slate-300 px-3 py-1 text-xs font-semibold text-laut hover:bg-slate-50"
-                onClick={() => sendEmail(t.key, t.label)}
-              >{t.label}</button>
-            ))}
+            {notifQ.data!.map((t: NotifTemplate) => {
+              const g = emailGate(t.key);
+              return (
+                <button
+                  key={t.key}
+                  disabled={!g.ok}
+                  title={g.ok ? "" : g.tip}
+                  className="rounded border border-slate-300 px-3 py-1 text-xs font-semibold text-laut hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                  onClick={() => sendEmail(t.key, t.label)}
+                >{t.label}</button>
+              );
+            })}
           </div>
           {!(smtpQ.data?.configured ?? false) && (
             <p className="mt-2 text-xs text-slate-400">SMTP belum dikonfigurasi — email berjalan mode dryrun (tercatat di Riwayat notifikasi, tidak benar-benar terkirim).</p>

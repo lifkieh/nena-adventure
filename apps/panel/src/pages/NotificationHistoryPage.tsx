@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatJakarta } from "@nena/shared";
 import { ApiError, notifApi, type OutboxItem } from "../lib/api";
@@ -64,12 +65,17 @@ export function NotificationHistoryPage() {
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-slate-200 text-left text-slate-500">
-              <tr><th className="px-4 py-2">Waktu</th><th className="px-4 py-2">Template</th><th className="px-4 py-2">Ke</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Mode</th><th className="px-4 py-2"></th></tr>
+              <tr><th className="px-4 py-2">Waktu</th><th className="px-4 py-2">Kode</th><th className="px-4 py-2">Template</th><th className="px-4 py-2">Ke</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Mode</th><th className="px-4 py-2"></th></tr>
             </thead>
             <tbody>
               {q.data!.items.map((o) => (
                 <tr key={o.id} className="border-b border-slate-100">
                   <td className="px-4 py-2 whitespace-nowrap">{formatJakarta(o.sentAt ?? o.createdAt)}</td>
+                  <td className="px-4 py-2 font-mono">
+                    {o.bookingId && o.bookingCode
+                      ? <Link className="text-laut hover:underline" to={`/bookings/${o.bookingId}`}>{o.bookingCode}</Link>
+                      : <span className="text-slate-400">— (uji)</span>}
+                  </td>
                   <td className="px-4 py-2">{o.label}</td>
                   <td className="px-4 py-2">{o.to}</td>
                   <td className="px-4 py-2"><span className={`rounded px-2 py-0.5 text-xs font-bold ${badgeClass(o.status)}`}>{o.statusLabel}</span></td>

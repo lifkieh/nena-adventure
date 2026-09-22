@@ -5,6 +5,7 @@ import { env } from "../../env.js";
 import { getSetting, setSetting } from "../../repos/settings.repo.js";
 import * as bookingsRepo from "../../repos/bookings.repo.js";
 import * as schedulesRepo from "../../repos/schedules.repo.js";
+import { todayJakarta } from "../../lib/date.js";
 import type { Booking } from "../../db/schema.js";
 import * as outboxRepo from "../../repos/email-outbox.repo.js";
 import { record, type ActorContext } from "../audit.js";
@@ -31,7 +32,7 @@ const DEFAULTS: Record<string, { label: string; tpl: Template }> = {
   proof_rejected: { label: "Bukti ditolak", tpl: { subject: "Bukti pembayaran {{kode}} ditolak", body: "Halo {{nama}},\n\nBukti pembayaran {{kode}} belum bisa kami verifikasi: {{alasan}}.\nMohon kirim ulang.\n\nTerima kasih,\nNena Adventure" } },
   settlement: { label: "Reminder pelunasan", tpl: { subject: "Pelunasan {{kode}}", body: "Halo {{nama}},\n\nMohon lunasi sisa {{sisa}} untuk booking {{kode}} sebelum tenggat.\n\nTerima kasih,\nNena Adventure" } },
   evoucher: { label: "E-voucher", tpl: { subject: "E-voucher {{kode}}", body: "Halo {{nama}},\n\nBooking {{kode}} ({{paket}}, {{tanggal}}) siap jalan. Ini e-voucher Anda.\nTitik kumpul: {{titik_kumpul}} pukul {{jam_kumpul}}.\nSampai jumpa!\n\nNena Adventure" } },
-  cancellation: { label: "Pembatalan / refund", tpl: { subject: "Pembatalan {{kode}}", body: "Halo {{nama}},\n\nBooking {{kode}} dibatalkan. {{alasan}}\nRefund: {{refund}}.\n\nNena Adventure" } },
+  cancellation: { label: "Pembatalan / refund", tpl: { subject: "Pembatalan {{kode}}", body: "Halo {{nama}},\n\nBooking {{kode}} dibatalkan.\nAlasan: {{alasan}}\nRefund: {{refund}}\n\nNena Adventure" } },
 };
 
 function getTpl(key: string): Template {
@@ -164,7 +165,7 @@ export async function enqueueAndSend(opts: EnqueueOpts): Promise<outboxRepo.Outb
       bodyHtml: html, bodyText: text, status: "skipped", mode, attemptCount: 0,
       lastError: mode === "off" ? "NOTIFY_MODE=off" : "dryrun (tidak dikirim)",
     });
-    record(ctx, { action: "notification_email_skipped", entity: "booking", entityId: bookingId, data: { key: templateKey, mode, stateTransition } });
+    record(ctx, { action: "notification_email_skipped", entity: "notification", entityId: bookingId, data: { key: templateKey, mode, stateTransition } });
     return row;
   }
 
@@ -201,12 +202,12 @@ async function attemptSend(
   try {
     const { messageId } = await sendMail({ to, subject, text, html, headers });
     outboxRepo.update(rowId, { status: "sent", attemptCount: attempt, sentAt: new Date().toISOString(), lastError: null });
-    record(ctx, { action: "notification_email_sent", entity: "booking", entityId: bookingId ?? undefined, data: { key: templateKey, to, subject, status: "success", messageId } });
+    record(ctx, { action: "notification_email_sent", entity: "notification", entityId: bookingId ?? undefined, data: { key: templateKey, to, subject, status: "success", messageId } });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const status = attempt >= MAX_RETRY ? "failed" : "queued";
     outboxRepo.update(rowId, { status, attemptCount: attempt, lastError: message });
-    record(ctx, { action: "notification_email_failed", entity: "booking", entityId: bookingId ?? undefined, data: { key: templateKey, to, subject, attempt, error: message } });
+    record(ctx, { action: "notification_email_failed", entity: "notification", entityId: bookingId ?? undefined, data: { key: templateKey, to, subject, attempt, error: message } });
   }
 }
 
@@ -225,13 +226,21 @@ export async function retryOutbox(ctx: ActorContext = SYSTEM_NOTIF_CTX): Promise
 
 const SYSTEM_NOTIF_CTX: ActorContext = { userId: null, role: "system", ip: null, userAgent: "notify-job" };
 
-/** Job terjadwal: reminder pelunasan untuk booking menunggu_pelunasan. Idempoten
- *  (satu email "settlement" per booking via stateTransition tetap). */
-export async function runSettlementReminders(): Promise<number> {
+/** Job terjadwal: reminder pelunasan BERTAHAP H-3 dan H-1 untuk booking
+ *  menunggu_pelunasan. Idempoten per tahap (stateTransition settlement_h3/settlement_h1). */
+export async function runSettlementReminders(today: string = todayJakarta()): Promise<number> {
   const ids = bookingsRepo.idsByStatus("menunggu_pelunasan");
+  const t = Date.parse(today + "T00:00:00Z");
   let n = 0;
   for (const id of ids) {
-    const r = await enqueueAndSend({ bookingId: id, templateKey: "settlement", stateTransition: "settlement", ctx: SYSTEM_NOTIF_CTX });
+    const b = bookingsRepo.findById(id);
+    if (!b) continue;
+    const sched = schedulesRepo.findById(b.scheduleId);
+    if (!sched) continue;
+    const days = Math.round((Date.parse(sched.date + "T00:00:00Z") - t) / 86400_000);
+    const stage = days === 3 ? "settlement_h3" : days === 1 ? "settlement_h1" : null;
+    if (!stage) continue;
+    const r = await enqueueAndSend({ bookingId: id, templateKey: "settlement", stateTransition: stage, ctx: SYSTEM_NOTIF_CTX });
     if (r) n++;
   }
   return n;
@@ -242,8 +251,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function toOutboxDto(r: outboxRepo.OutboxRow) {
+  const code = r.bookingId ? bookingsRepo.findById(r.bookingId)?.code ?? null : null;
   return {
-    id: r.id, bookingId: r.bookingId, templateKey: r.templateKey,
+    id: r.id, bookingId: r.bookingId, bookingCode: code, templateKey: r.templateKey,
     label: DEFAULTS[r.templateKey]?.label ?? r.templateKey,
     to: r.toEmail, subject: r.subject, bodyText: r.bodyText, bodyHtml: r.bodyHtml,
     status: r.status, statusLabel: STATUS_LABEL[r.status] ?? r.status,
@@ -275,8 +285,20 @@ export async function resend(outboxId: string, ctx: ActorContext) {
   return res ? toOutboxDto(res) : null;
 }
 
-/** Aksi admin manual: kirim template ke booking (mis. Tagihan). Konfirmasi di UI. */
-export async function sendManual(bookingId: string, templateKey: string, ctx: ActorContext) {
+const MANUAL_COOLDOWN_MIN = 10;
+
+/** Aksi admin manual: kirim template ke booking (mis. Tagihan). Cooldown 10 menit per
+ *  (booking, template): klik kedua mengembalikan {cooldown:true} agar UI konfirmasi ulang,
+ *  BUKAN diblokir permanen. force=true melewati cooldown. */
+export async function sendManual(bookingId: string, templateKey: string, ctx: ActorContext, force = false) {
+  if (!force) {
+    const since = new Date(Date.now() - MANUAL_COOLDOWN_MIN * 60_000).toISOString();
+    const recent = outboxRepo.recentByBookingTemplate(bookingId, templateKey, since);
+    if (recent) {
+      const minutesAgo = Math.max(0, Math.round((Date.now() - Date.parse(recent.createdAt)) / 60_000));
+      return { cooldown: true as const, minutesAgo, label: DEFAULTS[templateKey]?.label ?? templateKey };
+    }
+  }
   const res = await enqueueAndSend({ bookingId, templateKey, stateTransition: `manual:${randomUUID()}`, ctx });
   return res ? toOutboxDto(res) : null;
 }

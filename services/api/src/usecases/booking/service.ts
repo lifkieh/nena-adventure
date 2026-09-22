@@ -696,7 +696,10 @@ export function getBookingHistory(id: string) {
     page: 1,
     pageSize: 100,
   });
-  return { items: rows };
+  // Event email TIDAK ditampilkan di timeline status (ada kartu "Riwayat email"
+  // terpisah). Saring juga baris lama yang terlanjur tercatat dgn entity=booking.
+  const items = rows.filter((r) => !r.action.startsWith("notification_"));
+  return { items };
 }
 
 export { SYSTEM_CTX };

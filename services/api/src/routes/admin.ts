@@ -562,10 +562,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.post("/notifications/outbox/:id/resend", rd("booking:write"), async (req) =>
     notifService.resend((req.params as { id: string }).id, actorFromReq(req)),
   );
-  // Kirim email manual untuk booking (mis. Tagihan). Konfirmasi di UI.
+  // Kirim email manual untuk booking (mis. Tagihan). Konfirmasi di UI. force melewati cooldown.
   app.post("/bookings/:id/notify/email", rd("booking:write"), async (req) => {
-    const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.sendManual((req.params as { id: string }).id, key, actorFromReq(req));
+    const { key, force } = z.object({ key: z.string(), force: z.boolean().optional() }).parse(req.body);
+    return notifService.sendManual((req.params as { id: string }).id, key, actorFromReq(req), force ?? false);
   });
   // Riwayat email untuk satu booking (dari outbox).
   app.get("/bookings/:id/emails", rd("booking:read"), async (req) =>
