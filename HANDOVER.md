@@ -73,6 +73,15 @@ mengubah tampilan situs (rekening & QRIS di halaman booking, WA di kontak).
 - Laporan → tombol "Export CSV" (mengunduh file; tercatat di audit setelah sukses).
   Ada kartu peringatan anomali "selesai tapi ledger < total".
 
+## 6b. Riwayat kerja granular (fase 0–13)
+`main` berisi kode final. Riwayat commit granular tiap fase disimpan di ref permanen
+(bukan di jalur parent-pertama `main`, jadi tak selalu tampak di graf default):
+- Branch: `history/fase-0-13`
+- Tag beranotasi: `riwayat-granular-fe0cf66` (menunjuk `fe0cf66`; tag beranotasi
+  melindungi commit dari garbage collection).
+Lihat seluruh riwayat: `git log --all --graph --oneline`.
+Sumber kebenaran kode = `main` (tree-nya identik dengan `fe0cf66`).
+
 ## 7. Migrasi DB
 - `drizzle-kit generate` berfungsi kembali (rantai snapshot diperbaiki).
 - Alur baku ada di `docs/MIGRATIONS.md`.
