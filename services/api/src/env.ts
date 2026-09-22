@@ -22,13 +22,20 @@ const rawSchema = z.object({
   OWNER_EMAIL: z.string().email().default("owner@nena-adventure.id"),
   OWNER_PASSWORD: z.string().min(6).default("ubah-password-ini"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  // SMTP untuk kirim email notifikasi. Semua opsional; kalau kosong tombol "Kirim
-  // email" nonaktif. JANGAN commit kredensial — isi lewat .env (tidak di-repo).
+  // SMTP untuk kirim email notifikasi. Semua opsional; kalau kosong sistem jalan
+  // di dryrun. JANGAN commit kredensial — isi lewat .env (tidak di-repo).
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().optional(),
+  MAIL_FROM_NAME: z.string().optional(),
+  // Gerbang keamanan pengiriman. dev default = dryrun (tidak benar-benar kirim).
+  NOTIFY_MODE: z.enum(["off", "dryrun", "live"]).default("dryrun"),
+  // Alihkan SEMUA penerima ke alamat ini (uji aman). Kosong = kirim ke penerima asli.
+  NOTIFY_REDIRECT_TO: z.string().optional(),
+  // Batas kirim per jam (lindungi kuota Gmail ~500/hari).
+  NOTIFY_MAX_PER_HOUR: z.coerce.number().int().positive().default(60),
 });
 
 const parsed = rawSchema.safeParse(process.env);

@@ -175,7 +175,7 @@ export const bookingsApi = {
   updateParticipantPhone: (id: string, pid: string, phone: string | null) =>
     req<{ id: string; phone: string | null }>(`/admin/bookings/${id}/participants/${pid}`, { method: "PATCH", body: JSON.stringify({ phone }) }),
   roster: (includePast: boolean) => req<{ items: RosterRow[] }>(`/admin/participants/roster${includePast ? "?includePast=1" : ""}`),
-  emails: (id: string) => req<{ items: EmailHistoryItem[] }>(`/admin/bookings/${id}/emails`),
+  emails: (id: string) => req<{ items: OutboxItem[] }>(`/admin/bookings/${id}/emails`),
 };
 
 export const paymentsApi = {
@@ -236,14 +236,22 @@ export interface ReportTables {
   underpaidCompleted: { code: string; customerName: string; total: number; ledger: number; shortfall: number; scheduleDate: string }[];
 }
 export interface NotifTemplate { key: string; label: string; channel: string; subject: string; body: string }
-export interface NotifPreview { key: string; channel: string; subject: string; body: string; waLink: string | null; emailTo: string | null; smtpConfigured: boolean }
-export interface EmailHistoryItem { id: string; key: string | null; to: string | null; subject: string | null; status: string | null; error: string | null; actorEmail: string | null; createdAt: string }
+export interface NotifTemplatePreview { subject: string; text: string; html: string; usedSample: boolean }
+export interface OutboxItem {
+  id: string; bookingId: string | null; templateKey: string; label: string;
+  to: string; subject: string; bodyText: string; bodyHtml: string;
+  status: string; statusLabel: string; mode: string; attemptCount: number;
+  lastError: string | null; createdAt: string; sentAt: string | null;
+}
 export const notifApi = {
   list: () => req<NotifTemplate[]>("/admin/notification-templates"),
-  update: (key: string, b: unknown) => req<NotifTemplate>(`/admin/notification-templates/${key}`, { method: "PUT", body: JSON.stringify(b) }),
+  update: (key: string, b: { subject: string; body: string }) => req<NotifTemplate>(`/admin/notification-templates/${key}`, { method: "PUT", body: JSON.stringify(b) }),
+  previewTemplate: (key: string, draft?: { subject: string; body: string }) => req<NotifTemplatePreview>(`/admin/notification-templates/${key}/preview`, { method: "POST", body: draft ? JSON.stringify(draft) : "{}" }),
   smtpStatus: () => req<{ configured: boolean }>("/admin/notifications/smtp-status"),
-  preview: (bookingId: string, key: string) => req<NotifPreview>(`/admin/bookings/${bookingId}/notify/preview`, { method: "POST", body: JSON.stringify({ key }) }),
-  sendEmail: (bookingId: string, key: string) => req<{ ok: true; to: string; subject: string }>(`/admin/bookings/${bookingId}/notify/email`, { method: "POST", body: JSON.stringify({ key }) }),
+  test: (key: string) => req<{ status: string; mode: string; to: string; note?: string }>("/admin/notifications/test", { method: "POST", body: JSON.stringify({ key }) }),
+  outbox: (status?: string) => req<{ items: OutboxItem[] }>(`/admin/notifications/outbox${status ? `?status=${status}` : ""}`),
+  resend: (id: string) => req<OutboxItem | null>(`/admin/notifications/outbox/${id}/resend`, { method: "POST", body: "{}" }),
+  sendEmail: (bookingId: string, key: string) => req<OutboxItem | null>(`/admin/bookings/${bookingId}/notify/email`, { method: "POST", body: JSON.stringify({ key }) }),
 };
 
 export const reportsApi = {

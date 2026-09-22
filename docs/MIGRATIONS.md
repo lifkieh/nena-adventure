@@ -37,6 +37,15 @@ Dipakai bila perlu SQL khusus (contoh 0010/0011). Checklist:
 5. `npm run migrate` untuk menerapkan.
 6. Commit SQL + journal + snapshot.
 
+## PENTING — urutan `when` di _journal.json
+Migrator drizzle menerapkan migrasi dengan `when` LEBIH BESAR dari `when` terakhir yang
+tercatat di DB. Migrasi 0008–0012 memakai `when` bulat besar (…100000000 s/d …500000000)
+karena hand-authored. Konsekuensi: hasil `drizzle-kit generate` memakai `Date.now()` nyata
+yang saat ini MASIH lebih kecil dari nilai itu, sehingga akan **dilewati** migrator.
+Checklist tiap `generate` (sampai waktu nyata melewati nilai terakhir): buka
+`_journal.json`, set `when` entri baru menjadi **lebih besar** dari entri sebelumnya
+(mis. tambah 100000000). Setelah itu `npm run migrate`.
+
 ## Aturan keras
 - JANGAN pernah mengubah file migrasi yang SUDAH diterapkan di lingkungan mana pun.
 - JANGAN menghapus baris booking/peserta/pembayaran/seat_ledger dalam migrasi.

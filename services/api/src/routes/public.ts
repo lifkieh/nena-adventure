@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { publicBookingInputSchema } from "@nena/shared";
 import { AppError } from "../lib/errors.js";
@@ -13,8 +14,23 @@ import { publicPrices } from "../usecases/package/service.js";
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
   app.get("/schedules", async () => service.listPublicSchedules());
 
-  // Konten terbit untuk situs publik (snapshot; situs cache + fallback).
-  app.get("/content", async () => publicContent());
+  // Konten terbit untuk situs publik. no-cache + ETag kuat dari isi versi terbit:
+  // Terbitkan mengubah isi -> ETag berubah -> refresh biasa langsung dapat versi baru
+  // (revalidasi via If-None-Match, 304 kalau tak berubah). Bukan cache TTL.
+  app.get("/content", async (req, reply) => {
+    const data = publicContent();
+    const json = JSON.stringify(data);
+    const etag = `"${createHash("sha1").update(json).digest("hex")}"`;
+    reply.header("Cache-Control", "no-cache");
+    reply.header("ETag", etag);
+    const inm = req.headers["if-none-match"];
+    if (inm && inm === etag) {
+      reply.code(304).send();
+      return reply;
+    }
+    reply.type("application/json").send(json);
+    return reply;
+  });
 
   // Kontak publik: nomor WhatsApp + URL peta (sumber tunggal dari Pengaturan owner).
   app.get("/contact", async () => getPublicContact());

@@ -455,6 +455,34 @@ export const media = sqliteTable(
   (t) => [index("ix_media_sha").on(t.sha256)],
 );
 
+/* ── email_outbox (notifikasi email) ─────────────────────── */
+export const emailOutbox = sqliteTable(
+  "email_outbox",
+  {
+    id: pk(),
+    bookingId: text("booking_id").references(() => bookings.id, { onDelete: "set null" }), // null utk email uji
+    templateKey: text("template_key").notNull(),
+    // Penanda transisi/aksi untuk idempotensi (mis. "web_create", "reject", "cancel",
+    // "siap_jalan", atau "manual:<nonce>"/"test:<nonce>" untuk aksi non-idempoten).
+    stateTransition: text("state_transition").notNull(),
+    toEmail: text("to_email").notNull(),
+    subject: text("subject").notNull(),
+    bodyHtml: text("body_html").notNull(),
+    bodyText: text("body_text").notNull(),
+    status: text("status").notNull().default("queued"), // queued|sent|failed|skipped
+    mode: text("mode").notNull(), // off|dryrun|live
+    attemptCount: integer("attempt_count").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: tsNow("created_at"),
+    sentAt: ts("sent_at"),
+  },
+  (t) => [
+    // Idempotensi: satu email per (booking, template, transisi) — retry/restart tak dobel.
+    uniqueIndex("ux_outbox_idem").on(t.bookingId, t.templateKey, t.stateTransition),
+    index("ix_outbox_status").on(t.status),
+  ],
+);
+
 /* ── Tipe row (select/insert) untuk dipakai repos/usecases ── */
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -485,4 +513,5 @@ export const schema = {
   media,
   packages,
   packageTiers,
+  emailOutbox,
 };

@@ -2,6 +2,16 @@ import { createReadStream } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { AppError } from "../lib/errors.js";
+import { hit } from "../lib/req-limit.js";
+
+/** Batasi laju endpoint export (berat + bisa disalahgunakan): 10 / 60 detik per admin. */
+function guardExportRate(req: { ip: string }, reply: { header: (k: string, v: string) => void }, userId: string | null): void {
+  const rl = hit(`export:${userId ?? req.ip}`, 10, 60_000);
+  if (rl.limited) {
+    reply.header("Retry-After", String(rl.retryAfterSeconds));
+    throw new AppError("RATE_LIMITED", "Terlalu banyak permintaan export. Coba lagi sebentar.", 429);
+  }
+}
 import {
   auditQuerySchema,
   bulkScheduleStatusSchema,
@@ -101,6 +111,13 @@ const transitionSchema = z.object({
  */
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireAuth);
+  // Data admin (uang, kursi, PII) TIDAK boleh di-cache proxy/browser: no-store +
+  // private + Vary: Cookie (respons bergantung sesi). Berlaku semua route admin.
+  app.addHook("onSend", async (_req, reply, payload) => {
+    reply.header("Cache-Control", "no-store, private");
+    reply.header("Vary", "Cookie");
+    return payload;
+  });
 
   /* ── Pengguna & peran (user:manage) ─────────────────────── */
   app.get(
@@ -343,10 +360,12 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/exports/zurich",
     { config: { permission: "participant:export" }, preHandler: [requirePermission("participant:export")] },
     async (req, reply) => {
+      const actor = actorFromReq(req);
+      guardExportRate(req, reply, actor.userId);
       const { date } = z
         .object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid.") })
         .parse(req.query);
-      const { csv } = exportZurich(date, actorFromReq(req));
+      const { csv } = exportZurich(date, actor);
       reply.header("content-disposition", `attachment; filename="zurich-${date}.csv"`);
       reply.type("text/csv; charset=utf-8");
       return csv;
@@ -381,6 +400,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/reports/export.csv",
     { config: { permission: "report:read" }, preHandler: [requirePermission("report:read")] },
     async (req, reply) => {
+      guardExportRate(req, reply, actorFromReq(req).userId);
       const csv = reportCsv(todayJakarta());
       // Audit HANYA setelah CSV benar-benar terbentuk & berisi (bukan sebelum).
       if (csv && csv.trim().length > 0) {
@@ -513,27 +533,41 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.post("/promos", rd("package:write"), async (req) => promoService.create(promoSchema.parse(req.body), actorFromReq(req)));
   app.put("/promos/:id", rd("package:write"), async (req) => promoService.update((req.params as { id: string }).id, promoSchema.parse(req.body), actorFromReq(req)));
 
-  /* ── Template notifikasi (content:read/write) + kirim manual (booking:write) ── */
-  const notifSchema = z.object({ channel: z.enum(["wa", "email"]).optional(), subject: z.string(), body: z.string().min(1) });
+  /* ── Notifikasi EMAIL (kanal WhatsApp dihapus dari sistem notifikasi) ── */
+  const notifSchema = z.object({ subject: z.string().min(1), body: z.string().min(1) });
   app.get("/notification-templates", rd("content:read"), async () => notifService.listTemplates());
   app.put("/notification-templates/:key", rd("content:write"), async (req) =>
     notifService.updateTemplate((req.params as { key: string }).key, notifSchema.parse(req.body), actorFromReq(req)),
   );
-  // Status SMTP (untuk mengaktifkan/menonaktifkan tombol "Kirim email").
+  // Pratinjau editor (data booking contoh nyata). Validasi placeholder tak dikenal.
+  app.post("/notification-templates/:key/preview", rd("content:read"), async (req) => {
+    const p = z.object({ subject: z.string(), body: z.string() }).partial().parse(req.body ?? {});
+    const draft = p.subject !== undefined && p.body !== undefined ? { subject: p.subject, body: p.body } : undefined;
+    return notifService.previewTemplate((req.params as { key: string }).key, draft);
+  });
+  // Status SMTP + mode notifikasi (untuk UI).
   app.get("/notifications/smtp-status", rd("booking:read"), async () => ({
     configured: notifService.smtpConfigured(),
   }));
-  // Pratinjau (untuk dialog konfirmasi) — tidak mengirim, tidak mengaudit.
-  app.post("/bookings/:id/notify/preview", rd("booking:write"), async (req) => {
+  // Kirim email uji ke email owner (owner-only). Konfirmasi di UI.
+  app.post("/notifications/test", rd("settings:write"), async (req) => {
     const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.previewForBooking((req.params as { id: string }).id, key);
+    return notifService.sendTest(key, actorFromReq(req));
   });
-  // Kirim email via SMTP (kanal utama). Sukses/gagal diaudit.
+  // Outbox / riwayat notifikasi.
+  app.get("/notifications/outbox", rd("booking:read"), async (req) => {
+    const { status } = req.query as { status?: string };
+    return notifService.listOutbox({ status });
+  });
+  app.post("/notifications/outbox/:id/resend", rd("booking:write"), async (req) =>
+    notifService.resend((req.params as { id: string }).id, actorFromReq(req)),
+  );
+  // Kirim email manual untuk booking (mis. Tagihan). Konfirmasi di UI.
   app.post("/bookings/:id/notify/email", rd("booking:write"), async (req) => {
     const { key } = z.object({ key: z.string() }).parse(req.body);
-    return notifService.sendEmailForBooking((req.params as { id: string }).id, key, actorFromReq(req));
+    return notifService.sendManual((req.params as { id: string }).id, key, actorFromReq(req));
   });
-  // Riwayat email terkirim untuk booking.
+  // Riwayat email untuk satu booking (dari outbox).
   app.get("/bookings/:id/emails", rd("booking:read"), async (req) =>
     notifService.listEmailHistory((req.params as { id: string }).id),
   );

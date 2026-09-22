@@ -10,6 +10,16 @@ export function findById(id: string): Booking | undefined {
   return db.select().from(bookings).where(eq(bookings.id, id)).get();
 }
 
+/** Booking terbaru (untuk contoh preview template). undefined bila belum ada. */
+export function latest(): Booking | undefined {
+  return db.select().from(bookings).orderBy(desc(bookings.createdAt)).limit(1).get();
+}
+
+/** ID booking dgn status tertentu (untuk job reminder pelunasan). */
+export function idsByStatus(status: string): string[] {
+  return db.select({ id: bookings.id }).from(bookings).where(eq(bookings.status, status)).all().map((r) => r.id);
+}
+
 export function findByCode(code: string): Booking | undefined {
   return db.select().from(bookings).where(eq(bookings.code, code)).get();
 }

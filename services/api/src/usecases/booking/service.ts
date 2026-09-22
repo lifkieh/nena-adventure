@@ -13,6 +13,7 @@ import * as participantsRepo from "../../repos/participants.repo.js";
 import * as paymentsRepo from "../../repos/payments.repo.js";
 import * as packagesRepo from "../../repos/packages.repo.js";
 import * as promoService from "../promo/service.js";
+import * as notifService from "../notification/service.js";
 import * as usersRepo from "../../repos/users.repo.js";
 import * as auditRepo from "../../repos/audit.repo.js";
 import type { Booking } from "../../db/schema.js";
@@ -62,6 +63,14 @@ export interface ParticipantIn {
   phone?: string;
   birthDate?: string;
   idNumber?: string;
+}
+
+/** Kirim email notifikasi tanpa memblokir alur transaksi (fire-and-forget).
+ *  Kegagalan notifikasi TIDAK boleh menggagalkan booking/pembayaran. */
+function fireEmail(bookingId: string, key: string, stateTransition: string, ctx: ActorContext): void {
+  void notifService
+    .enqueueAndSend({ bookingId, templateKey: key, stateTransition, ctx })
+    .catch(() => { /* diaudit di dalam; jangan ganggu alur */ });
 }
 
 /** Tandai lead HANYA jika nama peserta cocok dgn nama pemesan (bukan tebak urutan).
@@ -125,12 +134,16 @@ function priceAndValidate(input: {
 /** Booking dari situs publik: langsung menunggu_bayar + hold kursi. Idempoten. */
 export function createWebBooking(input: CreateWebInput): CreateResult {
   const price = priceAndValidate(input);
+  let createdId: string | null = null;
+  let isReplay = false;
 
-  return txImmediate((): CreateResult => {
+  const result = txImmediate((): CreateResult => {
     // Idempotency replay.
     if (input.idempotencyKey) {
       const existing = bookingsRepo.findByIdempotencyKey(input.idempotencyKey);
       if (existing) {
+        isReplay = true;
+        createdId = existing.id;
         const token = newAccessToken();
         bookingsRepo.update(existing.id, {
           accessTokenHash: hashAccessToken(token),
@@ -211,6 +224,7 @@ export function createWebBooking(input: CreateWebInput): CreateResult {
       data: { code, source: "web", pax: input.pax, total: price.total },
     });
 
+    createdId = booking.id;
     return {
       code,
       holdExpiresAt,
@@ -220,6 +234,10 @@ export function createWebBooking(input: CreateWebInput): CreateResult {
       status: "menunggu_bayar",
     };
   });
+  // Konfirmasi booking otomatis via email (setelah commit; idempoten, is_test->dryrun).
+  // Replay idempotency tak mengirim ulang (kunci web_create sudah ada di outbox).
+  if (createdId && !isReplay) fireEmail(createdId, "booking_confirmation", "web_create", input.ctx);
+  return result;
 }
 
 /** Booking manual oleh admin: baru_masuk (tanpa timer) + hold kursi. */
@@ -323,7 +341,7 @@ export function applyTransition(
   action: TransitionAction,
   opts: TransitionOptions,
 ): Booking {
-  return txImmediate((): Booking => {
+  const updated = txImmediate((): Booking => {
     const booking = bookingsRepo.findById(bookingId);
     if (!booking) throw AppError.notFound("Booking tidak ditemukan.");
     const from = booking.status as BookingStatus;
@@ -423,6 +441,11 @@ export function applyTransition(
     });
     return updated;
   });
+  // Trigger email setelah commit (fire-and-forget, is_test->dryrun, idempoten):
+  // pembatalan/refund saat cancel; e-voucher saat mencapai siap_jalan.
+  if (action === "cancel") fireEmail(bookingId, "cancellation", "cancel", opts.ctx);
+  if (updated.status === "siap_jalan") fireEmail(bookingId, "evoucher", "siap_jalan", opts.ctx);
+  return updated;
 }
 
 /** Ringkasan publik by code + token (untuk halaman langkah 4 yang bertahan refresh). */

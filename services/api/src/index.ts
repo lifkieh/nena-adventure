@@ -2,6 +2,7 @@ import { env } from "./env.js";
 import { buildApp } from "./app.js";
 import { startExpiryJob } from "./usecases/booking/expiry-job.js";
 import { purgeOverduePii } from "./usecases/pii-purge.js";
+import { retryOutbox, runSettlementReminders } from "./usecases/notification/service.js";
 import * as content from "./usecases/content/service.js";
 import { diffAgainstBaseline } from "./db/content-baseline.js";
 
@@ -39,6 +40,12 @@ async function main(): Promise<void> {
       }
     }, 24 * 60 * 60 * 1000);
     purgeTimer.unref?.();
+    // Retry email outbox tiap 5 menit (backoff via attempt_count, maks 3).
+    const retryTimer = setInterval(() => { void retryOutbox().catch(() => {}); }, 5 * 60 * 1000);
+    retryTimer.unref?.();
+    // Reminder pelunasan tiap 12 jam (idempoten per booking).
+    const settleTimer = setInterval(() => { void runSettlementReminders().catch(() => {}); }, 12 * 60 * 60 * 1000);
+    settleTimer.unref?.();
     app.log.info(`Situs publik : http://localhost:${env.PORT}/`);
     app.log.info(`Panel admin  : http://localhost:${env.PORT}/panel/`);
     app.log.info(`API health   : http://localhost:${env.PORT}/api/health`);

@@ -57,38 +57,22 @@ export function BookingDetailPage() {
     p.then(() => { setErr(null); refresh(); }).catch((e) => setErr(e instanceof ApiError ? e.message : "Aksi gagal."));
   }
 
-  // #8: email = kanal utama. Konfirmasi (tampilkan tujuan + preview) sebelum kirim.
+  // Email manual (mis. Tagihan). Konfirmasi dulu; hasil ditampilkan status manusiawi.
   async function sendEmail(key: string, label: string) {
     try {
-      const pv = await notifApi.preview(id, key);
-      if (!pv.emailTo) { setErr("Booking ini tidak punya alamat email."); return; }
+      const email = String(b.customerEmail ?? "");
+      if (!email) { setErr("Booking ini tidak punya alamat email."); return; }
       const r = await confirm({
         title: `Kirim email: ${label}?`,
         confirmLabel: "Kirim email",
-        body: (
-          <div className="space-y-1 text-sm">
-            <div><span className="text-slate-400">Ke:</span> <b>{pv.emailTo}</b></div>
-            <div><span className="text-slate-400">Subjek:</span> {pv.subject}</div>
-            <div className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs text-slate-600">{pv.body}</div>
-          </div>
-        ),
+        body: <>Kirim template <b>{label}</b> ke <b>{email}</b>? Isi email memakai data booking ini. Hasil tercatat di Riwayat notifikasi.</>,
       });
       if (!r.confirmed) return;
       const res = await notifApi.sendEmail(id, key);
       setErr(null);
-      setMsg(`Email "${label}" terkirim ke ${res.to}.`);
+      setMsg(res ? `Email "${label}": ${res.statusLabel}${res.mode !== "live" ? ` (mode ${res.mode})` : ""}.` : `Email "${label}" diproses.`);
       qc.invalidateQueries({ queryKey: ["booking-emails", id] });
-      qc.invalidateQueries({ queryKey: ["booking-history", id] });
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal mengirim email."); setMsg(null); }
-  }
-
-  // WhatsApp = aksi sekunder manual (buka wa.me di tab baru).
-  async function openWa(key: string) {
-    try {
-      const pv = await notifApi.preview(id, key);
-      if (pv.waLink) window.open(pv.waLink, "_blank", "noopener");
-      else setErr("Nomor WhatsApp pemesan tidak tersedia.");
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "Gagal menyiapkan WhatsApp."); }
   }
 
   async function savePhone() {
@@ -143,32 +127,21 @@ export function BookingDetailPage() {
         </div>
       )}
 
-      {/* Kirim notifikasi: email = kanal utama (SMTP), WhatsApp = aksi sekunder manual. */}
+      {/* Kirim email notifikasi (kanal email). WhatsApp hanya kontak manual di bawah. */}
       {canWrite && (notifQ.data?.length ?? 0) > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
-          <div className="mb-2 font-semibold text-slate-500">Kirim notifikasi</div>
-          <div className="space-y-2">
-            {notifQ.data!.map((t: NotifTemplate) => {
-              const smtpReady = smtpQ.data?.configured ?? false;
-              return (
-                <div key={t.key} className="flex flex-wrap items-center gap-2">
-                  <span className="w-40 text-slate-600">{t.label}</span>
-                  <button
-                    disabled={!smtpReady}
-                    title={smtpReady ? "" : "Atur SMTP dulu di pengaturan"}
-                    className="rounded bg-laut px-3 py-1 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                    onClick={() => sendEmail(t.key, t.label)}
-                  >Kirim email</button>
-                  <button
-                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                    onClick={() => openWa(t.key)}
-                  >WhatsApp (manual)</button>
-                </div>
-              );
-            })}
+          <div className="mb-2 font-semibold text-slate-500">Kirim email notifikasi</div>
+          <div className="flex flex-wrap gap-2">
+            {notifQ.data!.map((t: NotifTemplate) => (
+              <button
+                key={t.key}
+                className="rounded border border-slate-300 px-3 py-1 text-xs font-semibold text-laut hover:bg-slate-50"
+                onClick={() => sendEmail(t.key, t.label)}
+              >{t.label}</button>
+            ))}
           </div>
           {!(smtpQ.data?.configured ?? false) && (
-            <p className="mt-2 text-xs text-slate-400">SMTP belum dikonfigurasi — tombol "Kirim email" nonaktif. Atur SMTP di environment server.</p>
+            <p className="mt-2 text-xs text-slate-400">SMTP belum dikonfigurasi — email berjalan mode dryrun (tercatat di Riwayat notifikasi, tidak benar-benar terkirim).</p>
           )}
         </div>
       )}
@@ -306,15 +279,15 @@ export function BookingDetailPage() {
               {emailsQ.data!.items.map((e) => (
                 <li key={e.id} className="border-b border-slate-100 pb-2 last:border-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-700">{e.subject ?? e.key ?? "email"}</span>
-                    <span className={`text-xs font-bold ${e.status === "success" ? "text-emerald-600" : "text-red-600"}`}>
-                      {e.status === "success" ? "berhasil" : "gagal"}
+                    <span className="font-semibold text-slate-700">{e.subject}</span>
+                    <span className={`text-xs font-bold ${e.status === "sent" ? "text-emerald-600" : e.status === "failed" ? "text-red-600" : "text-slate-500"}`}>
+                      {e.statusLabel}{e.mode !== "live" ? ` · ${e.mode}` : ""}
                     </span>
                   </div>
                   <div className="text-xs text-slate-400">
-                    {e.to ?? "-"} · {formatJakarta(e.createdAt)} WIB · {e.actorEmail ?? "sistem"}
+                    {e.to} · {formatJakarta(e.sentAt ?? e.createdAt)} WIB
                   </div>
-                  {e.error && <div className="text-xs text-red-600">Galat: {e.error}</div>}
+                  {e.lastError && <div className="text-xs text-amber-600">{e.lastError}</div>}
                 </li>
               ))}
             </ul>

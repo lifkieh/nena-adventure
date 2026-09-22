@@ -20,10 +20,17 @@ function getTransport(): Transporter {
   return transporter;
 }
 
+function fromField(): string {
+  const name = env.MAIL_FROM_NAME;
+  return name ? `"${name}" <${env.MAIL_FROM}>` : String(env.MAIL_FROM);
+}
+
 export interface MailInput {
   to: string;
   subject: string;
   text: string;
+  html?: string;
+  headers?: Record<string, string>;
 }
 
 /** Kirim email. Melempar bila SMTP belum dikonfigurasi atau gagal kirim. */
@@ -32,10 +39,12 @@ export async function sendMail(input: MailInput): Promise<{ messageId: string }>
     throw new Error("SMTP belum dikonfigurasi.");
   }
   const info = await getTransport().sendMail({
-    from: env.MAIL_FROM,
+    from: fromField(),
     to: input.to,
     subject: input.subject,
     text: input.text,
+    html: input.html,
+    headers: input.headers,
   });
   return { messageId: String(info.messageId ?? "") };
 }

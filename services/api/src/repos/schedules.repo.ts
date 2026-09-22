@@ -39,12 +39,17 @@ export function remove(id: string): void {
   db.delete(schedules).where(eq(schedules.id, id)).run();
 }
 
-/** Kursi terpakai = SUM(delta) (>=0), independen dari kolom kapasitas. */
+/**
+ * Kursi terpakai = SUM(delta) untuk booking NON-UJI (is_test=0) + baris tanpa
+ * booking (penyesuaian manual). Aturan sama dengan Laporan (kursi terjual per
+ * jadwal juga mengecualikan data uji) supaya angka konsisten di seluruh panel.
+ */
 export function usedSeats(scheduleId: string): number {
   const row = db
     .select({ used: sql<number>`coalesce(sum(${seatLedger.delta}), 0)` })
     .from(seatLedger)
-    .where(eq(seatLedger.scheduleId, scheduleId))
+    .leftJoin(bookings, eq(bookings.id, seatLedger.bookingId))
+    .where(and(eq(seatLedger.scheduleId, scheduleId), sql`coalesce(${bookings.isTest}, 0) = 0`))
     .get();
   return row?.used ?? 0;
 }
@@ -96,16 +101,11 @@ export function findManyByIds(ids: string[]): ScheduleRow[] {
   return db.select().from(schedules).where(inArray(schedules.id, ids)).all();
 }
 
-/** Sisa kursi = capacity - SUM(delta). TIDAK ada counter. */
+/** Sisa kursi = capacity - kursi terpakai (non-uji). TIDAK ada counter. */
 export function remainingSeats(scheduleId: string): number {
   const sched = findById(scheduleId);
   if (!sched) return 0;
-  const row = db
-    .select({ used: sql<number>`coalesce(sum(${seatLedger.delta}), 0)` })
-    .from(seatLedger)
-    .where(eq(seatLedger.scheduleId, scheduleId))
-    .get();
-  return sched.capacity - (row?.used ?? 0);
+  return sched.capacity - usedSeats(scheduleId);
 }
 
 /** Jadwal open & belum lewat (tanggal >= hari ini), diurut tanggal. */
