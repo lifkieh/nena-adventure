@@ -37,13 +37,23 @@ async function waitHealth(ms = 30000) {
   throw new Error("API smoke tidak siap.");
 }
 
+// Klik tombol stepper hanya selagi belum disabled — hindari retry actionability
+// Playwright yang lambat (~30d per klik) saat pax sudah di batas min/max (mis. private trip lantai 2 pax).
+async function clickStepper(page, selector, times) {
+  for (let i = 0; i < times; i++) {
+    const disabled = await page.$eval(selector, (e) => e.disabled).catch(() => true);
+    if (disabled) break;
+    await page.click(selector, { timeout: 2000 }).catch(() => {});
+  }
+}
+
 async function bookPkg(browser, pkg, pax, expectTotal) {
   const p = await (await browser.newContext()).newPage();
   await p.goto(base + "/#/booking?pkg=" + pkg, { waitUntil: "load" });
   await p.waitForSelector('#tanggal option[value]:not([value=""])', { state: "attached", timeout: 10000 });
   const anyer = await p.$('input[name="mp"][data-mp="anyer"]'); if (anyer) await anyer.check().catch(() => {});
-  for (let i = 0; i < 6; i++) await p.click("#minus").catch(() => {});
-  for (let i = 1; i < pax; i++) await p.click("#plus").catch(() => {});
+  await clickStepper(p, "#minus", 6);
+  await clickStepper(p, "#plus", pax - 1);
   await p.selectOption("#tanggal", { index: 1 });
   await p.click("#to2");
   await p.fill("#nama", "SMOKE " + pkg); await p.fill("#hp", "081299990000"); await p.fill("#email", "smoke@x.co");
