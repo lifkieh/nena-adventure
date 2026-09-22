@@ -124,6 +124,8 @@ try {
   // Kalender: buka Oktober 2026, pastikan 31 tampil dgn chip Terbit.
   await pg.goto(base + "/panel/schedules", { waitUntil: "load" });
   await pg.waitForTimeout(600);
+  await pg.click('button:has-text("Tampilkan kalender")').catch(() => {});
+  await pg.waitForTimeout(400);
   for (let i = 0; i < 6; i++) {
     const label = await pg.$$eval("b", (els) => els.map((e) => e.textContent || "").find((t) => /20\d\d/.test(t)) || "").catch(() => "");
     if (/Oktober 2026/.test(label)) break;
