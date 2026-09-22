@@ -73,6 +73,12 @@ import { faqHtml, syaratHtml, testimoniHtml, testimoniChipInner, itineraryHtml, 
         var bb = document.querySelector('header a.btn--go.btn--sm[href="#/booking"]');
         if (bb) bb.textContent = c.navbar.bookingLabel;
       }
+      // Menu mobile (#mm): overlay teks per-anchor sesuai urutan (byte-identik bila
+      // nilai CMS == teks asli). Tak mengubah struktur DOM.
+      if (Array.isArray(c.navbar.mobileLinks)){
+        var mmA = document.querySelectorAll('#mm a');
+        c.navbar.mobileLinks.forEach(function(lbl, i){ if (mmA[i]) mmA[i].textContent = lbl; });
+      }
     }
     if (c.meta){
       if (c.meta.title){ document.title = c.meta.title; }

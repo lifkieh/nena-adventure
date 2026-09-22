@@ -60,7 +60,7 @@ export function ContentPage() {
   const [kes, setKes] = useState<KesCard[]>([]);
   const [kesPolicy, setKesPolicy] = useState<KesPolicy>({ heading: "", body: "" });
   const [regSteps, setRegSteps] = useState<RegStep[]>([]);
-  const [navbar, setNavbar] = useState<{ links: Record<string, string>; bookingLabel: string }>({ links: {}, bookingLabel: "" });
+  const [navbar, setNavbar] = useState<{ links: Record<string, string>; bookingLabel: string; mobileLinks: string[] }>({ links: {}, bookingLabel: "", mobileLinks: [] });
   const [metaFields, setMetaFields] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export function ContentPage() {
     setKes(((src?.cards as (KesCard & { items?: string[] })[]) ?? []).map((c) => ({ iconSvg: c.iconSvg, title: c.title, body: c.body, raw: (c.items ?? []).join("\n") })));
     setKesPolicy((src?.policy as KesPolicy) ?? { heading: "", body: "" });
     setRegSteps(((src?.steps as RegStep[]) ?? []).map((s) => ({ title: s.title, body: s.body })));
-    setNavbar({ links: { ...((src?.links as Record<string, string>) ?? {}) }, bookingLabel: (src?.bookingLabel as string) ?? "" });
+    setNavbar({ links: { ...((src?.links as Record<string, string>) ?? {}) }, bookingLabel: (src?.bookingLabel as string) ?? "", mobileLinks: Array.isArray(src?.mobileLinks) ? [...(src!.mobileLinks as string[])] : [] });
     setMetaFields({
       title: (src?.title as string) ?? "", description: (src?.description as string) ?? "",
       ogTitle: (src?.ogTitle as string) ?? "", ogDescription: (src?.ogDescription as string) ?? "", ogImage: (src?.ogImage as string) ?? "",
@@ -391,6 +391,14 @@ export function ContentPage() {
               <span className="mb-1 block font-semibold text-slate-600">Label tombol Booking online</span>
               <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={navbar.bookingLabel} onChange={(e) => setNavbar({ ...navbar, bookingLabel: e.target.value })} disabled={!canWrite} />
             </label>
+            {navbar.mobileLinks.length > 0 && (
+              <div className="mt-2">
+                <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Menu mobile (label lengkap)</div>
+                {navbar.mobileLinks.map((lbl, i) => (
+                  <input key={i} className="mb-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" value={lbl} onChange={(e) => setNavbar({ ...navbar, mobileLinks: navbar.mobileLinks.map((x, j) => (j === i ? e.target.value : x)) })} disabled={!canWrite} />
+                ))}
+              </div>
+            )}
           </div>
         ) : key === "meta" ? (
           <div className="space-y-2">

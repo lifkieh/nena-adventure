@@ -139,6 +139,19 @@ function pushSingle(section, tagRe, from = 0) {
   const hdr = html.indexOf('<header class="hdr"');
   pushSingle("navbar", /<a class="btn btn--go btn--sm" href="#\/booking">/g, hdr);
 }
+// mobile menu (#mm): ui.js overlays textContent tiap <a> dari navbar.mobileLinks.
+{
+  const mmStart = html.indexOf('<div class="mm" id="mm"');
+  const mmEnd = html.indexOf("</div>", mmStart);
+  const re = /<a [^>]*>/g;
+  re.lastIndex = mmStart;
+  let m;
+  while ((m = re.exec(html)) && m.index < mmEnd) {
+    const openEnd = html.indexOf(">", m.index);
+    const closeIdx = html.indexOf("<", openEnd + 1);
+    CMS_SINGLE.push({ start: openEnd + 1, end: closeIdx, section: "navbar" });
+  }
+}
 // meta: <title> text node (head)
 pushSingle("meta", /<title>/g);
 

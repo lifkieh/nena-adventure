@@ -7,8 +7,8 @@ _Generated mechanically by `scripts/cms-inventory.mjs` from `apps/site/index.htm
 | Metric | Count |
 |---|---:|
 | Total visible strings | 775 |
-| — CMS-backed | 340 |
-| — Hardcoded | 435 |
+| — CMS-backed | 350 |
+| — Hardcoded | 425 |
 | Total images | 42 |
 | — CMS-backed | 20 |
 | — Hardcoded | 22 |
@@ -22,7 +22,7 @@ _Generated mechanically by `scripts/cms-inventory.mjs` from `apps/site/index.htm
 |---|---|---|---|
 | Meta / head | 10 (4/6) | 2 (1/1) | no |
 | Navbar & header | 10 (7/3) | 1 (0/1) | yes |
-| Navbar & header (mobile menu) | 10 (0/10) | 0 (0/0) | yes |
+| Navbar & header (mobile menu) | 10 (10/0) | 0 (0/0) | yes |
 | Beranda (home) | 105 (21/84) | 17 (0/17) | yes |
 | Paket page | 189 (93/96) | 0 (0/0) | yes |
 | Itinerary page | 91 (87/4) | 0 (0/0) | yes |
@@ -74,16 +74,16 @@ _Generated mechanically by `scripts/cms-inventory.mjs` from `apps/site/index.htm
 
 | # | Kind | Content | Status | CMS section | Parity |
 |---:|---|---|---|---|---|
-| 1 | text | Destinasi & Pulau Sangiang | hardcoded | — | yes |
-| 2 | text | Paket & harga | hardcoded | — | yes |
-| 3 | text | Itinerary | hardcoded | — | yes |
-| 4 | text | Keselamatan & asuransi | hardcoded | — | yes |
-| 5 | text | Jadwal keberangkatan | hardcoded | — | yes |
-| 6 | text | Lokasi & meeting point | hardcoded | — | yes |
-| 7 | text | Registrasi & pembayaran | hardcoded | — | yes |
-| 8 | text | Syarat & ketentuan | hardcoded | — | yes |
-| 9 | text | FAQ | hardcoded | — | yes |
-| 10 | text | Booking online | hardcoded | — | yes |
+| 1 | text | Destinasi & Pulau Sangiang | CMS | navbar | yes |
+| 2 | text | Paket & harga | CMS | navbar | yes |
+| 3 | text | Itinerary | CMS | navbar | yes |
+| 4 | text | Keselamatan & asuransi | CMS | navbar | yes |
+| 5 | text | Jadwal keberangkatan | CMS | navbar | yes |
+| 6 | text | Lokasi & meeting point | CMS | navbar | yes |
+| 7 | text | Registrasi & pembayaran | CMS | navbar | yes |
+| 8 | text | Syarat & ketentuan | CMS | navbar | yes |
+| 9 | text | FAQ | CMS | navbar | yes |
+| 10 | text | Booking online | CMS | navbar | yes |
 
 ## Beranda (home)
 

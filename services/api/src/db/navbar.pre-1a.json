@@ -7,5 +7,17 @@
     "jadwal": "Jadwal",
     "lokasi": "Lokasi"
   },
-  "bookingLabel": "Booking online"
+  "bookingLabel": "Booking online",
+  "mobileLinks": [
+    "Destinasi & Pulau Sangiang",
+    "Paket & harga",
+    "Itinerary",
+    "Keselamatan & asuransi",
+    "Jadwal keberangkatan",
+    "Lokasi & meeting point",
+    "Registrasi & pembayaran",
+    "Syarat & ketentuan",
+    "FAQ",
+    "Booking online"
+  ]
 }
